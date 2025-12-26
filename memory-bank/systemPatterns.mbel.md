@@ -9,7 +9,11 @@ mbel-lsp/
 │   ├── mbel-analyzer/{Diagnostics}✓
 │   ├── mbel-lsp/{Server+Features}✓
 │   └── vscode-extension/{Client}✓
+├── .opencode/
+│   ├── command/{mb.md,mb-pending.md,mb-recent.md}✓
+│   └── tool/{mbel-query.ts}✓
 ├── memory-bank/{*.mbel.md}
+├── opencode.json{lsp-config}
 └── package.json{npm-workspaces}
 )
 
@@ -37,3 +41,4 @@ Source{.mbel/.mbel.md}→Lexer{tokens}→Parser{AST}→Analyzer{diagnostics}→L
 - AST::ImmutableNodes{readonly,Position}
 - LSP::EventDriven{didOpen,didChange,didClose}
 - LLMQueries::PatternMatching{regex,semantic}
+- OpenCodeIntegration::SlashCommands{!shell-injection}+CustomTool{zod-schema}

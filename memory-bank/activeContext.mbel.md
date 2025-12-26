@@ -1,8 +1,9 @@
 §MBEL:5.0
 
 [FOCUS]
-@focus::VSCodeExtension{Complete}
+@focus::OpenCodeIntegration{Complete}
 >completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
+>completed::OpenCodeIntegration{SlashCommands+CustomTool}✓
 
 [DONE]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -21,13 +22,16 @@
 ✓TDDAB#8::LLMQueryMethods{11tests,semantic-queries}
 ✓FileExtension::.mbel.md{dual-support}
 ✓MBELSyntax::ConvertToSectionBrackets{[SECTION]instead-of-##}
+✓OpenCodeSlashCommands::/mb,/mb-pending,/mb-recent
+✓OpenCodeCustomTool::mbel-query{status,pending,completed,failed,critical,active,recent,all}
+✓OpenCodeConfig::opencode.json{lsp-integration}
 
 [RECENT]
+>added::OpenCodeSlashCommands{/mb,/mb-pending,/mb-recent}
+>added::OpenCodeCustomTool{mbel-query}
+>fixed::opencode.json{lsp-config-format}
 >converted::MemoryBankFiles{##→[SECTION]}
 >added::LLMQueryMethods{getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus}
->added::FindReferences+WorkspaceSymbols
->added::.mbel.md{file-extension-support}
->fixed::VSIXPackaging{monorepo-structure}
 
 [DECISIONS]
 §decision::TypeScriptOnly{noAny,strict}
@@ -41,6 +45,7 @@
 §decision::IncrementalSync{TextDocumentSyncKind.Incremental}
 §decision::NestedDocumentSymbols{attributesUnderSections}
 §decision::SectionBrackets{[SECTION]not##Title}
+§decision::OpenCodeIntegration{SlashCommands+CustomTool>MCP}
 
 [NEXT]
 ?RenameSymbol::RefactorSupport
@@ -56,3 +61,5 @@
 @note::Coverage::%87{overall}
 @note::AllTDDABBlocksComplete::✓
 @note::LLMQueryMethods::getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus
+@note::OpenCodeCommands::/mb{full-status},/mb-pending{pending-items},/mb-recent{recent-changes}
+@note::OpenCodeTool::mbel-query{semantic-queries-for-llm}

@@ -67,6 +67,15 @@
 ├─ Commit::3fe492d
 └─ Features::getPending+getCompleted+getFailed+getCritical+getActive+getRecentChanges+getProjectStatus
 
+[OPENCODE_INTEGRATION]
+✓SlashCommands+CustomTool
+├─ /mb::FullMemoryBankStatusQuery
+├─ /mb-pending::PendingItemsQuery
+├─ /mb-recent::RecentChangesQuery
+├─ mbel-query::CustomToolForLLM{status,pending,completed,failed,critical,active,recent,all}
+├─ Commit::9e671f0
+└─ Config::opencode.json{lsp-integration}
+
 [METRICS]
 @metrics::
 - TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
@@ -85,3 +94,4 @@
 7. 317c729::feat(lsp):go-to-definition
 8. e41ba3a::feat(lsp):find-references+workspace-symbols
 9. 3fe492d::feat(lsp):llm-query-methods
+10. 9e671f0::feat(opencode):slash-commands+custom-tool
