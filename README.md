@@ -27,6 +27,37 @@ Specialized methods for AI agents to query project status efficiently:
 | `getRecentChanges()` | `>` | Get all recent changes |
 | `getProjectStatus()` | - | Get aggregated counts |
 
+### OpenCode Integration
+
+Full integration with [OpenCode](https://opencode.ai) AI coding assistant:
+
+**Slash Commands** - Type these in OpenCode TUI:
+| Command | Description |
+|---------|-------------|
+| `/mb` | Full Memory Bank status query |
+| `/mb-pending` | Show pending items (?) |
+| `/mb-recent` | Show recent changes (>) |
+
+**Custom Tool** - The LLM can call `mbel-query` directly:
+```
+mbel-query(query: "status")   # Get project status counts
+mbel-query(query: "pending")  # Get pending items
+mbel-query(query: "all")      # Full project overview
+```
+
+**LSP Integration** - Configure in `opencode.json`:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "lsp": {
+    "mbel": {
+      "command": ["node", "path/to/mbel-lsp/dist/bin.js", "--stdio"],
+      "extensions": [".mbel", ".mbel.md"]
+    }
+  }
+}
+```
+
 ## File Extensions
 
 The LSP supports two file extensions:
@@ -78,7 +109,11 @@ mbel-lsp/
 │   ├── mbel-analyzer/      # Semantic analysis + Diagnostics
 │   ├── mbel-lsp/           # LSP Server
 │   └── vscode-extension/   # VSCode client
+├── .opencode/
+│   ├── command/            # Slash commands (/mb, /mb-pending, /mb-recent)
+│   └── tool/               # Custom tools (mbel-query)
 ├── memory-bank/            # Example MBEL files
+├── opencode.json           # OpenCode LSP config
 └── package.json            # npm workspaces
 ```
 
@@ -140,6 +175,13 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [ ] **Rename Symbol** - Rename sections/attributes across file
 - [ ] **Folding Ranges** - Collapse sections and code blocks
 - [ ] **Code Actions** - Quick fixes for common errors
+
+### Completed
+- [x] **OpenCode Integration** - Slash commands + Custom tools
+- [x] **LLM Query Methods** - Semantic queries for AI agents
+- [x] **Go to Definition** - Navigate to declarations
+- [x] **Find References** - Find all usages
+- [x] **Workspace Symbols** - Cross-file symbol search
 
 ### Future
 - [ ] **Multi-file Support** - Cross-file references and diagnostics
