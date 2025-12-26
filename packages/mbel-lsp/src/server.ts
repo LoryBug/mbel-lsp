@@ -9,18 +9,69 @@ import {
   InitializeResult,
   Diagnostic as LspDiagnostic,
   DiagnosticSeverity,
+  Hover,
+  CompletionItem,
+  CompletionItemKind,
+  DocumentSymbol,
+  SymbolKind,
+  Position,
+  Range,
+  MarkupKind,
 } from 'vscode-languageserver/node.js';
 
 import { MbelAnalyzer } from '@mbel/analyzer';
+import { MbelParser } from '@mbel/core';
 import type { Diagnostic } from '@mbel/analyzer';
 import type { MbelServerOptions, DocumentState } from './types.js';
 import { createInitializeResult } from './types.js';
+
+/**
+ * Operator documentation for hover and completion
+ */
+const OPERATOR_INFO: Record<string, { label: string; description: string; category: string }> = {
+  // Temporal
+  '@': { label: '@', description: 'Present/current state marker', category: 'Temporal' },
+  '>': { label: '>', description: 'Past/completed state marker', category: 'Temporal' },
+  '?': { label: '?', description: 'Future/planned state marker', category: 'Temporal' },
+  '≈': { label: '≈', description: 'Approximate/estimated state marker', category: 'Temporal' },
+  // State
+  '✓': { label: '✓', description: 'Complete/done state', category: 'State' },
+  '✗': { label: '✗', description: 'Failed/cancelled state', category: 'State' },
+  '!': { label: '!', description: 'Critical/important marker', category: 'State' },
+  '⚡': { label: '⚡', description: 'Active/in-progress state', category: 'State' },
+  // Relation
+  '::': { label: '::', description: 'Defines/binds relation', category: 'Relation' },
+  ':': { label: ':', description: 'Simple binding (version)', category: 'Relation' },
+  '→': { label: '→', description: 'Leads to/causes relation', category: 'Relation' },
+  '←': { label: '←', description: 'Comes from/caused by relation', category: 'Relation' },
+  '↔': { label: '↔', description: 'Mutual/bidirectional relation', category: 'Relation' },
+  '+': { label: '+', description: 'Addition/combination', category: 'Relation' },
+  '-': { label: '-', description: 'Removal/subtraction', category: 'Relation' },
+  // Structure
+  '[': { label: '[...]', description: 'Section declaration', category: 'Structure' },
+  '{': { label: '{...}', description: 'Metadata block', category: 'Structure' },
+  '(': { label: '(...)', description: 'Note/comment block', category: 'Structure' },
+  '<': { label: '<...>', description: 'Variant/template block', category: 'Structure' },
+  '|': { label: '|', description: 'Alternative/or separator', category: 'Structure' },
+  // Quantification
+  '#': { label: '#', description: 'Count/number quantifier', category: 'Quantification' },
+  '%': { label: '%', description: 'Percentage quantifier', category: 'Quantification' },
+  '~': { label: '~', description: 'Range/approximate quantifier', category: 'Quantification' },
+  // Logic
+  '&': { label: '&', description: 'Logical AND', category: 'Logic' },
+  '||': { label: '||', description: 'Logical OR', category: 'Logic' },
+  '¬': { label: '¬', description: 'Logical NOT', category: 'Logic' },
+  // Meta
+  '§': { label: '§', description: 'Version declaration', category: 'Meta' },
+  '©': { label: '©', description: 'Source/attribution', category: 'Meta' },
+};
 
 /**
  * MbelServer - Language Server for MBEL v5
  */
 export class MbelServer {
   private readonly analyzer: MbelAnalyzer;
+  private readonly parser = new MbelParser();
   private readonly documents = new Map<string, DocumentState>();
   private readonly options: Required<MbelServerOptions>;
 
@@ -37,7 +88,6 @@ export class MbelServer {
    * Handle initialize request
    */
   onInitialize(params: InitializeParams): InitializeResult {
-    // Store capabilities from client for future use
     void params;
     return createInitializeResult();
   }
@@ -112,13 +162,155 @@ export class MbelServer {
   }
 
   /**
+   * Get hover info at position
+   */
+  getHover(uri: string, position: Position): Hover | null {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return null;
+    }
+
+    const lines = doc.content.split('\n');
+    const line = lines[position.line];
+    if (!line) {
+      return null;
+    }
+
+    // Check for operator at position
+    const char = line.charAt(position.character);
+    const twoChar = line.substring(position.character, position.character + 2);
+
+    // Check two-char operators first
+    if (twoChar === '::' || twoChar === '||') {
+      const info = OPERATOR_INFO[twoChar];
+      if (info) {
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `**${info.label}** - ${info.category}\n\n${info.description}`,
+          },
+        };
+      }
+    }
+
+    // Check single-char operators
+    const info = OPERATOR_INFO[char];
+    if (info) {
+      return {
+        contents: {
+          kind: MarkupKind.Markdown,
+          value: `**${info.label}** - ${info.category}\n\n${info.description}`,
+        },
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get completions at position
+   */
+  getCompletions(uri: string, position: Position): CompletionItem[] {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+
+    // Position can be used for context-aware completions in the future
+    void position;
+
+    // Return all operators as completions
+    const completions: CompletionItem[] = [];
+
+    for (const [op, info] of Object.entries(OPERATOR_INFO)) {
+      completions.push({
+        label: op,
+        kind: CompletionItemKind.Operator,
+        documentation: {
+          kind: MarkupKind.Markdown,
+          value: `**${info.category}**: ${info.description}`,
+        },
+        detail: info.category,
+      });
+    }
+
+    return completions;
+  }
+
+  /**
+   * Get document symbols
+   */
+  getDocumentSymbols(uri: string): DocumentSymbol[] {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+
+    const parseResult = this.parser.parse(doc.content);
+    const symbols: DocumentSymbol[] = [];
+    let currentSection: DocumentSymbol | null = null;
+
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === 'SectionDeclaration') {
+        // Save previous section if exists
+        if (currentSection) {
+          symbols.push(currentSection);
+        }
+
+        // Create new section symbol
+        currentSection = {
+          name: stmt.name,
+          kind: SymbolKind.Module,
+          range: this.toLspRange(stmt.start, stmt.end),
+          selectionRange: this.toLspRange(stmt.start, stmt.end),
+          children: [],
+        };
+      } else if (stmt.type === 'VersionStatement') {
+        const symbol: DocumentSymbol = {
+          name: stmt.name.name,
+          kind: SymbolKind.Constant,
+          range: this.toLspRange(stmt.start, stmt.end),
+          selectionRange: this.toLspRange(stmt.name.start, stmt.name.end),
+          detail: stmt.version,
+        };
+
+        if (currentSection) {
+          currentSection.children?.push(symbol);
+        } else {
+          symbols.push(symbol);
+        }
+      } else if (stmt.type === 'AttributeStatement') {
+        const symbol: DocumentSymbol = {
+          name: stmt.name.name,
+          kind: SymbolKind.Property,
+          range: this.toLspRange(stmt.start, stmt.end),
+          selectionRange: this.toLspRange(stmt.name.start, stmt.name.end),
+        };
+
+        if (currentSection) {
+          currentSection.children?.push(symbol);
+        } else {
+          symbols.push(symbol);
+        }
+      }
+    }
+
+    // Don't forget the last section
+    if (currentSection) {
+      symbols.push(currentSection);
+    }
+
+    return symbols;
+  }
+
+  /**
    * Convert analyzer diagnostic to LSP diagnostic
    */
   private toLspDiagnostic(diag: Diagnostic): LspDiagnostic {
     return {
       range: {
         start: {
-          line: diag.range.start.line - 1, // LSP is 0-based
+          line: diag.range.start.line - 1,
           character: diag.range.start.column - 1,
         },
         end: {
@@ -144,6 +336,16 @@ export class MbelServer {
       case 'hint': return DiagnosticSeverity.Hint;
       default: return DiagnosticSeverity.Information;
     }
+  }
+
+  /**
+   * Convert position to LSP range
+   */
+  private toLspRange(start: { line: number; column: number }, end: { line: number; column: number }): Range {
+    return {
+      start: { line: start.line - 1, character: start.column - 1 },
+      end: { line: end.line - 1, character: end.column - 1 },
+    };
   }
 }
 

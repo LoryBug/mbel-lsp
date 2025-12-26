@@ -9,8 +9,8 @@ mbel-lsp/
 ├── packages/
 │   ├── mbel-core/        ← Lexer+Parser (TDDAB#1-2) ✓
 │   ├── mbel-analyzer/    ← Diagnostics (TDDAB#3) ✓
-│   └── mbel-lsp/         ← LSP Server (TDDAB#4) ✓
-├── vscode-extension/     ← VSCode client (TDDAB#5) ○
+│   └── mbel-lsp/         ← LSP Server+Features (TDDAB#4-5) ✓
+├── vscode-extension/     ← VSCode client (future) ○
 ├── memory-bank/          ← ThisMB
 └── package.json          ← npm workspaces
 ```
@@ -46,11 +46,12 @@ TDDAB#4::LspServer✓
 ├── Coverage::%99
 └── Status::Complete
 
-TDDAB#5::LspFeatures○
+TDDAB#5::LspFeatures✓
 ├── Scope::Hover+Completion+DocumentSymbols
 ├── Dependencies::LspServer
-├── Tests::TBD
-└── Status::NotStarted
+├── Tests::#29
+├── Coverage::%98
+└── Status::Complete
 ```
 
 ## Component Flow

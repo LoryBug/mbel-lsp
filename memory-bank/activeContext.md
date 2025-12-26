@@ -3,8 +3,8 @@
 # Active Context
 
 ## Current Focus
-@focus::TDDABImplementation{Phase4of5Complete}
->completed::CorePackage{Lexer+Parser+Analyzer+LSP}✓
+@focus::TDDABImplementation{Phase5of5Complete}
+>completed::FullLSP{Lexer+Parser+Analyzer+Server+Features}✓
 
 ## What's Done
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -15,13 +15,14 @@
 ✓TDDAB#2::MbelParser{42tests,%91coverage}
 ✓TDDAB#3::MbelAnalyzer{48tests,%95coverage}
 ✓TDDAB#4::LspServer{34tests,%99coverage}
+✓TDDAB#5::LspFeatures{29tests,%98coverage}
 
 ## Recent Changes
->implemented::MbelServer{initialize,textSync,diagnostics,shutdown}
->added::DocumentState{uri,version,content}
->added::ServerCapabilities{completion,hover,documentSymbols}
->added::DiagnosticConversion{analyzerToLsp,0basedPositions}
->added::TextDocumentSync{open,change,close}
+>implemented::HoverProvider{operatorInfo,markdown}
+>implemented::CompletionProvider{27operators,documentation}
+>implemented::DocumentSymbolProvider{sections,attributes,version}
+>added::OperatorInfo{27entries,categories,descriptions}
+>added::NestedSymbols{attributesUnderSections}
 
 ## Design Decisions
 §decision::TypeScriptOnly{noAny,strict}
@@ -33,14 +34,17 @@
 §decision::LSPDiagnosticCodes{16types,hierarchical}
 §decision::ProjectReferences{composite:true}
 §decision::IncrementalSync{TextDocumentSyncKind.Incremental}
+§decision::NestedDocumentSymbols{attributesUnderSections}
 
 ## Next Steps
-?TDDAB#5::LspFeatures{hover,completion,symbols}
-?VSCodeExtension::ClientSide{textmate-grammar}
+?VSCodeExtension::ClientSide{textmate-grammar,extension}
+?PublishPackages::npm{@mbel/core,@mbel/analyzer,@mbel/lsp}
+?Documentation::README+API{usage,examples}
 
 ## Blockers
 ∅None
 
 ## Session Notes
-@note::TotalTests::#185{lexer:61,parser:42,analyzer:48,lsp:34}
-@note::Coverage::%93.51{overall}
+@note::TotalTests::#214{lexer:61,parser:42,analyzer:48,server:34,features:29}
+@note::Coverage::%93.94{overall}
+@note::AllTDDABBlocksComplete::✓

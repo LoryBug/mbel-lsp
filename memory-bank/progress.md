@@ -62,7 +62,7 @@ TDDAB#4::LspServer
 ├── RED::34tests{allFailing}✓
 ├── GREEN::Implementation{153lines}✓
 ├── VERIFY::Coverage%99+Lint+Build✓
-├── Commit::pending
+├── Commit::2ee0f5e
 └── Features::
     ├── Initialize::ServerCapabilities
     ├── TextDocSync::Open+Change+Close
@@ -71,31 +71,32 @@ TDDAB#4::LspServer
     ├── DiagnosticConversion::0basedPositions
     ├── Shutdown::DocumentCleanup
     └── Capabilities::Hover+Completion+Symbols
-```
 
-### ○ Not Started
-```
 TDDAB#5::LspFeatures
-├── Scope::
-│   ├── Hover::OperatorInfo
-│   ├── Completion::Operators+Patterns
-│   ├── DocumentSymbols::Sections+Attrs
-│   └── GoToDefinition::Sections
-└── EstimatedTests::~25
+├── RED::29tests{allFailing}✓
+├── GREEN::Implementation{350lines}✓
+├── VERIFY::Coverage%98+Lint+Build✓
+├── Commit::b4f675f
+└── Features::
+    ├── Hover::OperatorInfo{27operators,markdown}
+    ├── Completion::AllOperators{categories,documentation}
+    ├── DocumentSymbols::Sections+Attrs+Version{nested}
+    └── NestedSymbols::AttributesUnderSections
 ```
 
 ## Metrics
 @metrics::
-- TotalTests::#185{lexer:61,parser:42,analyzer:48,lsp:34}
-- Coverage::Overall%93.51{lsp%99,analyzer%95,lexer%100,parser%87}
+- TotalTests::#214{lexer:61,parser:42,analyzer:48,server:34,features:29}
+- Coverage::Overall%93.94{features%98,server%99,analyzer%95,lexer%100,parser%91}
 - Packages::#3{@mbel/core,@mbel/analyzer,@mbel/lsp}
-- Files::#13{src:8,tests:4,config:8}
-- Lines::~3000
+- Files::#15{src:10,tests:5,config:8}
+- Lines::~3500
 
 ## Git History
 @commits::
 1. 504fba3::chore:initial-project-setup
 2. 62f3370::feat(lexer):mbel-v5-lexer
 3. 0336b13::feat(parser):mbel-v5-parser
-4. pending::feat(analyzer):mbel-v5-diagnostics
-5. pending::feat(lsp):mbel-v5-server
+4. 704b9e6::feat(analyzer):mbel-v5-diagnostics
+5. 2ee0f5e::feat(lsp):mbel-v5-server
+6. b4f675f::feat(lsp):mbel-v5-features
