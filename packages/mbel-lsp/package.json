@@ -1,0 +1,30 @@
+{
+  "name": "@mbel/lsp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MBEL v5 Language Server Protocol Implementation",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mbel-lsp": "./dist/bin.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@mbel/core": "*",
+    "@mbel/analyzer": "*",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "files": ["dist"],
+  "keywords": ["mbel", "lsp", "language-server", "vscode"]
+}
