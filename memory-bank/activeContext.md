@@ -3,8 +3,8 @@
 # Active Context
 
 ## Current Focus
-@focus::TDDABImplementation{Phase5of5Complete}
->completed::FullLSP{Lexer+Parser+Analyzer+Server+Features}✓
+@focus::VSCodeExtension{Complete}
+>completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
 
 ## What's Done
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -16,13 +16,13 @@
 ✓TDDAB#3::MbelAnalyzer{48tests,%95coverage}
 ✓TDDAB#4::LspServer{34tests,%99coverage}
 ✓TDDAB#5::LspFeatures{29tests,%98coverage}
+✓VSCodeExtension::mbel-vscode{textmate,languageClient}
 
 ## Recent Changes
->implemented::HoverProvider{operatorInfo,markdown}
->implemented::CompletionProvider{27operators,documentation}
->implemented::DocumentSymbolProvider{sections,attributes,version}
->added::OperatorInfo{27entries,categories,descriptions}
->added::NestedSymbols{attributesUnderSections}
+>created::VSCodeExtension{mbel-vscode}
+>added::TextMateGrammar{27operators,7categories}
+>added::LanguageClient{stdio,vscode-languageclient}
+>added::BinEntry{packages/mbel-lsp/src/bin.ts}
 
 ## Design Decisions
 §decision::TypeScriptOnly{noAny,strict}
@@ -37,8 +37,7 @@
 §decision::NestedDocumentSymbols{attributesUnderSections}
 
 ## Next Steps
-?VSCodeExtension::ClientSide{textmate-grammar,extension}
-?PublishPackages::npm{@mbel/core,@mbel/analyzer,@mbel/lsp}
+?PackageExtension::vsce{marketplace,vsix}
 ?Documentation::README+API{usage,examples}
 
 ## Blockers

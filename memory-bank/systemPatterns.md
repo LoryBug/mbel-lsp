@@ -10,7 +10,7 @@ mbel-lsp/
 │   ├── mbel-core/        ← Lexer+Parser (TDDAB#1-2) ✓
 │   ├── mbel-analyzer/    ← Diagnostics (TDDAB#3) ✓
 │   └── mbel-lsp/         ← LSP Server+Features (TDDAB#4-5) ✓
-├── vscode-extension/     ← VSCode client (future) ○
+├── vscode-extension/     ← VSCode client (complete) ✓
 ├── memory-bank/          ← ThisMB
 └── package.json          ← npm workspaces
 ```
