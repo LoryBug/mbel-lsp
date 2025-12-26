@@ -16,6 +16,7 @@ import {
   SymbolKind,
   Position,
   Range,
+  Location,
   MarkupKind,
 } from 'vscode-languageserver/node.js';
 
@@ -301,6 +302,95 @@ export class MbelServer {
     }
 
     return symbols;
+  }
+
+  /**
+   * Get definition location for identifier at position
+   */
+  getDefinition(uri: string, position: Position): Location | null {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return null;
+    }
+
+    // Get the word at the cursor position
+    const word = this.getWordAtPosition(doc.content, position);
+    if (!word) {
+      return null;
+    }
+
+    // Parse the document to find definitions
+    const parseResult = this.parser.parse(doc.content);
+
+    // Search for section declaration [WORD]
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === 'SectionDeclaration' && stmt.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.start, stmt.end),
+        };
+      }
+    }
+
+    // Search for attribute definition @word::
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === 'AttributeStatement' && stmt.name.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.name.start, stmt.name.end),
+        };
+      }
+    }
+
+    // Search for version statement §WORD:
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === 'VersionStatement' && stmt.name.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.start, stmt.end),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Get the word (identifier) at a given position
+   */
+  private getWordAtPosition(content: string, position: Position): string | null {
+    const lines = content.split('\n');
+    const line = lines[position.line];
+    if (!line) {
+      return null;
+    }
+
+    // Find word boundaries
+    let start = position.character;
+    let end = position.character;
+
+    // Expand left
+    while (start > 0 && this.isIdentifierChar(line.charAt(start - 1))) {
+      start--;
+    }
+
+    // Expand right
+    while (end < line.length && this.isIdentifierChar(line.charAt(end))) {
+      end++;
+    }
+
+    if (start === end) {
+      return null;
+    }
+
+    return line.substring(start, end);
+  }
+
+  /**
+   * Check if character is valid identifier character
+   */
+  private isIdentifierChar(char: string): boolean {
+    return /[A-Za-z0-9_]/.test(char);
   }
 
   /**

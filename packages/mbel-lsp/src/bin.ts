@@ -75,6 +75,10 @@ connection.onDocumentSymbol((params) => {
   return server.getDocumentSymbols(params.textDocument.uri);
 });
 
+connection.onDefinition((params) => {
+  return server.getDefinition(params.textDocument.uri, params.position);
+});
+
 // Shutdown
 connection.onShutdown(() => {
   server.onShutdown();

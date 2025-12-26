@@ -3415,18 +3415,18 @@ var require_main2 = __commonJS({
         }
         Range3.is = is;
       })(Range2 || (exports3.Range = Range2 = {}));
-      var Location;
-      (function(Location2) {
+      var Location2;
+      (function(Location3) {
         function create(uri, range) {
           return { uri, range };
         }
-        Location2.create = create;
+        Location3.create = create;
         function is(value) {
           var candidate = value;
           return Is.objectLiteral(candidate) && Range2.is(candidate.range) && (Is.string(candidate.uri) || Is.undefined(candidate.uri));
         }
-        Location2.is = is;
-      })(Location || (exports3.Location = Location = {}));
+        Location3.is = is;
+      })(Location2 || (exports3.Location = Location2 = {}));
       var LocationLink;
       (function(LocationLink2) {
         function create(targetUri, targetRange, targetSelectionRange, originSelectionRange) {
@@ -3532,7 +3532,7 @@ var require_main2 = __commonJS({
         DiagnosticRelatedInformation2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.defined(candidate) && Location.is(candidate.location) && Is.string(candidate.message);
+          return Is.defined(candidate) && Location2.is(candidate.location) && Is.string(candidate.message);
         }
         DiagnosticRelatedInformation2.is = is;
       })(DiagnosticRelatedInformation || (exports3.DiagnosticRelatedInformation = DiagnosticRelatedInformation = {}));
@@ -4559,7 +4559,7 @@ var require_main2 = __commonJS({
         InlayHintLabelPart2.create = create;
         function is(value) {
           var candidate = value;
-          return Is.objectLiteral(candidate) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip) || MarkupContent.is(candidate.tooltip)) && (candidate.location === void 0 || Location.is(candidate.location)) && (candidate.command === void 0 || Command.is(candidate.command));
+          return Is.objectLiteral(candidate) && (candidate.tooltip === void 0 || Is.string(candidate.tooltip) || MarkupContent.is(candidate.tooltip)) && (candidate.location === void 0 || Location2.is(candidate.location)) && (candidate.command === void 0 || Command.is(candidate.command));
         }
         InlayHintLabelPart2.is = is;
       })(InlayHintLabelPart || (exports3.InlayHintLabelPart = InlayHintLabelPart = {}));
@@ -10347,7 +10347,8 @@ var MBEL_SERVER_CAPABILITIES = {
     triggerCharacters: ["@", ">", "?", "\u2248", "\xA7", "\xA9", "[", "{", "(", "<"]
   },
   hoverProvider: true,
-  documentSymbolProvider: true
+  documentSymbolProvider: true,
+  definitionProvider: true
 };
 function createInitializeResult() {
   return {
@@ -10593,6 +10594,73 @@ ${info.description}`
     return symbols;
   }
   /**
+   * Get definition location for identifier at position
+   */
+  getDefinition(uri, position) {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return null;
+    }
+    const word = this.getWordAtPosition(doc.content, position);
+    if (!word) {
+      return null;
+    }
+    const parseResult = this.parser.parse(doc.content);
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === "SectionDeclaration" && stmt.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.start, stmt.end)
+        };
+      }
+    }
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === "AttributeStatement" && stmt.name.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.name.start, stmt.name.end)
+        };
+      }
+    }
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.type === "VersionStatement" && stmt.name.name === word) {
+        return {
+          uri,
+          range: this.toLspRange(stmt.start, stmt.end)
+        };
+      }
+    }
+    return null;
+  }
+  /**
+   * Get the word (identifier) at a given position
+   */
+  getWordAtPosition(content, position) {
+    const lines = content.split("\n");
+    const line = lines[position.line];
+    if (!line) {
+      return null;
+    }
+    let start = position.character;
+    let end = position.character;
+    while (start > 0 && this.isIdentifierChar(line.charAt(start - 1))) {
+      start--;
+    }
+    while (end < line.length && this.isIdentifierChar(line.charAt(end))) {
+      end++;
+    }
+    if (start === end) {
+      return null;
+    }
+    return line.substring(start, end);
+  }
+  /**
+   * Check if character is valid identifier character
+   */
+  isIdentifierChar(char) {
+    return /[A-Za-z0-9_]/.test(char);
+  }
+  /**
    * Convert analyzer diagnostic to LSP diagnostic
    */
   toLspDiagnostic(diag) {
@@ -10683,6 +10751,9 @@ connection.onCompletion((params) => {
 });
 connection.onDocumentSymbol((params) => {
   return server.getDocumentSymbols(params.textDocument.uri);
+});
+connection.onDefinition((params) => {
+  return server.getDefinition(params.textDocument.uri, params.position);
 });
 connection.onShutdown(() => {
   server.onShutdown();

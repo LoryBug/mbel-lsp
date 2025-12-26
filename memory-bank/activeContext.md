@@ -18,12 +18,13 @@
 ✓TDDAB#5::LspFeatures{29tests,%98coverage}
 ✓VSCodeExtension::mbel-vscode{textmate,languageClient}
 ✓Documentation::README{installation,improvements}
+✓TDDAB#6::GoToDefinition{11tests,sections+attributes+versions}
 
 ## Recent Changes
->created::VSCodeExtension{mbel-vscode}
->added::TextMateGrammar{27operators,7categories}
->added::LanguageClient{stdio,vscode-languageclient}
->added::BinEntry{packages/mbel-lsp/src/bin.ts}
+>implemented::GoToDefinition{sections,attributes,versions}
+>added::getDefinition{server.ts}
+>added::getWordAtPosition{helper}
+>updated::ServerCapabilities{definitionProvider:true}
 
 ## Design Decisions
 §decision::TypeScriptOnly{noAny,strict}
@@ -38,9 +39,9 @@
 §decision::NestedDocumentSymbols{attributesUnderSections}
 
 ## Next Steps
-?GoToDefinition::NavigateToSections
 ?FindReferences::FindAllUsages
 ?RenameSymbol::RefactorSupport
+?FoldingRanges::CollapseSections
 ?PublishMarketplace::OfficialExtension
 
 ## Blockers

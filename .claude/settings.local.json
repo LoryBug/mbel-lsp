@@ -13,7 +13,8 @@
       "Bash(npx vsce package --allow-missing-repository)",
       "Bash(npx @vscode/vsce package:*)",
       "Bash(cat:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(npm run test:*)"
     ]
   }
 }

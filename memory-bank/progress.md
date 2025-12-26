@@ -82,11 +82,22 @@ TDDAB#5::LspFeatures
     ├── Completion::AllOperators{categories,documentation}
     ├── DocumentSymbols::Sections+Attrs+Version{nested}
     └── NestedSymbols::AttributesUnderSections
+
+TDDAB#6::GoToDefinition
+├── RED::11tests{allFailing}✓
+├── GREEN::Implementation{90lines}✓
+├── VERIFY::AllTestsPass✓
+├── Commit::pending
+└── Features::
+    ├── SectionDefinition::NavigateToDeclaration
+    ├── AttributeDefinition::NavigateToFirstDef
+    ├── VersionDefinition::NavigateTo§Statement
+    └── WordAtPosition::HelperMethod
 ```
 
 ## Metrics
 @metrics::
-- TotalTests::#214{lexer:61,parser:42,analyzer:48,server:34,features:29}
+- TotalTests::#225{lexer:61,parser:42,analyzer:48,server:34,features:40}
 - Coverage::Overall%93.94{features%98,server%99,analyzer%95,lexer%100,parser%91}
 - Packages::#3{@mbel/core,@mbel/analyzer,@mbel/lsp}
 - Files::#15{src:10,tests:5,config:8}
