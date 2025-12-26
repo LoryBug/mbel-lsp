@@ -3,8 +3,8 @@
 # Active Context
 
 ## Current Focus
-@focus::TDDABImplementation{Phase2of5Complete}
->completed::CorePackage{Lexer+Parser}✓
+@focus::TDDABImplementation{Phase4of5Complete}
+>completed::CorePackage{Lexer+Parser+Analyzer+LSP}✓
 
 ## What's Done
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -13,12 +13,15 @@
 ✓ESLintConfig::TypeScriptStrict
 ✓TDDAB#1::MbelLexer{61tests,%100coverage}
 ✓TDDAB#2::MbelParser{42tests,%91coverage}
+✓TDDAB#3::MbelAnalyzer{48tests,%95coverage}
+✓TDDAB#4::LspServer{34tests,%99coverage}
 
 ## Recent Changes
->implemented::MbelLexer{27operators,identifiers,numbers,brackets}
->implemented::MbelParser{AST,statements,expressions,errorRecovery}
->fixed::UnicodeOperators{→←↔¬©§excluded-from-identifiers}
->fixed::VersionParsing{§0.2inline,dots-in-version}
+>implemented::MbelServer{initialize,textSync,diagnostics,shutdown}
+>added::DocumentState{uri,version,content}
+>added::ServerCapabilities{completion,hover,documentSymbols}
+>added::DiagnosticConversion{analyzerToLsp,0basedPositions}
+>added::TextDocumentSync{open,change,close}
 
 ## Design Decisions
 §decision::TypeScriptOnly{noAny,strict}
@@ -27,10 +30,11 @@
 §decision::MonorepoWorkspaces{packages/*}
 §decision::ImmutableAST{readonly-properties}
 §decision::LeftAssociativeChains{A→B→C=(A→B)→C}
+§decision::LSPDiagnosticCodes{16types,hierarchical}
+§decision::ProjectReferences{composite:true}
+§decision::IncrementalSync{TextDocumentSyncKind.Incremental}
 
 ## Next Steps
-?TDDAB#3::MbelDiagnostics{errorTypes,warnings,quickFixes}
-?TDDAB#4::LspServer{initialize,textSync,diagnostics}
 ?TDDAB#5::LspFeatures{hover,completion,symbols}
 ?VSCodeExtension::ClientSide{textmate-grammar}
 
@@ -38,5 +42,5 @@
 ∅None
 
 ## Session Notes
-@note::ContextHigh{88%used}
-@note::MBCreated{forSessionContinuity}
+@note::TotalTests::#185{lexer:61,parser:42,analyzer:48,lsp:34}
+@note::Coverage::%93.51{overall}

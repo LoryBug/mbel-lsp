@@ -8,9 +8,9 @@
 mbel-lsp/
 ├── packages/
 │   ├── mbel-core/        ← Lexer+Parser (TDDAB#1-2) ✓
-│   ├── mbel-analyzer/    ← Diagnostics (TDDAB#3) ○
-│   └── mbel-lsp/         ← LSP Server (TDDAB#4-5) ○
-├── vscode-extension/     ← VSCode client ○
+│   ├── mbel-analyzer/    ← Diagnostics (TDDAB#3) ✓
+│   └── mbel-lsp/         ← LSP Server (TDDAB#4) ✓
+├── vscode-extension/     ← VSCode client (TDDAB#5) ○
 ├── memory-bank/          ← ThisMB
 └── package.json          ← npm workspaces
 ```
@@ -32,17 +32,19 @@ TDDAB#2::MbelParser✓
 ├── Coverage::%91
 └── Status::Complete
 
-TDDAB#3::MbelDiagnostics○
-├── Scope::ErrorDetection+Warnings+Recovery
+TDDAB#3::MbelDiagnostics✓
+├── Scope::ErrorDetection+Warnings+QuickFixes
 ├── Dependencies::mbel-core
-├── Tests::TBD
-└── Status::NotStarted
+├── Tests::#48
+├── Coverage::%95
+└── Status::Complete
 
-TDDAB#4::LspServer○
-├── Scope::Initialize+TextSync+PublishDiagnostics
-├── Dependencies::mbel-core,mbel-analyzer
-├── Tests::TBD
-└── Status::NotStarted
+TDDAB#4::LspServer✓
+├── Scope::Initialize+TextSync+PublishDiagnostics+Shutdown
+├── Dependencies::mbel-core,mbel-analyzer,vscode-languageserver
+├── Tests::#34
+├── Coverage::%99
+└── Status::Complete
 
 TDDAB#5::LspFeatures○
 ├── Scope::Hover+Completion+DocumentSymbols
