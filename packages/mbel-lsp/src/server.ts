@@ -14,6 +14,7 @@ import {
   CompletionItemKind,
   DocumentSymbol,
   SymbolKind,
+  SymbolInformation,
   Position,
   Range,
   Location,
@@ -353,6 +354,134 @@ export class MbelServer {
     }
 
     return null;
+  }
+
+  /**
+   * Find all references to the symbol at the given position
+   */
+  getReferences(uri: string, position: Position): Location[] {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+
+    // Get the word at the cursor position
+    const word = this.getWordAtPosition(doc.content, position);
+    if (!word) {
+      return [];
+    }
+
+    // Find all occurrences of the word in the document
+    return this.findWordOccurrences(uri, doc.content, word);
+  }
+
+  /**
+   * Find all occurrences of a word in content
+   */
+  private findWordOccurrences(uri: string, content: string, word: string): Location[] {
+    const locations: Location[] = [];
+    const lines = content.split('\n');
+
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      const line = lines[lineIndex];
+      if (!line) {
+        continue;
+      }
+      let searchStart = 0;
+
+      while (searchStart < line.length) {
+        const index = line.indexOf(word, searchStart);
+        if (index === -1) {
+          break;
+        }
+
+        // Check word boundaries - must be a complete word
+        const charBefore = index > 0 ? line.charAt(index - 1) : '';
+        const charAfter = index + word.length < line.length ? line.charAt(index + word.length) : '';
+
+        const isWordBoundaryBefore = !this.isIdentifierChar(charBefore);
+        const isWordBoundaryAfter = !this.isIdentifierChar(charAfter);
+
+        if (isWordBoundaryBefore && isWordBoundaryAfter) {
+          locations.push({
+            uri,
+            range: {
+              start: { line: lineIndex, character: index },
+              end: { line: lineIndex, character: index + word.length },
+            },
+          });
+        }
+
+        searchStart = index + 1;
+      }
+    }
+
+    return locations;
+  }
+
+  /**
+   * Get workspace symbols matching a query
+   */
+  getWorkspaceSymbols(query: string): SymbolInformation[] {
+    const symbols: SymbolInformation[] = [];
+    const lowerQuery = query.toLowerCase();
+
+    for (const [docUri, doc] of this.documents) {
+      const parseResult = this.parser.parse(doc.content);
+      let currentSectionName: string | null = null;
+
+      for (const stmt of parseResult.document.statements) {
+        if (stmt.type === 'SectionDeclaration') {
+          currentSectionName = stmt.name;
+
+          // Check if matches query
+          if (query === '' || stmt.name.toLowerCase().includes(lowerQuery)) {
+            symbols.push({
+              name: stmt.name,
+              kind: SymbolKind.Module,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end),
+              },
+            });
+          }
+        } else if (stmt.type === 'AttributeStatement') {
+          // Check if matches query
+          if (query === '' || stmt.name.name.toLowerCase().includes(lowerQuery)) {
+            const symbolInfo: SymbolInformation = {
+              name: stmt.name.name,
+              kind: SymbolKind.Property,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end),
+              },
+            };
+            if (currentSectionName) {
+              symbolInfo.containerName = currentSectionName;
+            }
+            symbols.push(symbolInfo);
+          }
+        } else if (stmt.type === 'VersionStatement') {
+          // Check if matches query
+          if (query === '' || stmt.name.name.toLowerCase().includes(lowerQuery)) {
+            const symbolInfo: SymbolInformation = {
+              name: stmt.name.name,
+              kind: SymbolKind.Constant,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end),
+              },
+            };
+            if (currentSectionName) {
+              symbolInfo.containerName = currentSectionName;
+            }
+            symbols.push(symbolInfo);
+          }
+        }
+      }
+    }
+
+    return symbols;
   }
 
   /**

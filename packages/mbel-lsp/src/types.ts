@@ -44,6 +44,8 @@ export const MBEL_SERVER_CAPABILITIES: ServerCapabilities = {
   hoverProvider: true,
   documentSymbolProvider: true,
   definitionProvider: true,
+  referencesProvider: true,
+  workspaceSymbolProvider: true,
 };
 
 /**

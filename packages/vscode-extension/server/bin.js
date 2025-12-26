@@ -4290,8 +4290,8 @@ var require_main2 = __commonJS({
       (function(SymbolTag2) {
         SymbolTag2.Deprecated = 1;
       })(SymbolTag || (exports3.SymbolTag = SymbolTag = {}));
-      var SymbolInformation;
-      (function(SymbolInformation2) {
+      var SymbolInformation2;
+      (function(SymbolInformation3) {
         function create(name, kind, range, uri, containerName) {
           var result = {
             name,
@@ -4303,8 +4303,8 @@ var require_main2 = __commonJS({
           }
           return result;
         }
-        SymbolInformation2.create = create;
-      })(SymbolInformation || (exports3.SymbolInformation = SymbolInformation = {}));
+        SymbolInformation3.create = create;
+      })(SymbolInformation2 || (exports3.SymbolInformation = SymbolInformation2 = {}));
       var WorkspaceSymbol;
       (function(WorkspaceSymbol2) {
         function create(name, kind, uri, range) {
@@ -10348,7 +10348,9 @@ var MBEL_SERVER_CAPABILITIES = {
   },
   hoverProvider: true,
   documentSymbolProvider: true,
-  definitionProvider: true
+  definitionProvider: true,
+  referencesProvider: true,
+  workspaceSymbolProvider: true
 };
 function createInitializeResult() {
   return {
@@ -10631,6 +10633,112 @@ ${info.description}`
       }
     }
     return null;
+  }
+  /**
+   * Find all references to the symbol at the given position
+   */
+  getReferences(uri, position) {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+    const word = this.getWordAtPosition(doc.content, position);
+    if (!word) {
+      return [];
+    }
+    return this.findWordOccurrences(uri, doc.content, word);
+  }
+  /**
+   * Find all occurrences of a word in content
+   */
+  findWordOccurrences(uri, content, word) {
+    const locations = [];
+    const lines = content.split("\n");
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      const line = lines[lineIndex];
+      if (!line) {
+        continue;
+      }
+      let searchStart = 0;
+      while (searchStart < line.length) {
+        const index = line.indexOf(word, searchStart);
+        if (index === -1) {
+          break;
+        }
+        const charBefore = index > 0 ? line.charAt(index - 1) : "";
+        const charAfter = index + word.length < line.length ? line.charAt(index + word.length) : "";
+        const isWordBoundaryBefore = !this.isIdentifierChar(charBefore);
+        const isWordBoundaryAfter = !this.isIdentifierChar(charAfter);
+        if (isWordBoundaryBefore && isWordBoundaryAfter) {
+          locations.push({
+            uri,
+            range: {
+              start: { line: lineIndex, character: index },
+              end: { line: lineIndex, character: index + word.length }
+            }
+          });
+        }
+        searchStart = index + 1;
+      }
+    }
+    return locations;
+  }
+  /**
+   * Get workspace symbols matching a query
+   */
+  getWorkspaceSymbols(query) {
+    const symbols = [];
+    const lowerQuery = query.toLowerCase();
+    for (const [docUri, doc] of this.documents) {
+      const parseResult = this.parser.parse(doc.content);
+      let currentSectionName = null;
+      for (const stmt of parseResult.document.statements) {
+        if (stmt.type === "SectionDeclaration") {
+          currentSectionName = stmt.name;
+          if (query === "" || stmt.name.toLowerCase().includes(lowerQuery)) {
+            symbols.push({
+              name: stmt.name,
+              kind: import_node.SymbolKind.Module,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end)
+              }
+            });
+          }
+        } else if (stmt.type === "AttributeStatement") {
+          if (query === "" || stmt.name.name.toLowerCase().includes(lowerQuery)) {
+            const symbolInfo = {
+              name: stmt.name.name,
+              kind: import_node.SymbolKind.Property,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end)
+              }
+            };
+            if (currentSectionName) {
+              symbolInfo.containerName = currentSectionName;
+            }
+            symbols.push(symbolInfo);
+          }
+        } else if (stmt.type === "VersionStatement") {
+          if (query === "" || stmt.name.name.toLowerCase().includes(lowerQuery)) {
+            const symbolInfo = {
+              name: stmt.name.name,
+              kind: import_node.SymbolKind.Constant,
+              location: {
+                uri: docUri,
+                range: this.toLspRange(stmt.start, stmt.end)
+              }
+            };
+            if (currentSectionName) {
+              symbolInfo.containerName = currentSectionName;
+            }
+            symbols.push(symbolInfo);
+          }
+        }
+      }
+    }
+    return symbols;
   }
   /**
    * Get the word (identifier) at a given position
