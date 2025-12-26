@@ -8,7 +8,10 @@
 // Lexer
 export { MbelLexer } from './lexer.js';
 
-// Types
+// Parser
+export { MbelParser } from './parser.js';
+
+// Lexer Types
 export type {
   Token,
   TokenType,
@@ -24,3 +27,28 @@ export type {
   LogicOperator,
   MetaOperator,
 } from './types.js';
+
+// AST Types
+export type {
+  AstNode,
+  Document,
+  Statement,
+  Expression,
+  SectionDeclaration,
+  AttributeStatement,
+  VersionStatement,
+  SourceStatement,
+  TemporalStatement,
+  ExpressionStatement,
+  Identifier,
+  NumberLiteral,
+  ChainExpression,
+  LogicExpression,
+  StateExpression,
+  Metadata,
+  MetadataEntry,
+  Note,
+  Variant,
+  ParseResult,
+  ParseError,
+} from './ast.js';
