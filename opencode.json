@@ -2,17 +2,12 @@
   "$schema": "https://opencode.ai/config.json",
   "lsp": {
     "mbel": {
-      "command": "node",
-      "args": [
-        "C:\\Progetti\\mbel-lsp\\packages\\mbel-lsp\\dist\\bin.js",
+      "command": [
+        "node",
+        "C:/Progetti/mbel-lsp/packages/mbel-lsp/dist/bin.js",
         "--stdio"
       ],
-      "rootUri": "${workspaceFolder}",
-      "documentSelector": [
-        { "language": "mbel" },
-        { "pattern": "**/*.mbel" },
-        { "pattern": "**/*.mbel.md" }
-      ]
+      "extensions": [".mbel", ".mbel.md"]
     }
   }
 }
