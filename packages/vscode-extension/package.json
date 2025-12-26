@@ -36,8 +36,10 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "watch": "npm run build -- --watch"
+    "build": "npm run build:extension && npm run build:server",
+    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "build:server": "esbuild ../mbel-lsp/src/bin.ts --bundle --outfile=server/bin.js --format=cjs --platform=node",
+    "watch": "npm run build:extension -- --watch"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"

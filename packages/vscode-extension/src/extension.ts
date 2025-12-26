@@ -16,9 +16,9 @@ import {
 let client: LanguageClient | undefined;
 
 export function activate(context: ExtensionContext): void {
-  // Path to the server module
+  // Path to the server module (bundled with extension)
   const serverModule = context.asAbsolutePath(
-    path.join('..', 'mbel-lsp', 'dist', 'bin.js')
+    path.join('server', 'bin.js')
   );
 
   // Server options: run and debug configurations
