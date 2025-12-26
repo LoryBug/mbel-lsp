@@ -1,0 +1,21 @@
+{
+  "name": "@mbel/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MBEL v5 Lexer and Parser",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": ["dist"],
+  "keywords": ["mbel", "lexer", "parser", "lsp"]
+}
