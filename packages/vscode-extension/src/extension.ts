@@ -40,7 +40,8 @@ export function activate(context: ExtensionContext): void {
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: 'file', language: 'mbel' }],
     synchronize: {
-      fileEvents: workspace.createFileSystemWatcher('**/*.mbel'),
+      // Watch both .mbel and .mbel.md files
+      fileEvents: workspace.createFileSystemWatcher('**/*.mbel{,.md}'),
     },
   };
 

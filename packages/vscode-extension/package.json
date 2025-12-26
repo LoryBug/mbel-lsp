@@ -23,7 +23,8 @@
           "mbel"
         ],
         "extensions": [
-          ".mbel"
+          ".mbel",
+          ".mbel.md"
         ],
         "configuration": "./language-configuration.json"
       }
