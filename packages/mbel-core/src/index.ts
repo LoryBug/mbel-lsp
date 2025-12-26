@@ -5,5 +5,22 @@
  * MBEL (Memory Bank Encoding Language) v5 specification.
  */
 
-// Exports will be added as TDDAB blocks are completed
-export {};
+// Lexer
+export { MbelLexer } from './lexer.js';
+
+// Types
+export type {
+  Token,
+  TokenType,
+  Position,
+  LexerResult,
+  LexerError,
+  MbelOperator,
+  TemporalOperator,
+  StateOperator,
+  RelationOperator,
+  StructureOperator,
+  QuantificationOperator,
+  LogicOperator,
+  MetaOperator,
+} from './types.js';
