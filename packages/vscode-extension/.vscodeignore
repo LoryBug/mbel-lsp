@@ -1,14 +1,46 @@
-.vscode/**
-.vscode-test/**
+# Source files
 src/**
-node_modules/**
+*.ts
+**/*.ts
+
+# Config files
+tsconfig.json
+**/tsconfig.json
+**/tsconfig.tsbuildinfo
+.eslintrc.json
+**/.eslintrc.json
 .gitignore
 .yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
-**/*.ts
+
+# Development files
+.vscode/**
+.vscode-test/**
+node_modules/**
+**/node_modules/**
+
+# Parent directory files (monorepo)
 ../**
-!dist/**
-!server/**
+../../**
+../mbel-lsp/**
+../mbel-core/**
+../mbel-analyzer/**
+
+# Test and coverage
+coverage/**
+**/coverage/**
+**/*.test.ts
+**/tests/**
+
+# Git
+.git/**
+**/.git/**
+
+# Other
+*.map
+**/*.map
+*.vsix
+vsc-extension-quickstart.md
+.claude/**
+**/.claude/**
+memory-bank/**
+**/memory-bank/**
