@@ -33,6 +33,26 @@ export interface DocumentState {
 }
 
 /**
+ * Semantic item for LLM queries
+ */
+export interface SemanticItem {
+  readonly line: number;
+  readonly text: string;
+}
+
+/**
+ * Aggregated project status for LLM queries
+ */
+export interface ProjectStatus {
+  readonly pending: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly critical: number;
+  readonly active: number;
+  readonly recentChanges: number;
+}
+
+/**
  * Server capabilities for MBEL LSP
  */
 export const MBEL_SERVER_CAPABILITIES: ServerCapabilities = {

@@ -10740,6 +10740,80 @@ ${info.description}`
     }
     return symbols;
   }
+  // ============================================
+  // LLM Query Methods - Semantic queries for AI agents
+  // ============================================
+  /**
+   * Get all pending/planned items (marked with ?)
+   */
+  getPendingItems(uri) {
+    return this.findItemsByPattern(uri, /^\s*\?/);
+  }
+  /**
+   * Get all completed items (marked with ✓)
+   */
+  getCompletedItems(uri) {
+    return this.findItemsByPattern(uri, /✓/);
+  }
+  /**
+   * Get all failed items (marked with ✗)
+   */
+  getFailedItems(uri) {
+    return this.findItemsByPattern(uri, /✗/);
+  }
+  /**
+   * Get all critical items (marked with !)
+   */
+  getCriticalItems(uri) {
+    return this.findItemsByPattern(uri, /^\s*!/);
+  }
+  /**
+   * Get all active items (marked with @ or ⚡)
+   */
+  getActiveItems(uri) {
+    return this.findItemsByPattern(uri, /^\s*@|⚡/);
+  }
+  /**
+   * Get all recent changes (marked with >)
+   */
+  getRecentChanges(uri) {
+    return this.findItemsByPattern(uri, /^\s*>/);
+  }
+  /**
+   * Get aggregated project status
+   */
+  getProjectStatus(uri) {
+    return {
+      pending: this.getPendingItems(uri).length,
+      completed: this.getCompletedItems(uri).length,
+      failed: this.getFailedItems(uri).length,
+      critical: this.getCriticalItems(uri).length,
+      active: this.getActiveItems(uri).length,
+      recentChanges: this.getRecentChanges(uri).length
+    };
+  }
+  /**
+   * Find items matching a pattern
+   */
+  findItemsByPattern(uri, pattern) {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+    const items = [];
+    const lines = doc.content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line && pattern.test(line)) {
+        items.push({
+          line: i + 1,
+          // 1-based
+          text: line.trim()
+        });
+      }
+    }
+    return items;
+  }
   /**
    * Get the word (identifier) at a given position
    */

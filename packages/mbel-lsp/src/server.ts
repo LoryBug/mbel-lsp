@@ -24,7 +24,7 @@ import {
 import { MbelAnalyzer } from '@mbel/analyzer';
 import { MbelParser } from '@mbel/core';
 import type { Diagnostic } from '@mbel/analyzer';
-import type { MbelServerOptions, DocumentState } from './types.js';
+import type { MbelServerOptions, DocumentState, SemanticItem, ProjectStatus } from './types.js';
 import { createInitializeResult } from './types.js';
 
 /**
@@ -482,6 +482,91 @@ export class MbelServer {
     }
 
     return symbols;
+  }
+
+  // ============================================
+  // LLM Query Methods - Semantic queries for AI agents
+  // ============================================
+
+  /**
+   * Get all pending/planned items (marked with ?)
+   */
+  getPendingItems(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /^\s*\?/);
+  }
+
+  /**
+   * Get all completed items (marked with ✓)
+   */
+  getCompletedItems(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /✓/);
+  }
+
+  /**
+   * Get all failed items (marked with ✗)
+   */
+  getFailedItems(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /✗/);
+  }
+
+  /**
+   * Get all critical items (marked with !)
+   */
+  getCriticalItems(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /^\s*!/);
+  }
+
+  /**
+   * Get all active items (marked with @ or ⚡)
+   */
+  getActiveItems(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /^\s*@|⚡/);
+  }
+
+  /**
+   * Get all recent changes (marked with >)
+   */
+  getRecentChanges(uri: string): SemanticItem[] {
+    return this.findItemsByPattern(uri, /^\s*>/);
+  }
+
+  /**
+   * Get aggregated project status
+   */
+  getProjectStatus(uri: string): ProjectStatus {
+    return {
+      pending: this.getPendingItems(uri).length,
+      completed: this.getCompletedItems(uri).length,
+      failed: this.getFailedItems(uri).length,
+      critical: this.getCriticalItems(uri).length,
+      active: this.getActiveItems(uri).length,
+      recentChanges: this.getRecentChanges(uri).length,
+    };
+  }
+
+  /**
+   * Find items matching a pattern
+   */
+  private findItemsByPattern(uri: string, pattern: RegExp): SemanticItem[] {
+    const doc = this.documents.get(uri);
+    if (!doc) {
+      return [];
+    }
+
+    const items: SemanticItem[] = [];
+    const lines = doc.content.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line && pattern.test(line)) {
+        items.push({
+          line: i + 1, // 1-based
+          text: line.trim(),
+        });
+      }
+    }
+
+    return items;
   }
 
   /**

@@ -490,4 +490,108 @@ describe('LSP Features', () => {
       expect(symbols.length).toBeGreaterThanOrEqual(6); // 3 sections + 3 attributes
     });
   });
+
+  describe('LLM Query Methods', () => {
+    const content = `§MBEL:5.0
+[TASKS]
+@current::ActiveWork⚡
+?planned::FutureFeature
+?next::AnotherPending
+>done::PastWork✓
+✓completed::FinishedTask
+✗failed::BrokenFeature
+!critical::UrgentBug
+
+[STATUS]
+@active::InProgress
+>changed::RecentUpdate
+`;
+
+    beforeEach(() => {
+      server.onDidOpenTextDocument(testUri, 1, content);
+    });
+
+    describe('getPendingItems', () => {
+      it('should find all pending items marked with ?', () => {
+        const pending = server.getPendingItems(testUri);
+        expect(pending).toHaveLength(2);
+        expect(pending.some(p => p.text.includes('FutureFeature'))).toBe(true);
+        expect(pending.some(p => p.text.includes('AnotherPending'))).toBe(true);
+      });
+
+      it('should return empty array for unknown document', () => {
+        const pending = server.getPendingItems('file:///unknown.mbel');
+        expect(pending).toHaveLength(0);
+      });
+
+      it('should include line numbers', () => {
+        const pending = server.getPendingItems(testUri);
+        expect(pending.every(p => typeof p.line === 'number')).toBe(true);
+      });
+    });
+
+    describe('getCompletedItems', () => {
+      it('should find all completed items marked with ✓', () => {
+        const completed = server.getCompletedItems(testUri);
+        expect(completed.length).toBeGreaterThanOrEqual(2);
+      });
+
+      it('should include items with ✓ anywhere in line', () => {
+        const completed = server.getCompletedItems(testUri);
+        expect(completed.some(c => c.text.includes('PastWork'))).toBe(true);
+        expect(completed.some(c => c.text.includes('FinishedTask'))).toBe(true);
+      });
+    });
+
+    describe('getFailedItems', () => {
+      it('should find all failed items marked with ✗', () => {
+        const failed = server.getFailedItems(testUri);
+        expect(failed).toHaveLength(1);
+        expect(failed[0]?.text).toContain('BrokenFeature');
+      });
+    });
+
+    describe('getCriticalItems', () => {
+      it('should find all critical items marked with !', () => {
+        const critical = server.getCriticalItems(testUri);
+        expect(critical).toHaveLength(1);
+        expect(critical[0]?.text).toContain('UrgentBug');
+      });
+    });
+
+    describe('getActiveItems', () => {
+      it('should find items marked with @ or ⚡', () => {
+        const active = server.getActiveItems(testUri);
+        expect(active.length).toBeGreaterThanOrEqual(2);
+        expect(active.some(a => a.text.includes('ActiveWork'))).toBe(true);
+        expect(active.some(a => a.text.includes('InProgress'))).toBe(true);
+      });
+    });
+
+    describe('getRecentChanges', () => {
+      it('should find all recent changes marked with >', () => {
+        const recent = server.getRecentChanges(testUri);
+        expect(recent.length).toBeGreaterThanOrEqual(2);
+        expect(recent.some(r => r.text.includes('PastWork'))).toBe(true);
+        expect(recent.some(r => r.text.includes('RecentUpdate'))).toBe(true);
+      });
+    });
+
+    describe('getProjectStatus', () => {
+      it('should return aggregated status counts', () => {
+        const status = server.getProjectStatus(testUri);
+        expect(status.pending).toBe(2);
+        expect(status.completed).toBeGreaterThanOrEqual(2);
+        expect(status.failed).toBe(1);
+        expect(status.critical).toBe(1);
+        expect(status.active).toBeGreaterThanOrEqual(2);
+      });
+
+      it('should return zeros for unknown document', () => {
+        const status = server.getProjectStatus('file:///unknown.mbel');
+        expect(status.pending).toBe(0);
+        expect(status.completed).toBe(0);
+      });
+    });
+  });
 });

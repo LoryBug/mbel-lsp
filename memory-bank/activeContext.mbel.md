@@ -19,12 +19,15 @@
 ✓VSCodeExtension::mbel-vscode{textmate,languageClient}
 ✓Documentation::README{installation,improvements}
 ✓TDDAB#6::GoToDefinition{11tests,sections+attributes+versions}
+✓TDDAB#7::FindReferences+WorkspaceSymbols{23tests}
+✓TDDAB#8::LLMQueryMethods{11tests,semantic-queries}
+✓FileExtension::.mbel.md{dual-support}
 
 ## Recent Changes
->implemented::GoToDefinition{sections,attributes,versions}
->added::getDefinition{server.ts}
->added::getWordAtPosition{helper}
->updated::ServerCapabilities{definitionProvider:true}
+>added::LLMQueryMethods{getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus}
+>added::FindReferences+WorkspaceSymbols
+>added::.mbel.md{file-extension-support}
+>fixed::VSIXPackaging{monorepo-structure}
 
 ## Design Decisions
 §decision::TypeScriptOnly{noAny,strict}
@@ -39,15 +42,17 @@
 §decision::NestedDocumentSymbols{attributesUnderSections}
 
 ## Next Steps
-?FindReferences::FindAllUsages
+?MarkdownHeadingSupport::ParseMDHeadingsAsSections{##Title→[Title]}
 ?RenameSymbol::RefactorSupport
 ?FoldingRanges::CollapseSections
+?CodeActions::QuickFixes{auto-apply}
 ?PublishMarketplace::OfficialExtension
 
 ## Blockers
 ∅None
 
 ## Session Notes
-@note::TotalTests::#214{lexer:61,parser:42,analyzer:48,server:34,features:29}
-@note::Coverage::%93.94{overall}
+@note::TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
+@note::Coverage::%87{overall}
 @note::AllTDDABBlocksComplete::✓
+@note::LLMQueryMethods::getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus
