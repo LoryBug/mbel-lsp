@@ -1,0 +1,24 @@
+{
+  "name": "@mbel/analyzer",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MBEL v5 Semantic Analyzer and Diagnostics",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@mbel/core": "*"
+  },
+  "files": ["dist"],
+  "keywords": ["mbel", "analyzer", "diagnostics", "lsp"]
+}
