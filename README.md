@@ -4,12 +4,34 @@ Language Server Protocol (LSP) implementation for **MBEL v5** (Memory Bank Expre
 
 ## Features
 
+### Core LSP Features
 - **Syntax Highlighting** - Full support for all 27+ MBEL operators
 - **Diagnostics** - Real-time error detection and warnings
 - **Hover Information** - Documentation for operators on hover
 - **Code Completion** - Operator suggestions with descriptions
 - **Document Symbols** - Outline view with sections and attributes
-- **Code Blocks** - Support for ``` fenced blocks (diagrams, folder structures)
+- **Go to Definition** - Navigate to section/attribute declarations
+- **Find References** - Find all usages of a symbol
+- **Workspace Symbols** - Search symbols across all open files
+
+### LLM Query Methods (AI Agent API)
+Specialized methods for AI agents to query project status efficiently:
+
+| Method | Marker | Description |
+|--------|--------|-------------|
+| `getPendingItems()` | `?` | Get all planned/future tasks |
+| `getCompletedItems()` | `✓` | Get all completed items |
+| `getFailedItems()` | `✗` | Get all failed items |
+| `getCriticalItems()` | `!` | Get all critical/urgent items |
+| `getActiveItems()` | `@` `⚡` | Get all active/in-progress items |
+| `getRecentChanges()` | `>` | Get all recent changes |
+| `getProjectStatus()` | - | Get aggregated counts |
+
+## File Extensions
+
+The LSP supports two file extensions:
+- `.mbel` - Pure MBEL files
+- `.mbel.md` - MBEL files with Markdown compatibility
 
 ## Installation
 
@@ -44,7 +66,7 @@ npm run test
 
 # Package VSCode extension
 cd packages/vscode-extension
-npx @vscode/vsce package --allow-missing-repository --no-dependencies
+npx @vscode/vsce package --allow-missing-repository
 ```
 
 ## Project Structure
@@ -107,43 +129,23 @@ npm run btlt         # Build + Type-check + Lint + Test
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| mbel-core | 61 | 100% |
+| mbel-core | 103 | 93% |
 | mbel-analyzer | 48 | 95% |
-| mbel-lsp | 63 | 98% |
-| **Total** | **214** | **94%** |
+| mbel-lsp | 108 | 98% |
+| **Total** | **259** | **87%** |
 
-## Possible Improvements
+## Roadmap
 
-### Short-term
-
-- [ ] **Go to Definition** - Navigate to section declarations
-- [ ] **Find References** - Find all usages of a section/attribute
-- [ ] **Rename Symbol** - Rename sections and attributes across file
+### Next Up
+- [ ] **Markdown Heading Support** - Parse `## Title` as sections
+- [ ] **Rename Symbol** - Rename sections/attributes across file
 - [ ] **Folding Ranges** - Collapse sections and code blocks
-- [ ] **Semantic Tokens** - Enhanced syntax highlighting via LSP
+- [ ] **Code Actions** - Quick fixes for common errors
 
-### Medium-term
-
+### Future
 - [ ] **Multi-file Support** - Cross-file references and diagnostics
-- [ ] **Quick Fixes** - Auto-fix for common errors (add missing `§`, close brackets)
-- [ ] **Code Actions** - Convert between temporal states, wrap in metadata
 - [ ] **Formatting** - Auto-format MBEL documents
-- [ ] **Snippets** - Common MBEL patterns (section template, attribute template)
-
-### Long-term
-
-- [ ] **Workspace Symbols** - Search symbols across all files
-- [ ] **Language Server Index** - Persistent index for large projects
-- [ ] **Custom Diagnostics** - User-configurable rules
-- [ ] **MBEL Schema** - Define expected structure for validation
-- [ ] **Export** - Convert MBEL to JSON/YAML/Markdown
-
-### Extension Improvements
-
 - [ ] **Publish to Marketplace** - Official VSCode extension
-- [ ] **Theme Support** - MBEL-specific color themes
-- [ ] **Icon Theme** - Custom icons for `.mbel` files
-- [ ] **Webview Panel** - Visual MBEL editor/preview
 - [ ] **Other Editors** - Neovim, Sublime Text, JetBrains IDEs
 
 ## Tech Stack
