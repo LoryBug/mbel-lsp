@@ -1,68 +1,39 @@
 §MBEL:5.0
 
-# System Patterns
-
-## Architecture
+[ARCHITECTURE]
 @pattern::MonorepoLSP
-```
+(
 mbel-lsp/
 ├── packages/
-│   ├── mbel-core/        ← Lexer+Parser (TDDAB#1-2) ✓
-│   ├── mbel-analyzer/    ← Diagnostics (TDDAB#3) ✓
-│   └── mbel-lsp/         ← LSP Server+Features (TDDAB#4-5) ✓
-├── vscode-extension/     ← VSCode client (complete) ✓
-├── memory-bank/          ← ThisMB
-└── package.json          ← npm workspaces
-```
+│   ├── mbel-core/{Lexer+Parser}✓
+│   ├── mbel-analyzer/{Diagnostics}✓
+│   ├── mbel-lsp/{Server+Features}✓
+│   └── vscode-extension/{Client}✓
+├── memory-bank/{*.mbel.md}
+└── package.json{npm-workspaces}
+)
 
-## TDDAB Plan
+[TDDAB_PLAN]
 @methodology::TDDAB{TestFirst,Atomic,Verified}
 
-### Block Definitions
-```
-TDDAB#1::MbelLexer✓
-├── Scope::Tokenize27Operators+Identifiers+Numbers
-├── Tests::#61
-├── Coverage::%100
-└── Status::Complete
+[TDDAB_BLOCKS]
+✓TDDAB#1::MbelLexer{scope:Tokenize27Operators,tests:61,coverage:100%}
+✓TDDAB#2::MbelParser{scope:BuildAST,tests:42,coverage:91%}
+✓TDDAB#3::MbelAnalyzer{scope:Diagnostics,tests:48,coverage:95%}
+✓TDDAB#4::LspServer{scope:Initialize+TextSync,tests:34,coverage:99%}
+✓TDDAB#5::LspFeatures{scope:Hover+Completion+Symbols,tests:29,coverage:98%}
+✓TDDAB#6::GoToDefinition{scope:NavigateToDeclarations,tests:11}
+✓TDDAB#7::FindReferences+WorkspaceSymbols{scope:LocateUsages,tests:23}
+✓TDDAB#8::LLMQueryMethods{scope:SemanticQueries,tests:11}
 
-TDDAB#2::MbelParser✓
-├── Scope::BuildAST+AllStatementTypes+AllExpressions
-├── Tests::#42
-├── Coverage::%91
-└── Status::Complete
+[DATA_FLOW]
+@flow::Pipeline
+Source{.mbel/.mbel.md}→Lexer{tokens}→Parser{AST}→Analyzer{diagnostics}→LSP{features}
 
-TDDAB#3::MbelDiagnostics✓
-├── Scope::ErrorDetection+Warnings+QuickFixes
-├── Dependencies::mbel-core
-├── Tests::#48
-├── Coverage::%95
-└── Status::Complete
-
-TDDAB#4::LspServer✓
-├── Scope::Initialize+TextSync+PublishDiagnostics+Shutdown
-├── Dependencies::mbel-core,mbel-analyzer,vscode-languageserver
-├── Tests::#34
-├── Coverage::%99
-└── Status::Complete
-
-TDDAB#5::LspFeatures✓
-├── Scope::Hover+Completion+DocumentSymbols
-├── Dependencies::LspServer
-├── Tests::#29
-├── Coverage::%98
-└── Status::Complete
-```
-
-## Component Flow
-@flow::DataPipeline
-```
-Source(.mbel) → Lexer(tokens) → Parser(AST) → Analyzer(diagnostics) → LSP(features)
-```
-
-## Key Patterns
+[KEY_PATTERNS]
 @patterns::
 - Lexer::ScannerPattern{peek,advance,tokenize}
 - Parser::RecursiveDescentParser{LeftAssociative}
 - AST::ImmutableNodes{readonly,Position}
 - LSP::EventDriven{didOpen,didChange,didClose}
+- LLMQueries::PatternMatching{regex,semantic}

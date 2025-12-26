@@ -1,12 +1,10 @@
 §MBEL:5.0
 
-# Active Context
-
-## Current Focus
+[FOCUS]
 @focus::VSCodeExtension{Complete}
 >completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
 
-## What's Done
+[DONE]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
 ✓TypeScriptConfig::StrictMode{noAny,noImplicitReturns}
 ✓VitestConfig::Coverage%100{thresholds}
@@ -22,14 +20,16 @@
 ✓TDDAB#7::FindReferences+WorkspaceSymbols{23tests}
 ✓TDDAB#8::LLMQueryMethods{11tests,semantic-queries}
 ✓FileExtension::.mbel.md{dual-support}
+✓MBELSyntax::ConvertToSectionBrackets{[SECTION]instead-of-##}
 
-## Recent Changes
+[RECENT]
+>converted::MemoryBankFiles{##→[SECTION]}
 >added::LLMQueryMethods{getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus}
 >added::FindReferences+WorkspaceSymbols
 >added::.mbel.md{file-extension-support}
 >fixed::VSIXPackaging{monorepo-structure}
 
-## Design Decisions
+[DECISIONS]
 §decision::TypeScriptOnly{noAny,strict}
 §decision::Vitest>Jest{modern,faster}
 §decision::ESM{type:module}
@@ -40,18 +40,18 @@
 §decision::ProjectReferences{composite:true}
 §decision::IncrementalSync{TextDocumentSyncKind.Incremental}
 §decision::NestedDocumentSymbols{attributesUnderSections}
+§decision::SectionBrackets{[SECTION]not##Title}
 
-## Next Steps
-?MarkdownHeadingSupport::ParseMDHeadingsAsSections{##Title→[Title]}
+[NEXT]
 ?RenameSymbol::RefactorSupport
 ?FoldingRanges::CollapseSections
 ?CodeActions::QuickFixes{auto-apply}
 ?PublishMarketplace::OfficialExtension
 
-## Blockers
+[BLOCKERS]
 ∅None
 
-## Session Notes
+[NOTES]
 @note::TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
 @note::Coverage::%87{overall}
 @note::AllTDDABBlocksComplete::✓

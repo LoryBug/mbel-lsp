@@ -137,7 +137,6 @@ npm run btlt         # Build + Type-check + Lint + Test
 ## Roadmap
 
 ### Next Up
-- [ ] **Markdown Heading Support** - Parse `## Title` as sections
 - [ ] **Rename Symbol** - Rename sections/attributes across file
 - [ ] **Folding Ranges** - Collapse sections and code blocks
 - [ ] **Code Actions** - Quick fixes for common errors

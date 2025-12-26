@@ -1,51 +1,51 @@
 §MBEL:5.0
 
-# MBEL v5 LSP - Memory Bank
-
-## Project Purpose
+[PROJECT]
+@name::MBELv5-LSP
 @purpose::LanguageServerProtocol{MBELv5}
->goal::IDESupport{syntaxHighlight,diagnostics,completion,hover}
+>goal::IDESupport{syntaxHighlight,diagnostics,completion,hover,goToDefinition,findReferences}
 
-## Read Order
-@readOrder::
-1. productContext.md::WhyWeAreBuildingThis
-2. systemPatterns.md::Architecture+TDDABPlan
-3. techContext.md::Stack+Commands
-4. activeContext.md::CurrentState+NextSteps
-5. progress.md::DetailedStatus+Metrics
+[READ_ORDER]
+@order::
+1. productContext.mbel.md::WhyWeAreBuildingThis
+2. systemPatterns.mbel.md::Architecture+TDDABPlan
+3. techContext.mbel.md::Stack+Commands
+4. activeContext.mbel.md::CurrentState+NextSteps
+5. progress.mbel.md::DetailedStatus+Metrics
 
-## TDDAB Methodology
+[TDDAB_METHODOLOGY]
 @methodology::TestDrivenDevelopmentAtomicBlocks
 - RED::WriteFailingTestsFirst
 - GREEN::ImplementMinimalCode
 - VERIFY::Coverage+Build+Lint+Commit
 
-## Current Status
-@status::Phase2of5Complete
+[CURRENT_STATUS]
+@status::Phase8Complete
 ✓TDDAB#1::MbelLexer{61tests}
 ✓TDDAB#2::MbelParser{42tests}
-○TDDAB#3::MbelDiagnostics
-○TDDAB#4::LspServer
-○TDDAB#5::LspFeatures
+✓TDDAB#3::MbelAnalyzer{48tests}
+✓TDDAB#4::LspServer{34tests}
+✓TDDAB#5::LspFeatures{29tests}
+✓TDDAB#6::GoToDefinition{11tests}
+✓TDDAB#7::FindReferences+WorkspaceSymbols{23tests}
+✓TDDAB#8::LLMQueryMethods{11tests}
 
-## Quick Resume
-@resume::ToContiuneWork
+[QUICK_RESUME]
+@resume::ToContinueWork
 1. ReadAllMBFiles::UnderstandState
-2. CheckProgress.md::SeeWhatsDone
-3. PickNextTDDAB::FromSystemPatterns
+2. CheckProgress::SeeWhatsDone
+3. PickNextTask::FromActiveContext
 4. FollowRED→GREEN→VERIFY::Methodology
 
-## MBEL v5 Quick Reference
+[MBEL_REFERENCE]
 @operators::27total
-```
-[Temporal:4] > @ ? ≈
-[State:4]    ✓ ✗ ! ⚡
-[Relation:6] :: → ← ↔ + -
-[Structure:5] [] {} () | <>
-[Quant:3]    # % ~
-[Logic:3]    & || ¬
-[Meta:2]     © §
-```
+(Temporal:4) > @ ? ≈
+(State:4) ✓ ✗ ! ⚡
+(Relation:7) :: : → ← ↔ + -
+(Structure:5) [] {} () | <>
+(Quant:3) # % ~
+(Logic:3) & || ¬
+(Meta:2) © §
 
-## Project Location
+[LOCATION]
 @path::C:\Progetti\mbel-lsp

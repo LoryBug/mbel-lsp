@@ -1,8 +1,6 @@
 §MBEL:5.0
 
-# Tech Context
-
-## Stack
+[STACK]
 @stack::TypeScriptLSP
 - Runtime::Node.js{>=18}
 - Language::TypeScript{strict,noAny}
@@ -11,43 +9,32 @@
 - Lint::ESLint{typescript-strict}
 - Package::npm{workspaces}
 
-## Dependencies
+[DEPENDENCIES]
 @deps::
 - typescript::^5.3.0
 - vitest::^1.0.0
 - @vitest/coverage-v8::^1.0.0
 - eslint::^8.55.0
 - @typescript-eslint/*::^6.13.0
+- vscode-languageserver::^9.0.1
+- vscode-languageclient::^9.0.1
 
-## Future Dependencies
-@futureDeps::
-- vscode-languageserver::LSPImplementation
-- vscode-languageclient::VSCodeExtension
-
-## Directory Structure
-```
+[STRUCTURE]
+@structure::Monorepo
+(
 mbel-lsp/
 ├── packages/
-│   └── mbel-core/
-│       ├── src/
-│       │   ├── index.ts      ← exports
-│       │   ├── types.ts      ← TokenTypes
-│       │   ├── lexer.ts      ← MbelLexer
-│       │   ├── ast.ts        ← ASTTypes
-│       │   └── parser.ts     ← MbelParser
-│       ├── tests/
-│       │   ├── lexer.test.ts
-│       │   └── parser.test.ts
-│       ├── package.json
-│       └── tsconfig.json
-├── memory-bank/
+│   ├── mbel-core/{lexer,parser,ast,types}
+│   ├── mbel-analyzer/{analyzer,diagnostics}
+│   ├── mbel-lsp/{server,types,bin}
+│   └── vscode-extension/{extension,syntaxes}
+├── memory-bank/{*.mbel.md}
 ├── package.json
 ├── tsconfig.json
-├── vitest.config.ts
-└── .eslintrc.json
-```
+└── vitest.config.ts
+)
 
-## Commands
+[COMMANDS]
 @commands::
 - npm run test::VitestRun
 - npm run test:coverage::VitestCoverage
@@ -56,8 +43,8 @@ mbel-lsp/
 - npm run type-check::tscNoEmit
 - npm run btlt::Build+TypeCheck+Lint+Test
 
-## MBEL v5 Reference
+[MBEL_REFERENCE]
 @mbel::v5.0
 - Operators::#27{Temporal,State,Relation,Structure,Quant,Logic,Meta}
 - Grammar::7rules{NoArticles,CamelCase,ImplicitSubject,OperatorsOnly,Newline,Latest,LeftToRight}
-- Source::memory-bank/README.md{AI-playground}
+- FileExtensions::.mbel,.mbel.md

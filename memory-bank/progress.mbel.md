@@ -1,109 +1,80 @@
 §MBEL:5.0
 
-# Progress
+[TDDAB_STATUS]
+@status::AllComplete
 
-## TDDAB Blocks Status
+[TDDAB#1]
+✓MbelLexer
+├─ RED::61tests{allFailing}✓
+├─ GREEN::Implementation{327lines}✓
+├─ VERIFY::Coverage%100+Lint+Build✓
+├─ Commit::62f3370
+└─ Features::Temporal+State+Relation+Structure+Quant+Logic+Meta+Identifiers+Numbers+Positions
 
-### ✓ Complete
-```
-TDDAB#1::MbelLexer
-├── RED::61tests{allFailing}✓
-├── GREEN::Implementation{327lines}✓
-├── VERIFY::Coverage%100+Lint+Build✓
-├── Commit::62f3370
-└── Features::
-    ├── Temporal::{>,@,?,≈}
-    ├── State::{✓,✗,!,⚡}
-    ├── Relation::{::,:,→,←,↔,+,-}
-    ├── Structure::{[],{},(),|,<>}
-    ├── Quantification::{#,%,~}
-    ├── Logic::{&,||,¬}
-    ├── Meta::{©,§}
-    ├── Identifiers::CamelCase+Unicode
-    ├── Numbers::Integer+Decimal
-    └── Positions::Line+Column+Offset
+[TDDAB#2]
+✓MbelParser
+├─ RED::42tests{allFailing}✓
+├─ GREEN::Implementation{608lines}✓
+├─ VERIFY::TypeCheck+Lint+Tests✓
+├─ Commit::0336b13
+└─ Features::SectionDeclaration+VersionStatement+AttributeStatement+TemporalStatement+SourceStatement+ChainExpression+LogicExpression+StateExpression+ErrorRecovery
 
-TDDAB#2::MbelParser
-├── RED::42tests{allFailing}✓
-├── GREEN::Implementation{608lines}✓
-├── VERIFY::TypeCheck+Lint+Tests✓
-├── Commit::0336b13
-└── Features::
-    ├── SectionDeclaration::[NAME]
-    ├── VersionStatement::§NAME:version
-    ├── AttributeStatement::@name::value{meta}
-    ├── TemporalStatement::>?≈expression
-    ├── SourceStatement::©Author>action
-    ├── ChainExpression::A→B,A::B
-    ├── LogicExpression::A&B,A||B,¬A
-    ├── StateExpression::✓✗!⚡expr
-    └── ErrorRecovery::Synchronize
+[TDDAB#3]
+✓MbelAnalyzer
+├─ RED::48tests{allFailing}✓
+├─ GREEN::Implementation{493lines}✓
+├─ VERIFY::Coverage%95+Lint+Build✓
+├─ Commit::704b9e6
+└─ Features::DiagnosticCodes#16+UnknownCharacter+UnclosedBracket+GrammarViolation+SemanticWarning+QuickFix
 
-TDDAB#3::MbelAnalyzer
-├── RED::48tests{allFailing}✓
-├── GREEN::Implementation{493lines}✓
-├── VERIFY::Coverage%95+Lint+Build✓
-├── Commit::pending
-└── Features::
-    ├── DiagnosticCodes::#16{error,warning,info,hint}
-    ├── UnknownCharacter::$^\ detection
-    ├── UnclosedBracket::[{(<> detection
-    ├── GrammarViolation::ArticleUsage{the,a,an}
-    ├── GrammarViolation::NonCamelCase{underscores}
-    ├── SemanticWarning::UnusedSection
-    ├── SemanticWarning::DuplicateSection
-    ├── SemanticWarning::DuplicateAttribute
-    ├── SemanticWarning::MissingVersion
-    ├── QuickFix::RemoveArticle
-    ├── QuickFix::AddClosingBracket
-    └── QuickFix::AddVersion
+[TDDAB#4]
+✓LspServer
+├─ RED::34tests{allFailing}✓
+├─ GREEN::Implementation{153lines}✓
+├─ VERIFY::Coverage%99+Lint+Build✓
+├─ Commit::2ee0f5e
+└─ Features::Initialize+TextDocSync+DocumentState+GetDiagnostics+DiagnosticConversion+Shutdown+Capabilities
 
-TDDAB#4::LspServer
-├── RED::34tests{allFailing}✓
-├── GREEN::Implementation{153lines}✓
-├── VERIFY::Coverage%99+Lint+Build✓
-├── Commit::2ee0f5e
-└── Features::
-    ├── Initialize::ServerCapabilities
-    ├── TextDocSync::Open+Change+Close
-    ├── DocumentState::Uri+Version+Content
-    ├── GetDiagnostics::AnalyzerIntegration
-    ├── DiagnosticConversion::0basedPositions
-    ├── Shutdown::DocumentCleanup
-    └── Capabilities::Hover+Completion+Symbols
+[TDDAB#5]
+✓LspFeatures
+├─ RED::29tests{allFailing}✓
+├─ GREEN::Implementation{350lines}✓
+├─ VERIFY::Coverage%98+Lint+Build✓
+├─ Commit::b4f675f
+└─ Features::Hover{27operators}+Completion{categories}+DocumentSymbols{nested}
 
-TDDAB#5::LspFeatures
-├── RED::29tests{allFailing}✓
-├── GREEN::Implementation{350lines}✓
-├── VERIFY::Coverage%98+Lint+Build✓
-├── Commit::b4f675f
-└── Features::
-    ├── Hover::OperatorInfo{27operators,markdown}
-    ├── Completion::AllOperators{categories,documentation}
-    ├── DocumentSymbols::Sections+Attrs+Version{nested}
-    └── NestedSymbols::AttributesUnderSections
+[TDDAB#6]
+✓GoToDefinition
+├─ RED::11tests{allFailing}✓
+├─ GREEN::Implementation{90lines}✓
+├─ VERIFY::AllTestsPass✓
+├─ Commit::317c729
+└─ Features::SectionDefinition+AttributeDefinition+VersionDefinition+WordAtPosition
 
-TDDAB#6::GoToDefinition
-├── RED::11tests{allFailing}✓
-├── GREEN::Implementation{90lines}✓
-├── VERIFY::AllTestsPass✓
-├── Commit::pending
-└── Features::
-    ├── SectionDefinition::NavigateToDeclaration
-    ├── AttributeDefinition::NavigateToFirstDef
-    ├── VersionDefinition::NavigateTo§Statement
-    └── WordAtPosition::HelperMethod
-```
+[TDDAB#7]
+✓FindReferences+WorkspaceSymbols
+├─ RED::23tests{allFailing}✓
+├─ GREEN::Implementation{130lines}✓
+├─ VERIFY::AllTestsPass✓
+├─ Commit::e41ba3a
+└─ Features::FindAllReferences+WorkspaceSymbolSearch+CrossDocumentQuery
 
-## Metrics
+[TDDAB#8]
+✓LLMQueryMethods
+├─ RED::11tests{allFailing}✓
+├─ GREEN::Implementation{80lines}✓
+├─ VERIFY::AllTestsPass✓
+├─ Commit::3fe492d
+└─ Features::getPending+getCompleted+getFailed+getCritical+getActive+getRecentChanges+getProjectStatus
+
+[METRICS]
 @metrics::
-- TotalTests::#225{lexer:61,parser:42,analyzer:48,server:34,features:40}
-- Coverage::Overall%93.94{features%98,server%99,analyzer%95,lexer%100,parser%91}
-- Packages::#3{@mbel/core,@mbel/analyzer,@mbel/lsp}
-- Files::#15{src:10,tests:5,config:8}
-- Lines::~3500
+- TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
+- Coverage::Overall%87{server%98,analyzer%95,lexer%93,parser%87}
+- Packages::#4{@mbel/core,@mbel/analyzer,@mbel/lsp,vscode-extension}
+- Lines::~4500
 
-## Git History
+[GIT_HISTORY]
 @commits::
 1. 504fba3::chore:initial-project-setup
 2. 62f3370::feat(lexer):mbel-v5-lexer
@@ -111,3 +82,6 @@ TDDAB#6::GoToDefinition
 4. 704b9e6::feat(analyzer):mbel-v5-diagnostics
 5. 2ee0f5e::feat(lsp):mbel-v5-server
 6. b4f675f::feat(lsp):mbel-v5-features
+7. 317c729::feat(lsp):go-to-definition
+8. e41ba3a::feat(lsp):find-references+workspace-symbols
+9. 3fe492d::feat(lsp):llm-query-methods
