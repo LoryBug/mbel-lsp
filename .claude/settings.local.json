@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run btlt:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx vsce package --allow-missing-repository)",
+      "Bash(npx @vscode/vsce package:*)"
+    ]
+  }
+}

@@ -34,6 +34,8 @@ export class MbelLexer {
     ['↔', 'RELATION_MUTUAL'],
     // Structure (single char)
     ['|', 'STRUCT_OR'],
+    [',', 'SEPARATOR'],
+    ['.', 'DOT'],
     // Quantification
     ['#', 'QUANT_NUMBER'],
     ['%', 'QUANT_PERCENT'],
@@ -89,6 +91,11 @@ export class MbelLexer {
   private peekNext(): string {
     if (this.pos + 1 >= this.input.length) return '\0';
     return this.input.charAt(this.pos + 1);
+  }
+
+  private peekAt(offset: number): string {
+    if (this.pos + offset >= this.input.length) return '\0';
+    return this.input.charAt(this.pos + offset);
   }
 
   private advance(): string {
@@ -174,6 +181,12 @@ export class MbelLexer {
         this.advance();
       }
       this.addToken('NEWLINE', '\n', start);
+      return;
+    }
+
+    // Check for code blocks (```)
+    if (char === '`' && this.peekNext() === '`' && this.peekAt(2) === '`') {
+      this.scanCodeBlock(start);
       return;
     }
 
@@ -295,6 +308,28 @@ export class MbelLexer {
     }
 
     this.addToken('IDENTIFIER', value, start);
+  }
+
+  private scanCodeBlock(start: Position): void {
+    // Consume opening ```
+    let content = this.advance() + this.advance() + this.advance();
+
+    // Skip optional language identifier on same line
+    while (!this.isAtEnd() && this.peek() !== '\n' && this.peek() !== '\r') {
+      content += this.advance();
+    }
+
+    // Consume content until closing ```
+    while (!this.isAtEnd()) {
+      // Check for closing ```
+      if (this.peek() === '`' && this.peekNext() === '`' && this.peekAt(2) === '`') {
+        content += this.advance() + this.advance() + this.advance();
+        break;
+      }
+      content += this.advance();
+    }
+
+    this.addToken('CODE_BLOCK', content, start);
   }
 
   private isDigit(char: string): boolean {

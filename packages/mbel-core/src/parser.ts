@@ -152,6 +152,7 @@ export class MbelParser {
       // Parse version number directly
       while (
         this.check('NUMBER') ||
+        this.check('DOT') ||
         (this.check('UNKNOWN') && this.peek().value === '.')
       ) {
         version += this.advance().value;
@@ -166,6 +167,7 @@ export class MbelParser {
         while (
           this.check('NUMBER') ||
           this.check('IDENTIFIER') ||
+          this.check('DOT') ||
           (this.check('UNKNOWN') && this.peek().value === '.')
         ) {
           version += this.advance().value;

@@ -9157,6 +9157,8 @@ var MbelLexer = class _MbelLexer {
     ["\u2194", "RELATION_MUTUAL"],
     // Structure (single char)
     ["|", "STRUCT_OR"],
+    [",", "SEPARATOR"],
+    [".", "DOT"],
     // Quantification
     ["#", "QUANT_NUMBER"],
     ["%", "QUANT_PERCENT"],
@@ -9206,6 +9208,11 @@ var MbelLexer = class _MbelLexer {
     if (this.pos + 1 >= this.input.length)
       return "\0";
     return this.input.charAt(this.pos + 1);
+  }
+  peekAt(offset) {
+    if (this.pos + offset >= this.input.length)
+      return "\0";
+    return this.input.charAt(this.pos + offset);
   }
   advance() {
     const char = this.input.charAt(this.pos);
@@ -9274,6 +9281,10 @@ var MbelLexer = class _MbelLexer {
         this.advance();
       }
       this.addToken("NEWLINE", "\n", start);
+      return;
+    }
+    if (char === "`" && this.peekNext() === "`" && this.peekAt(2) === "`") {
+      this.scanCodeBlock(start);
       return;
     }
     if (this.matchTwoCharOperator(start)) {
@@ -9361,6 +9372,20 @@ var MbelLexer = class _MbelLexer {
       value += this.advance();
     }
     this.addToken("IDENTIFIER", value, start);
+  }
+  scanCodeBlock(start) {
+    let content = this.advance() + this.advance() + this.advance();
+    while (!this.isAtEnd() && this.peek() !== "\n" && this.peek() !== "\r") {
+      content += this.advance();
+    }
+    while (!this.isAtEnd()) {
+      if (this.peek() === "`" && this.peekNext() === "`" && this.peekAt(2) === "`") {
+        content += this.advance() + this.advance() + this.advance();
+        break;
+      }
+      content += this.advance();
+    }
+    this.addToken("CODE_BLOCK", content, start);
   }
   isDigit(char) {
     return char >= "0" && char <= "9";
@@ -9478,14 +9503,14 @@ var MbelParser = class {
         start,
         end: start
       };
-      while (this.check("NUMBER") || this.check("UNKNOWN") && this.peek().value === ".") {
+      while (this.check("NUMBER") || this.check("DOT") || this.check("UNKNOWN") && this.peek().value === ".") {
         version += this.advance().value;
       }
     } else if (this.check("IDENTIFIER")) {
       name = this.parseIdentifier();
       if (this.check("RELATION_DEFINES")) {
         this.advance();
-        while (this.check("NUMBER") || this.check("IDENTIFIER") || this.check("UNKNOWN") && this.peek().value === ".") {
+        while (this.check("NUMBER") || this.check("IDENTIFIER") || this.check("DOT") || this.check("UNKNOWN") && this.peek().value === ".") {
           version += this.advance().value;
           if (this.check("RELATION_DEFINES")) {
             version += this.advance().value;

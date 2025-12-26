@@ -67,6 +67,10 @@ export type TokenType =
   | 'IDENTIFIER'           // CamelCase words
   | 'NUMBER'               // Numeric literals
   | 'STRING'               // String content (inside brackets)
+  // Punctuation
+  | 'SEPARATOR'            // ,
+  | 'DOT'                  // .
+  | 'CODE_BLOCK'           // ``` ... ```
   // Structural
   | 'NEWLINE'              // Statement separator
   | 'WHITESPACE'           // Spaces/tabs (usually skipped)
