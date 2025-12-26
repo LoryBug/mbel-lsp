@@ -54,7 +54,7 @@
 ?PublishMarketplace::OfficialExtension
 
 [BLOCKERS]
-∅None
+!OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
 
 [NOTES]
 @note::TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
