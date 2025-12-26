@@ -14,7 +14,8 @@
       "Bash(npx @vscode/vsce package:*)",
       "Bash(cat:*)",
       "Bash(xxd:*)",
-      "Bash(npm run test:*)"
+      "Bash(npm run test:*)",
+      "Bash(npx @vscode/vsce:*)"
     ]
   }
 }
