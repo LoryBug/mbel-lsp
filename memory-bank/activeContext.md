@@ -17,6 +17,7 @@
 ✓TDDAB#4::LspServer{34tests,%99coverage}
 ✓TDDAB#5::LspFeatures{29tests,%98coverage}
 ✓VSCodeExtension::mbel-vscode{textmate,languageClient}
+✓Documentation::README{installation,improvements}
 
 ## Recent Changes
 >created::VSCodeExtension{mbel-vscode}
@@ -37,8 +38,10 @@
 §decision::NestedDocumentSymbols{attributesUnderSections}
 
 ## Next Steps
-?PackageExtension::vsce{marketplace,vsix}
-?Documentation::README+API{usage,examples}
+?GoToDefinition::NavigateToSections
+?FindReferences::FindAllUsages
+?RenameSymbol::RefactorSupport
+?PublishMarketplace::OfficialExtension
 
 ## Blockers
 ∅None
