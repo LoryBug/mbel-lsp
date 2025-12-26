@@ -11,7 +11,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(npx vsce package --allow-missing-repository)",
-      "Bash(npx @vscode/vsce package:*)"
+      "Bash(npx @vscode/vsce package:*)",
+      "Bash(cat:*)",
+      "Bash(xxd:*)"
     ]
   }
 }

@@ -49,10 +49,10 @@ describe('MbelAnalyzer', () => {
       expect(diag.message).toContain('$');
     });
 
-    it('should report unknown character ^', () => {
-      const diag = analyzeFirst('^test');
+    it('should report unknown character `', () => {
+      const diag = analyzeFirst('test`value');
       expect(diag.code).toBe('UNKNOWN_CHARACTER');
-      expect(diag.message).toContain('^');
+      expect(diag.message).toContain('`');
     });
 
     it('should report unknown character \\', () => {
@@ -61,7 +61,7 @@ describe('MbelAnalyzer', () => {
     });
 
     it('should report multiple unknown characters', () => {
-      const result = analyzer.analyzeText('$first ^second');
+      const result = analyzer.analyzeText('$first `second');
       expect(result.diagnostics.length).toBeGreaterThanOrEqual(2);
     });
 

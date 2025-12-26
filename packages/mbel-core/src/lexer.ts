@@ -36,6 +36,17 @@ export class MbelLexer {
     ['|', 'STRUCT_OR'],
     [',', 'SEPARATOR'],
     ['.', 'DOT'],
+    ['/', 'SLASH'],
+    ['^', 'CARET'],
+    ['*', 'ASTERISK'],
+    ['=', 'EQUALS'],
+    // Quotes and apostrophes
+    ["'", 'APOSTROPHE'],       // ' (ASCII)
+    ['\u2018', 'APOSTROPHE'],  // ' (left single quote)
+    ['\u2019', 'APOSTROPHE'],  // ' (right single quote)
+    ['"', 'QUOTE'],            // " (ASCII)
+    ['\u201C', 'QUOTE'],       // " (left double quote)
+    ['\u201D', 'QUOTE'],       // " (right double quote)
     // Quantification
     ['#', 'QUANT_NUMBER'],
     ['%', 'QUANT_PERCENT'],

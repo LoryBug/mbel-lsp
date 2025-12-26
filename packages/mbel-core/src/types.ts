@@ -70,6 +70,12 @@ export type TokenType =
   // Punctuation
   | 'SEPARATOR'            // ,
   | 'DOT'                  // .
+  | 'SLASH'                // /
+  | 'CARET'                // ^
+  | 'ASTERISK'             // *
+  | 'EQUALS'               // =
+  | 'APOSTROPHE'           // ' '
+  | 'QUOTE'                // " "
   | 'CODE_BLOCK'           // ``` ... ```
   // Structural
   | 'NEWLINE'              // Statement separator

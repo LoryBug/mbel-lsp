@@ -345,13 +345,13 @@ describe('MbelLexer', () => {
 
   describe('Error Handling', () => {
     it('should report unknown characters', () => {
-      const result = lexer.tokenize('valid ^ invalid');
+      const result = lexer.tokenize('valid $ invalid');
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0]!.message).toContain('Unknown character');
     });
 
     it('should continue lexing after errors', () => {
-      const result = lexer.tokenize('valid ^ more');
+      const result = lexer.tokenize('valid $ more');
       const identifiers = result.tokens.filter(t => t.type === 'IDENTIFIER');
       expect(identifiers.length).toBe(2);
     });
