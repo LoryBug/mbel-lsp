@@ -26,7 +26,7 @@ export type LogicOperator = '&' | '||' | '¬';
 // Meta operators [2]
 export type MetaOperator = '©' | '§';
 
-// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1]
+// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1] + Decisions [7]
 export type ArrowOperator =
   | '->files'
   | '->tests'
@@ -38,7 +38,14 @@ export type ArrowOperator =
   | '->depends'
   | '->features'
   | '->why'
-  | '->descrizione';  // TDDAB#10: SemanticAnchors
+  | '->descrizione'    // TDDAB#10: SemanticAnchors
+  | '->alternatives'   // TDDAB#11: DecisionLog
+  | '->reason'         // TDDAB#11: DecisionLog
+  | '->tradeoff'       // TDDAB#11: DecisionLog
+  | '->context'        // TDDAB#11: DecisionLog
+  | '->status'         // TDDAB#11: DecisionLog
+  | '->revisit'        // TDDAB#11: DecisionLog
+  | '->supersededBy';  // TDDAB#11: DecisionLog
 
 // MBEL v6 Anchor prefixes for SemanticAnchors [3]
 export type AnchorPrefix =
@@ -98,6 +105,16 @@ export type TokenType =
   | 'ARROW_FEATURES'       // ->features
   | 'ARROW_WHY'            // ->why
   | 'ARROW_DESCRIZIONE'    // ->descrizione (TDDAB#10)
+  // MBEL v6 Decision Arrow Operators (TDDAB#11)
+  | 'ARROW_ALTERNATIVES'   // ->alternatives
+  | 'ARROW_REASON'         // ->reason
+  | 'ARROW_TRADEOFF'       // ->tradeoff
+  | 'ARROW_CONTEXT'        // ->context
+  | 'ARROW_STATUS'         // ->status
+  | 'ARROW_REVISIT'        // ->revisit
+  | 'ARROW_SUPERSEDED_BY'  // ->supersededBy
+  // MBEL v6 Decision Date Prefix (TDDAB#11)
+  | 'DECISION_DATE'        // @YYYY-MM-DD::
   // MBEL v6 Link Type Markers
   | 'LINK_FEATURE'         // @feature
   | 'LINK_TASK'            // @task

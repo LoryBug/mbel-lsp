@@ -10,6 +10,7 @@
 >completed::TDDAB#17::QueryService{23tests,398total,91.27%coverage}✓
 >completed::TDDAB#18::QueryAPI-Anchors{19tests,417total,91.7%coverage}✓
 >completed::TDDAB#19::QueryAPI-Dependencies{17tests,434total,92.22%coverage}✓
+>completed::TDDAB#11::DecisionLog{8tokens,60tests,494total,92.67%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -56,13 +57,24 @@
   ↳patterns::AnchorPrefixMap{likeARROW_OPERATORS},PositionWhitespaceDetection{pathvalidation},TypeFilteredStatementCheck
   ↳all-checks::build✓,lint✓,tests✓,coverage✓
 
+✓TDDAB#11::DecisionLog{8tokens,60tests,92.67%coverage}
+  ↳lexer::8tokens{DECISION_DATE,ARROW_ALTERNATIVES,ARROW_REASON,ARROW_TRADEOFF,ARROW_CONTEXT,ARROW_STATUS,ARROW_REVISIT,ARROW_SUPERSEDED_BY}
+  ↳ast::DecisionDeclaration{date,name,alternatives,reason,tradeoff,context,status,supersededBy,revisit}+DecisionStatus
+  ↳analyzer::9codes{MBEL-DECISION-001→040,empty-name,duplicate,invalid-status,superseded-missing-ref,no-reason,empty-reason,empty-tradeoff,context-spaces}
+  ↳tests::22lexer+19parser+19analyzer{494total}
+  ↳files-modified::types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,types.ts{analyzer},index.ts
+  ↳files-created::lexer-decisions.test.ts,parser-decisions.test.ts,decisions-validation.test.ts
+  ↳all-checks::build✓,lint✓,tests✓,coverage✓
+
 [RECENT]
->updated::query-service.ts{getFeatureDependencies,getBlueprintProgress,3-helpers}
->updated::query-service.test.ts{+17tests,59total}
->updated::types.ts{FeatureDependencies,BlueprintProgress,TaskProgress,BlueprintSummary}
->completed::TDDAB#19{QueryAPI-Dependencies,434tests-total,92.22%coverage}
->updated::activeContext.mbel.md{FOCUS,RECENT,NEXT}
->updated::progress.mbel.md{TDDAB#19-complete}
+>completed::TDDAB#11{DecisionLog,60tests,494tests-total,92.67%coverage}
+>updated::types.ts{8-new-tokens,DecisionDeclaration,DecisionStatus}
+>updated::lexer.ts{7-arrow-ops,isDecisionDatePrefix,scanDecisionDate}
+>updated::parser.ts{parseDecisionDeclaration,isDecisionArrowOperator}
+>updated::analyzer.ts{checkDecisionDeclarations,checkInvalidDecisionStatus,9-new-codes}
+>created::lexer-decisions.test.ts{22tests}
+>created::parser-decisions.test.ts{19tests}
+>created::decisions-validation.test.ts{19tests}
 
 [DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
@@ -113,8 +125,9 @@
   ↳methods::getFeatureDependencies,getBlueprintProgress
   ↳depends::TDDAB#17✓,#18✓
   ↳enables::dependency-graph,blueprint-tracking,circular-detection
-?TDDAB#11::DecisionLog{priority:4,estimated-duration:2-3days}
+✓TDDAB#11::DecisionLog{priority:4,60tests,92.67%coverage}
   ↳depends::TDDAB#9✓,#10✓
+  ↳completed::2024-12-27
 ?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
 ?TDDAB#20::GitIntegration{priority:P3,estimated-duration:3days}
   ↳methods::calculateHotspots,suggestAnchorUpdates
@@ -125,11 +138,11 @@
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::TotalTests-V6-So-Far::#434{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17}
+@note::TotalTests-V6-So-Far::#494{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17+TDDAB#11:60}
 @note::TotalTests-Projected::#429{V5:259+V6:170}
-@note::Coverage-Current::%92.22{TDDAB#19-full}
+@note::Coverage-Current::%92.67{TDDAB#11-full}
 @note::Coverage-Target-V6::%90{exceeded}
-@note::NewTokens::#40{sections:5,operators:25,prefixes:7,markers:3}
-@note::NewASTNodes::#8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,...}
+@note::NewTokens::#48{sections:5,operators:32,prefixes:7,markers:3,decision:1}
+@note::NewASTNodes::#9{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,IntentNode,...}
 @note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}
 @note::PlanReference::tasks/MBEL-6.0-TDDAB-PLAN.md

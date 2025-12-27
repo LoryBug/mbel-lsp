@@ -9149,8 +9149,16 @@ var MbelLexer = class _MbelLexer {
     ["depends", "ARROW_DEPENDS"],
     ["features", "ARROW_FEATURES"],
     ["why", "ARROW_WHY"],
-    ["descrizione", "ARROW_DESCRIZIONE"]
+    ["descrizione", "ARROW_DESCRIZIONE"],
     // TDDAB#10: SemanticAnchors
+    // TDDAB#11: DecisionLog
+    ["alternatives", "ARROW_ALTERNATIVES"],
+    ["reason", "ARROW_REASON"],
+    ["tradeoff", "ARROW_TRADEOFF"],
+    ["context", "ARROW_CONTEXT"],
+    ["status", "ARROW_STATUS"],
+    ["revisit", "ARROW_REVISIT"],
+    ["supersededBy", "ARROW_SUPERSEDED_BY"]
   ]);
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
   static ANCHOR_PREFIXES = /* @__PURE__ */ new Map([
@@ -9459,6 +9467,12 @@ var MbelLexer = class _MbelLexer {
    * Returns true if a link marker or anchor prefix was matched, false otherwise.
    */
   scanLinkMarker(start) {
+    if (this.isDecisionDatePrefix()) {
+      const value = this.scanDecisionDate();
+      this.addToken("DECISION_DATE", value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
     let keyword = "";
     let offset = 1;
     while (this.isIdentifierPart(this.peekAt(offset))) {
@@ -9496,6 +9510,49 @@ var MbelLexer = class _MbelLexer {
       return true;
     }
     return false;
+  }
+  /**
+   * TDDAB#11: Check if current position starts with @YYYY-MM-DD::
+   */
+  isDecisionDatePrefix() {
+    if (this.peekAt(0) !== "@")
+      return false;
+    for (let i = 1; i <= 4; i++) {
+      if (!this.isDigit(this.peekAt(i)))
+        return false;
+    }
+    if (this.peekAt(5) !== "-")
+      return false;
+    const month1 = this.peekAt(6);
+    const month2 = this.peekAt(7);
+    if (!this.isDigit(month1) || !this.isDigit(month2))
+      return false;
+    const month = parseInt(month1 + month2, 10);
+    if (month < 1 || month > 12)
+      return false;
+    if (this.peekAt(8) !== "-")
+      return false;
+    const day1 = this.peekAt(9);
+    const day2 = this.peekAt(10);
+    if (!this.isDigit(day1) || !this.isDigit(day2))
+      return false;
+    const day = parseInt(day1 + day2, 10);
+    if (day < 1 || day > 31)
+      return false;
+    if (this.peekAt(11) !== ":" || this.peekAt(12) !== ":")
+      return false;
+    return true;
+  }
+  /**
+   * TDDAB#11: Scan and consume decision date prefix @YYYY-MM-DD::
+   */
+  scanDecisionDate() {
+    let value = "";
+    for (let i = 0; i < 13; i++) {
+      value += this.peek();
+      this.advance();
+    }
+    return value;
   }
   scanCodeBlock(start) {
     let content = this.advance() + this.advance() + this.advance();
@@ -9604,6 +9661,9 @@ var MbelParser = class {
     }
     if (this.isAnchorToken(token.type)) {
       return this.parseAnchorDeclaration();
+    }
+    if (token.type === "DECISION_DATE") {
+      return this.parseDecisionDeclaration();
     }
     if (token.type === "IDENTIFIER" || token.type === "NUMBER") {
       return this.parseExpressionStatement();
@@ -10182,7 +10242,7 @@ var MbelParser = class {
     return result;
   }
   /**
-   * Check if token is an arrow operator
+   * Check if token is an arrow operator (for links)
    */
   isArrowOperator(type) {
     return [
@@ -10197,6 +10257,124 @@ var MbelParser = class {
       "ARROW_FEATURES",
       "ARROW_WHY"
     ].includes(type);
+  }
+  /**
+   * Check if token is a decision arrow operator (TDDAB#11)
+   */
+  isDecisionArrowOperator(type) {
+    return [
+      "ARROW_ALTERNATIVES",
+      "ARROW_REASON",
+      "ARROW_TRADEOFF",
+      "ARROW_CONTEXT",
+      "ARROW_STATUS",
+      "ARROW_REVISIT",
+      "ARROW_SUPERSEDED_BY"
+    ].includes(type);
+  }
+  // =========================================
+  // MBEL v6 DecisionLog Parsing (TDDAB#11)
+  // =========================================
+  /**
+   * Parse decision declaration
+   * e.g., @2024-12-27::UseTypeScript
+   *         ->alternatives["JavaScript", "Python"]
+   *         ->reason{Type safety}
+   *         ->status{ACTIVE}
+   */
+  parseDecisionDeclaration() {
+    const start = this.peek().start;
+    const dateToken = this.advance();
+    const date = dateToken.value.slice(1, -2);
+    let name = "";
+    if (this.check("IDENTIFIER")) {
+      name = this.advance().value;
+    }
+    let alternatives = null;
+    let reason = null;
+    let tradeoff = null;
+    let context = null;
+    let status = null;
+    let supersededBy = null;
+    let revisit = null;
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      while (this.check("NEWLINE")) {
+        this.advance();
+      }
+      if (!this.isDecisionArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+      const arrowToken = this.advance();
+      switch (arrowToken.type) {
+        case "ARROW_ALTERNATIVES":
+          if (this.check("STRUCT_LIST")) {
+            alternatives = this.parseQuotedStringList();
+          }
+          break;
+        case "ARROW_REASON":
+          if (this.check("STRUCT_METADATA")) {
+            reason = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_TRADEOFF":
+          if (this.check("STRUCT_METADATA")) {
+            tradeoff = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_CONTEXT":
+          if (this.check("STRUCT_LIST")) {
+            context = this.parseStringList();
+          }
+          break;
+        case "ARROW_STATUS":
+          if (this.check("STRUCT_METADATA")) {
+            const statusValue = this.parseMetadataContent();
+            if (this.isValidDecisionStatus(statusValue)) {
+              status = statusValue;
+            }
+          }
+          break;
+        case "ARROW_REVISIT":
+          if (this.check("STRUCT_METADATA")) {
+            revisit = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_SUPERSEDED_BY":
+          if (this.check("STRUCT_METADATA")) {
+            supersededBy = this.parseMetadataContent();
+          }
+          break;
+      }
+    }
+    return {
+      type: "DecisionDeclaration",
+      date,
+      name,
+      alternatives,
+      reason,
+      tradeoff,
+      context,
+      status,
+      supersededBy,
+      revisit,
+      start,
+      end: this.previous()?.end ?? start
+    };
+  }
+  /**
+   * Parse metadata content (extracts text between { and })
+   */
+  parseMetadataContent() {
+    const token = this.advance();
+    return token.value.slice(1, -1);
+  }
+  /**
+   * Check if a string is a valid DecisionStatus
+   */
+  isValidDecisionStatus(value) {
+    return ["ACTIVE", "SUPERSEDED", "RECONSIDERING"].includes(value);
   }
   // =========================================
   // MBEL v6 SemanticAnchors Parsing (TDDAB#10)
@@ -10435,6 +10613,7 @@ var MbelAnalyzer = class {
       this.checkEntryPointFromSource(diagnostics);
       this.checkLineRangeFormat(diagnostics);
       this.checkUnknownMarkers(diagnostics);
+      this.checkInvalidDecisionStatus(diagnostics);
     }
     return { diagnostics, quickFixes };
   }
@@ -10619,6 +10798,7 @@ var MbelAnalyzer = class {
     diagnostics.push(...this.checkDuplicateAttributes(document));
     diagnostics.push(...this.checkLinkDeclarations(document));
     diagnostics.push(...this.checkAnchorDeclarations(document));
+    diagnostics.push(...this.checkDecisionDeclarations(document));
     return diagnostics;
   }
   checkMissingVersion(document) {
@@ -11146,6 +11326,150 @@ var MbelAnalyzer = class {
       }
     }
     return diagnostics;
+  }
+  // =========================================
+  // MBEL v6 DecisionLog Validation (TDDAB#11)
+  // =========================================
+  /**
+   * Check decision declarations for validation issues
+   */
+  checkDecisionDeclarations(document) {
+    const diagnostics = [];
+    const decisions = document.statements.filter((stmt) => stmt.type === "DecisionDeclaration");
+    const decisionNames = /* @__PURE__ */ new Map();
+    for (const decision of decisions) {
+      if (!decision.name || decision.name.trim() === "") {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "error",
+          code: "MBEL-DECISION-001",
+          message: "Decision name cannot be empty",
+          source: "mbel"
+        });
+        continue;
+      }
+      const existingDecision = decisionNames.get(decision.name);
+      if (existingDecision) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "warning",
+          code: "MBEL-DECISION-002",
+          message: `Duplicate decision name "${decision.name}"`,
+          source: "mbel",
+          relatedInfo: [{
+            location: { start: existingDecision.start, end: existingDecision.end },
+            message: "First decision declaration here"
+          }]
+        });
+      } else {
+        decisionNames.set(decision.name, decision);
+      }
+      if (decision.status !== null && !["ACTIVE", "SUPERSEDED", "RECONSIDERING"].includes(decision.status)) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "error",
+          code: "MBEL-DECISION-010",
+          message: `Invalid decision status "${decision.status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: "mbel"
+        });
+      }
+      if (decision.status === "SUPERSEDED" && !decision.supersededBy) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "warning",
+          code: "MBEL-DECISION-020",
+          message: "SUPERSEDED decision should specify ->supersededBy reference",
+          source: "mbel"
+        });
+      }
+      if (this.options.hints && !decision.reason) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "hint",
+          code: "MBEL-DECISION-030",
+          message: "Consider adding a ->reason clause to explain the decision",
+          source: "mbel"
+        });
+      }
+      if (decision.reason === "") {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "warning",
+          code: "MBEL-DECISION-031",
+          message: "Decision reason is empty",
+          source: "mbel"
+        });
+      }
+      if (decision.tradeoff === "") {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "warning",
+          code: "MBEL-DECISION-032",
+          message: "Decision tradeoff is empty",
+          source: "mbel"
+        });
+      }
+      if (decision.context) {
+        for (const contextPath of decision.context) {
+          if (/\s/.test(contextPath)) {
+            diagnostics.push({
+              range: { start: decision.start, end: decision.end },
+              severity: "error",
+              code: "MBEL-DECISION-040",
+              message: `Context path contains invalid characters (spaces): "${contextPath}"`,
+              source: "mbel"
+            });
+          }
+        }
+      }
+    }
+    for (const decision of decisions) {
+      if (decision.supersededBy && !decisionNames.has(decision.supersededBy)) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: "warning",
+          code: "MBEL-DECISION-021",
+          message: `Reference to undefined decision "${decision.supersededBy}" in supersededBy`,
+          source: "mbel"
+        });
+      }
+    }
+    return diagnostics;
+  }
+  /**
+   * Check for invalid decision status values in source text
+   * (The parser only accepts valid status values, so invalid ones need source-level detection)
+   */
+  checkInvalidDecisionStatus(diagnostics) {
+    const validStatuses = ["ACTIVE", "SUPERSEDED", "RECONSIDERING"];
+    const statusPattern = /->status\{([^}]*)\}/g;
+    let match;
+    while ((match = statusPattern.exec(this.sourceText)) !== null) {
+      const status = match[1]?.trim();
+      if (status && !validStatuses.includes(status)) {
+        const offset = match.index;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === "\n") {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + match[0].length, offset: offset + match[0].length }
+          },
+          severity: "error",
+          code: "MBEL-DECISION-010",
+          message: `Invalid decision status "${status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: "mbel"
+        });
+      }
+    }
   }
   // --- Quick Fix Generators ---
   createArticleRemovalFix(diagnostic) {

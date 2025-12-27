@@ -146,12 +146,16 @@
    └─ Capabilities::circular-detection,depth-calculation,transitive-deps,TO-CREATE/TO-MODIFY-tracking
 
 [TDDAB#11]
-?DecisionLog{§decisions-extended}
-├─ Status::Pending
-├─ Tests::~20{lexer,parser,analyzer}
-├─ Tokens::+8{->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy,@date::}
-├─ Priority::4{High-Value}
-└─ Files::decisions-rules.ts
+✓DecisionLog{§decisions-extended}
+├─ Status::Complete✓
+├─ RED::60tests{lexer:22,parser:19,analyzer:19}✓
+├─ GREEN::Implementation{8tokens,9codes,AST+parser+analyzer}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{494/494}+Coverage✓{92.67%}
+├─ Commit::Pending
+└─ Features::
+   ├─ Lexer::8tokens{DECISION_DATE,ARROW_ALTERNATIVES,ARROW_REASON,ARROW_TRADEOFF,ARROW_CONTEXT,ARROW_STATUS,ARROW_REVISIT,ARROW_SUPERSEDED_BY}
+   ├─ AST::DecisionDeclaration{date,name,alternatives,reason,tradeoff,context,status,supersededBy,revisit}+DecisionStatus
+   └─ Analyzer::9codes{MBEL-DECISION-001→040}
 
 [TDDAB#12]
 ?HeatMap{§heat-section}
@@ -205,9 +209,10 @@
 - Coverage-TDDAB#17::%91.27{overall},95.05%{query-service}
 - Coverage-TDDAB#18::%91.7{overall},96.94%{query-service}
 - Coverage-TDDAB#19::%92.22{overall},97.46%{query-service}
+- Coverage-TDDAB#11::%92.67{overall},96.16%{analyzer}
 - Coverage-Target::%90{exceeded}
-- NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
-- NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}
+- NewTokens::~48{sections:5,operators:32,prefixes:7,markers:3,decisions:1}
+- NewASTNodes::~9{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,IntentNode,QueryNode,...}
 
 [GIT_HISTORY_V5]
 @commits::

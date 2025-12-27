@@ -61,7 +61,17 @@ export type DiagnosticCode =
   | 'MBEL-ANCHOR-002'         // Invalid path characters (spaces)
   | 'MBEL-ANCHOR-003'         // Duplicate anchor for same path
   | 'MBEL-ANCHOR-010'         // Empty description
-  | 'MBEL-ANCHOR-011';        // Invalid glob pattern (like ***)
+  | 'MBEL-ANCHOR-011'         // Invalid glob pattern (like ***)
+  // MBEL v6 DecisionLog validation (TDDAB#11)
+  | 'MBEL-DECISION-001'       // Empty decision name
+  | 'MBEL-DECISION-002'       // Duplicate decision names
+  | 'MBEL-DECISION-010'       // Invalid status value
+  | 'MBEL-DECISION-020'       // SUPERSEDED without supersededBy
+  | 'MBEL-DECISION-021'       // Reference to undefined decision in supersededBy
+  | 'MBEL-DECISION-030'       // Decision without reason (hint)
+  | 'MBEL-DECISION-031'       // Empty reason
+  | 'MBEL-DECISION-032'       // Empty tradeoff
+  | 'MBEL-DECISION-040';      // Context path with spaces
 
 /**
  * Range in source document

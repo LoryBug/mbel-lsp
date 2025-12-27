@@ -17,6 +17,8 @@ import type {
   FileRef,
   // MBEL v6 SemanticAnchors (TDDAB#10)
   AnchorDeclaration,
+  // MBEL v6 DecisionLog (TDDAB#11)
+  DecisionDeclaration,
 } from '@mbel/core';
 import type { AnalysisResult, AnalyzerOptions, Diagnostic, DiagnosticCode, QuickFix, TextEdit, RelatedInformation } from './types.js';
 
@@ -122,6 +124,9 @@ export class MbelAnalyzer {
       this.checkEntryPointFromSource(diagnostics);
       this.checkLineRangeFormat(diagnostics);
       this.checkUnknownMarkers(diagnostics);
+
+      // MBEL v6: Additional source-based decision validation (TDDAB#11)
+      this.checkInvalidDecisionStatus(diagnostics);
     }
 
     return { diagnostics, quickFixes };
@@ -358,6 +363,9 @@ export class MbelAnalyzer {
 
     // MBEL v6: Check anchor declarations (TDDAB#10)
     diagnostics.push(...this.checkAnchorDeclarations(document));
+
+    // MBEL v6: Check decision declarations (TDDAB#11)
+    diagnostics.push(...this.checkDecisionDeclarations(document));
 
     return diagnostics;
   }
@@ -1011,6 +1019,179 @@ export class MbelAnalyzer {
     }
 
     return diagnostics;
+  }
+
+  // =========================================
+  // MBEL v6 DecisionLog Validation (TDDAB#11)
+  // =========================================
+
+  /**
+   * Check decision declarations for validation issues
+   */
+  private checkDecisionDeclarations(document: Document): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Filter for DecisionDeclaration nodes
+    const decisions = document.statements.filter(
+      (stmt): stmt is DecisionDeclaration => stmt.type === 'DecisionDeclaration'
+    );
+
+    // Track decision names for duplicate detection
+    const decisionNames = new Map<string, DecisionDeclaration>();
+
+    for (const decision of decisions) {
+      // MBEL-DECISION-001: Empty decision name
+      if (!decision.name || decision.name.trim() === '') {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'error',
+          code: 'MBEL-DECISION-001',
+          message: 'Decision name cannot be empty',
+          source: 'mbel',
+        });
+        continue; // Skip further validation for invalid decision
+      }
+
+      // MBEL-DECISION-002: Duplicate decision names
+      const existingDecision = decisionNames.get(decision.name);
+      if (existingDecision) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'warning',
+          code: 'MBEL-DECISION-002',
+          message: `Duplicate decision name "${decision.name}"`,
+          source: 'mbel',
+          relatedInfo: [{
+            location: { start: existingDecision.start, end: existingDecision.end },
+            message: 'First decision declaration here',
+          }],
+        });
+      } else {
+        decisionNames.set(decision.name, decision);
+      }
+
+      // MBEL-DECISION-010: Invalid status value
+      if (decision.status !== null && !['ACTIVE', 'SUPERSEDED', 'RECONSIDERING'].includes(decision.status)) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'error',
+          code: 'MBEL-DECISION-010',
+          message: `Invalid decision status "${decision.status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-DECISION-020: SUPERSEDED without supersededBy
+      if (decision.status === 'SUPERSEDED' && !decision.supersededBy) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'warning',
+          code: 'MBEL-DECISION-020',
+          message: 'SUPERSEDED decision should specify ->supersededBy reference',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-DECISION-030: Decision without reason (hint)
+      if (this.options.hints && !decision.reason) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'hint',
+          code: 'MBEL-DECISION-030',
+          message: 'Consider adding a ->reason clause to explain the decision',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-DECISION-031: Empty reason
+      if (decision.reason === '') {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'warning',
+          code: 'MBEL-DECISION-031',
+          message: 'Decision reason is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-DECISION-032: Empty tradeoff
+      if (decision.tradeoff === '') {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'warning',
+          code: 'MBEL-DECISION-032',
+          message: 'Decision tradeoff is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-DECISION-040: Context path with spaces
+      if (decision.context) {
+        for (const contextPath of decision.context) {
+          if (/\s/.test(contextPath)) {
+            diagnostics.push({
+              range: { start: decision.start, end: decision.end },
+              severity: 'error',
+              code: 'MBEL-DECISION-040',
+              message: `Context path contains invalid characters (spaces): "${contextPath}"`,
+              source: 'mbel',
+            });
+          }
+        }
+      }
+    }
+
+    // MBEL-DECISION-021: Check supersededBy references to non-existent decisions
+    for (const decision of decisions) {
+      if (decision.supersededBy && !decisionNames.has(decision.supersededBy)) {
+        diagnostics.push({
+          range: { start: decision.start, end: decision.end },
+          severity: 'warning',
+          code: 'MBEL-DECISION-021',
+          message: `Reference to undefined decision "${decision.supersededBy}" in supersededBy`,
+          source: 'mbel',
+        });
+      }
+    }
+
+    return diagnostics;
+  }
+
+  /**
+   * Check for invalid decision status values in source text
+   * (The parser only accepts valid status values, so invalid ones need source-level detection)
+   */
+  private checkInvalidDecisionStatus(diagnostics: Diagnostic[]): void {
+    const validStatuses = ['ACTIVE', 'SUPERSEDED', 'RECONSIDERING'];
+    const statusPattern = /->status\{([^}]*)\}/g;
+    let match;
+    while ((match = statusPattern.exec(this.sourceText)) !== null) {
+      const status = match[1]?.trim();
+      if (status && !validStatuses.includes(status)) {
+        const offset = match.index;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === '\n') {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + match[0].length, offset: offset + match[0].length },
+          },
+          severity: 'error',
+          code: 'MBEL-DECISION-010',
+          message: `Invalid decision status "${status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: 'mbel',
+        });
+      }
+    }
   }
 
   // --- Quick Fix Generators ---

@@ -28,7 +28,8 @@ export type Statement =
   | SourceStatement
   | ExpressionStatement
   | LinkDeclaration
-  | AnchorDeclaration;  // TDDAB#10: SemanticAnchors
+  | AnchorDeclaration   // TDDAB#10: SemanticAnchors
+  | DecisionDeclaration;  // TDDAB#11: DecisionLog
 
 // [SectionName] - Section declaration
 export interface SectionDeclaration extends AstNode {
@@ -266,4 +267,36 @@ export interface AnchorDeclaration extends AstNode {
   readonly path: string;
   readonly isGlob: boolean;
   readonly description: string | null;
+}
+
+// =========================================
+// MBEL v6 DecisionLog AST Nodes (TDDAB#11)
+// =========================================
+
+/**
+ * Decision status
+ * ACTIVE - currently in effect
+ * SUPERSEDED - replaced by another decision
+ * RECONSIDERING - under review
+ */
+export type DecisionStatus = 'ACTIVE' | 'SUPERSEDED' | 'RECONSIDERING';
+
+/**
+ * Decision declaration - node for §decisions section
+ * e.g., @2024-12-27::UseTypeScript
+ *         ->alternatives["JavaScript", "Python"]
+ *         ->reason{Type safety}
+ *         ->status{ACTIVE}
+ */
+export interface DecisionDeclaration extends AstNode {
+  readonly type: 'DecisionDeclaration';
+  readonly date: string;  // ISO format YYYY-MM-DD
+  readonly name: string;
+  readonly alternatives: readonly string[] | null;
+  readonly reason: string | null;
+  readonly tradeoff: string | null;
+  readonly context: readonly string[] | null;  // file paths
+  readonly status: DecisionStatus | null;
+  readonly supersededBy: string | null;
+  readonly revisit: string | null;
 }

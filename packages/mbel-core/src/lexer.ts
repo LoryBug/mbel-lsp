@@ -27,6 +27,14 @@ export class MbelLexer {
     ['features', 'ARROW_FEATURES'],
     ['why', 'ARROW_WHY'],
     ['descrizione', 'ARROW_DESCRIZIONE'],  // TDDAB#10: SemanticAnchors
+    // TDDAB#11: DecisionLog
+    ['alternatives', 'ARROW_ALTERNATIVES'],
+    ['reason', 'ARROW_REASON'],
+    ['tradeoff', 'ARROW_TRADEOFF'],
+    ['context', 'ARROW_CONTEXT'],
+    ['status', 'ARROW_STATUS'],
+    ['revisit', 'ARROW_REVISIT'],
+    ['supersededBy', 'ARROW_SUPERSEDED_BY'],
   ]);
 
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
@@ -408,6 +416,15 @@ export class MbelLexer {
    */
   private scanLinkMarker(start: Position): boolean {
     // We already know we're at '@'
+
+    // TDDAB#11: Check for decision date prefix (@YYYY-MM-DD::) FIRST
+    if (this.isDecisionDatePrefix()) {
+      const value = this.scanDecisionDate();
+      this.addToken('DECISION_DATE', value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
+
     // Look ahead to extract the keyword following '@'
     let keyword = '';
     let offset = 1; // Skip '@'
@@ -456,6 +473,58 @@ export class MbelLexer {
 
     // Not a recognized link marker or anchor prefix
     return false;
+  }
+
+  /**
+   * TDDAB#11: Check if current position starts with @YYYY-MM-DD::
+   */
+  private isDecisionDatePrefix(): boolean {
+    // Pattern: @YYYY-MM-DD::
+    // Position:  0123456789012
+    if (this.peekAt(0) !== '@') return false;
+
+    // Check for 4-digit year
+    for (let i = 1; i <= 4; i++) {
+      if (!this.isDigit(this.peekAt(i))) return false;
+    }
+
+    // Check for first hyphen
+    if (this.peekAt(5) !== '-') return false;
+
+    // Check for 2-digit month (01-12)
+    const month1 = this.peekAt(6);
+    const month2 = this.peekAt(7);
+    if (!this.isDigit(month1) || !this.isDigit(month2)) return false;
+    const month = parseInt(month1 + month2, 10);
+    if (month < 1 || month > 12) return false;
+
+    // Check for second hyphen
+    if (this.peekAt(8) !== '-') return false;
+
+    // Check for 2-digit day (01-31)
+    const day1 = this.peekAt(9);
+    const day2 = this.peekAt(10);
+    if (!this.isDigit(day1) || !this.isDigit(day2)) return false;
+    const day = parseInt(day1 + day2, 10);
+    if (day < 1 || day > 31) return false;
+
+    // Check for ::
+    if (this.peekAt(11) !== ':' || this.peekAt(12) !== ':') return false;
+
+    return true;
+  }
+
+  /**
+   * TDDAB#11: Scan and consume decision date prefix @YYYY-MM-DD::
+   */
+  private scanDecisionDate(): string {
+    // @YYYY-MM-DD:: = 13 characters
+    let value = '';
+    for (let i = 0; i < 13; i++) {
+      value += this.peek();
+      this.advance();
+    }
+    return value;
   }
 
   private scanCodeBlock(start: Position): void {

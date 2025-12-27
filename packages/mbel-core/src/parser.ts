@@ -30,6 +30,9 @@ import type {
   // MBEL v6 SemanticAnchors (TDDAB#10)
   AnchorDeclaration,
   AnchorType,
+  // MBEL v6 DecisionLog (TDDAB#11)
+  DecisionDeclaration,
+  DecisionStatus,
 } from './ast.js';
 
 /**
@@ -128,6 +131,11 @@ export class MbelParser {
     // MBEL v6: Anchor declarations (@entry::, @hotspot::, @boundary::) - TDDAB#10
     if (this.isAnchorToken(token.type)) {
       return this.parseAnchorDeclaration();
+    }
+
+    // MBEL v6: Decision declarations (@YYYY-MM-DD::Name) - TDDAB#11
+    if (token.type === 'DECISION_DATE') {
+      return this.parseDecisionDeclaration();
     }
 
     // Other expressions
@@ -848,7 +856,7 @@ export class MbelParser {
   }
 
   /**
-   * Check if token is an arrow operator
+   * Check if token is an arrow operator (for links)
    */
   private isArrowOperator(type: TokenType): boolean {
     return [
@@ -863,6 +871,148 @@ export class MbelParser {
       'ARROW_FEATURES',
       'ARROW_WHY',
     ].includes(type);
+  }
+
+  /**
+   * Check if token is a decision arrow operator (TDDAB#11)
+   */
+  private isDecisionArrowOperator(type: TokenType): boolean {
+    return [
+      'ARROW_ALTERNATIVES',
+      'ARROW_REASON',
+      'ARROW_TRADEOFF',
+      'ARROW_CONTEXT',
+      'ARROW_STATUS',
+      'ARROW_REVISIT',
+      'ARROW_SUPERSEDED_BY',
+    ].includes(type);
+  }
+
+  // =========================================
+  // MBEL v6 DecisionLog Parsing (TDDAB#11)
+  // =========================================
+
+  /**
+   * Parse decision declaration
+   * e.g., @2024-12-27::UseTypeScript
+   *         ->alternatives["JavaScript", "Python"]
+   *         ->reason{Type safety}
+   *         ->status{ACTIVE}
+   */
+  private parseDecisionDeclaration(): DecisionDeclaration {
+    const start = this.peek().start;
+    const dateToken = this.advance(); // DECISION_DATE (@2024-12-27::)
+
+    // Extract date from token value (format: @YYYY-MM-DD::)
+    const date = dateToken.value.slice(1, -2); // Remove @ and ::
+
+    // Parse decision name (identifier after date prefix)
+    let name = '';
+    if (this.check('IDENTIFIER')) {
+      name = this.advance().value;
+    }
+
+    // Initialize all clause values
+    let alternatives: string[] | null = null;
+    let reason: string | null = null;
+    let tradeoff: string | null = null;
+    let context: string[] | null = null;
+    let status: DecisionStatus | null = null;
+    let supersededBy: string | null = null;
+    let revisit: string | null = null;
+
+    // Parse arrow clauses (may span multiple lines)
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      // Skip newlines between arrow clauses
+      while (this.check('NEWLINE')) {
+        this.advance();
+      }
+
+      if (!this.isDecisionArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+
+      const arrowToken = this.advance();
+
+      switch (arrowToken.type) {
+        case 'ARROW_ALTERNATIVES':
+          if (this.check('STRUCT_LIST')) {
+            alternatives = this.parseQuotedStringList();
+          }
+          break;
+
+        case 'ARROW_REASON':
+          if (this.check('STRUCT_METADATA')) {
+            reason = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_TRADEOFF':
+          if (this.check('STRUCT_METADATA')) {
+            tradeoff = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_CONTEXT':
+          if (this.check('STRUCT_LIST')) {
+            context = this.parseStringList();
+          }
+          break;
+
+        case 'ARROW_STATUS':
+          if (this.check('STRUCT_METADATA')) {
+            const statusValue = this.parseMetadataContent();
+            if (this.isValidDecisionStatus(statusValue)) {
+              status = statusValue as DecisionStatus;
+            }
+          }
+          break;
+
+        case 'ARROW_REVISIT':
+          if (this.check('STRUCT_METADATA')) {
+            revisit = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_SUPERSEDED_BY':
+          if (this.check('STRUCT_METADATA')) {
+            supersededBy = this.parseMetadataContent();
+          }
+          break;
+      }
+    }
+
+    return {
+      type: 'DecisionDeclaration',
+      date,
+      name,
+      alternatives,
+      reason,
+      tradeoff,
+      context,
+      status,
+      supersededBy,
+      revisit,
+      start,
+      end: this.previous()?.end ?? start,
+    };
+  }
+
+  /**
+   * Parse metadata content (extracts text between { and })
+   */
+  private parseMetadataContent(): string {
+    const token = this.advance();
+    return token.value.slice(1, -1); // Remove { and }
+  }
+
+  /**
+   * Check if a string is a valid DecisionStatus
+   */
+  private isValidDecisionStatus(value: string): boolean {
+    return ['ACTIVE', 'SUPERSEDED', 'RECONSIDERING'].includes(value);
   }
 
   // =========================================

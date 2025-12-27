@@ -63,4 +63,7 @@ export type {
   // MBEL v6 SemanticAnchors (TDDAB#10)
   AnchorDeclaration,
   AnchorType,
+  // MBEL v6 DecisionLog (TDDAB#11)
+  DecisionDeclaration,
+  DecisionStatus,
 } from './ast.js';
