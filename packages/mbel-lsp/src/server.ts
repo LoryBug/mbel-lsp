@@ -19,6 +19,7 @@ import {
   Range,
   Location,
   MarkupKind,
+  CodeLens,
 } from 'vscode-languageserver/node.js';
 
 import { MbelAnalyzer } from '@mbel/analyzer';
@@ -33,9 +34,11 @@ import type {
   FileFeatureInfo,
   EntryPointInfo,
   AnchorInfo,
+  WorkContext,
 } from './types.js';
 import { createInitializeResult } from './types.js';
 import { QueryService } from './query-service.js';
+import { LlmApi } from './llm-api/index.js';
 
 /**
  * Operator documentation for hover and completion
@@ -85,6 +88,7 @@ export class MbelServer {
   private readonly analyzer: MbelAnalyzer;
   private readonly parser = new MbelParser();
   private readonly queryService = new QueryService();
+  private readonly llmApi = new LlmApi();
   private readonly documents = new Map<string, DocumentState>();
   private readonly options: Required<MbelServerOptions>;
 
@@ -189,6 +193,12 @@ export class MbelServer {
       return null;
     }
 
+    // Check for semantic elements first (TDDAB#16: Extended Hover)
+    const semanticHover = this.getSemanticHover(doc.content, position);
+    if (semanticHover) {
+      return semanticHover;
+    }
+
     // Check for operator at position
     const char = line.charAt(position.character);
     const twoChar = line.substring(position.character, position.character + 2);
@@ -215,6 +225,104 @@ export class MbelServer {
           value: `**${info.label}** - ${info.category}\n\n${info.description}`,
         },
       };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get semantic hover for MBEL v6 constructs
+   */
+  private getSemanticHover(content: string, position: Position): Hover | null {
+    // Parse to find statement at position
+    const parseResult = this.parser.parse(content);
+
+    for (const stmt of parseResult.document.statements) {
+      // Check if position is on this statement's line
+      if (stmt.start.line - 1 !== position.line) continue;
+
+      if (stmt.type === 'LinkDeclaration') {
+        // @feature or @task hover
+        const typeLabel = stmt.linkType === 'feature' ? '📦 Feature' : '📋 Task';
+        const files = stmt.files?.map(f => f.path).join(', ') ?? 'none';
+        const tests = stmt.tests?.map(t => t.path).join(', ') ?? 'none';
+        const deps = stmt.depends?.join(', ') ?? 'none';
+
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `## ${typeLabel}: ${stmt.name}\n\n` +
+                   `**Files:** ${files}\n\n` +
+                   `**Tests:** ${tests}\n\n` +
+                   `**Dependencies:** ${deps}`,
+          },
+        };
+      }
+
+      if (stmt.type === 'AnchorDeclaration') {
+        // @entry, @hotspot, @boundary hover
+        const icon = stmt.anchorType === 'entry' ? '🚪' :
+                     stmt.anchorType === 'hotspot' ? '⚠️' : '🔒';
+        const desc = stmt.description ?? 'No description';
+
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `## ${icon} Anchor: ${stmt.anchorType}\n\n` +
+                   `**Path:** \`${stmt.path}\`\n\n` +
+                   `**Description:** ${desc}\n\n` +
+                   (stmt.isGlob ? '_This is a glob pattern_' : ''),
+          },
+        };
+      }
+
+      if (stmt.type === 'DecisionDeclaration') {
+        // Decision hover
+        const status = stmt.status ?? 'ACTIVE';
+        const alternatives = stmt.alternatives?.join(', ') ?? 'none';
+
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `## 📝 Decision: ${stmt.name}\n\n` +
+                   `**Date:** ${stmt.date}\n\n` +
+                   `**Status:** ${status}\n\n` +
+                   `**Reason:** ${stmt.reason ?? 'Not specified'}\n\n` +
+                   `**Alternatives:** ${alternatives}`,
+          },
+        };
+      }
+
+      if (stmt.type === 'IntentDeclaration') {
+        // Intent hover
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `## 🎯 Intent: @${stmt.module}::${stmt.component}\n\n` +
+                   `**Does:** ${stmt.does ?? 'Not specified'}\n\n` +
+                   `**Does Not:** ${stmt.doesNot ?? 'Not specified'}\n\n` +
+                   `**Contract:** ${stmt.contract ?? 'Not specified'}`,
+          },
+        };
+      }
+
+      if (stmt.type === 'HeatDeclaration') {
+        // Heat hover
+        const icon = stmt.heatType === 'critical' ? '🔥' :
+                    stmt.heatType === 'hot' ? '🌡️' :
+                    stmt.heatType === 'volatile' ? '⚡' : '❄️';
+
+        return {
+          contents: {
+            kind: MarkupKind.Markdown,
+            value: `## ${icon} Heat: ${stmt.heatType}\n\n` +
+                   `**Path:** \`${stmt.path}\`\n\n` +
+                   `**Coverage:** ${stmt.coverage ?? 'N/A'}\n\n` +
+                   `**Confidence:** ${stmt.confidence ?? 'N/A'}\n\n` +
+                   `**Caution:** ${stmt.caution ?? 'None'}`,
+          },
+        };
+      }
     }
 
     return null;
@@ -645,6 +753,149 @@ export class MbelServer {
     const doc = this.documents.get(uri);
     if (!doc) return [];
     return this.queryService.getAllFeatures(doc.content);
+  }
+
+  // ============================================
+  // TDDAB#16: Tool Integrations - CodeLens, WorkContext
+  // ============================================
+
+  /**
+   * Get CodeLens for semantic elements in the document
+   */
+  getCodeLenses(uri: string): CodeLens[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+
+    const codeLenses: CodeLens[] = [];
+    const parseResult = this.parser.parse(doc.content);
+
+    for (const stmt of parseResult.document.statements) {
+      const range = this.toLspRange(stmt.start, stmt.end);
+
+      if (stmt.type === 'LinkDeclaration') {
+        // Feature/Task link
+        const typeIcon = stmt.linkType === 'feature' ? '📦' : '📋';
+        const fileCount = stmt.files?.length ?? 0;
+        const testCount = stmt.tests?.length ?? 0;
+        codeLenses.push({
+          range,
+          command: {
+            title: `${typeIcon} ${stmt.name} (${fileCount} files, ${testCount} tests)`,
+            command: 'mbel.showFeatureContext',
+            arguments: [uri, stmt.name],
+          },
+        });
+      } else if (stmt.type === 'AnchorDeclaration') {
+        // Semantic anchor
+        const icon = stmt.anchorType === 'entry' ? '🚪' :
+                     stmt.anchorType === 'hotspot' ? '⚠️' : '🔒';
+        const label = stmt.anchorType === 'hotspot' ? `⚠ ${stmt.anchorType}` : stmt.anchorType;
+        codeLenses.push({
+          range,
+          command: {
+            title: `${icon} ${label}: ${stmt.path}`,
+            command: 'mbel.showAnchor',
+            arguments: [uri, stmt.path],
+          },
+        });
+      } else if (stmt.type === 'DecisionDeclaration') {
+        // Decision
+        const statusIcon = stmt.status === 'ACTIVE' ? '✅' :
+                          stmt.status === 'SUPERSEDED' ? '🔄' : '📝';
+        codeLenses.push({
+          range,
+          command: {
+            title: `${statusIcon} ${stmt.name} [${stmt.status ?? 'ACTIVE'}]`,
+            command: 'mbel.showDecision',
+            arguments: [uri, stmt.name],
+          },
+        });
+      } else if (stmt.type === 'HeatDeclaration') {
+        // Heat map entry
+        const heatIcon = stmt.heatType === 'critical' ? '🔥' :
+                        stmt.heatType === 'hot' ? '🌡️' :
+                        stmt.heatType === 'volatile' ? '⚡' : '❄️';
+        codeLenses.push({
+          range,
+          command: {
+            title: `${heatIcon} ${stmt.heatType}: ${stmt.path}`,
+            command: 'mbel.showHeat',
+            arguments: [uri, stmt.path],
+          },
+        });
+      } else if (stmt.type === 'IntentDeclaration') {
+        // Intent marker
+        codeLenses.push({
+          range,
+          command: {
+            title: `🎯 @${stmt.module}::${stmt.component}`,
+            command: 'mbel.showIntent',
+            arguments: [uri, stmt.module, stmt.component],
+          },
+        });
+      }
+    }
+
+    return codeLenses;
+  }
+
+  /**
+   * Get work context for a feature (TDDAB#16: mbel-workcontext tool)
+   * @param uri - Document URI
+   * @param featureName - Name of the feature to get context for
+   */
+  getWorkContext(uri: string, featureName: string): WorkContext | null {
+    const doc = this.documents.get(uri);
+    if (!doc) return null;
+
+    // Load document into LLM API and get work context
+    this.llmApi.loadDocument(doc.content);
+    const context = this.llmApi.getWorkContext(featureName);
+
+    if (!context || !context.feature) return null;
+
+    // Convert to WorkContext type
+    return {
+      feature: context.feature,
+      files: [...context.files],
+      tests: [...context.tests],
+      blueprint: context.blueprint ? [...context.blueprint] : null,
+      decisions: context.decisions.map(d => ({
+        name: d.name,
+        date: d.date,
+        status: d.status,
+        reason: d.reason,
+        alternatives: [...d.alternatives],
+        context: [...d.context],
+      })),
+      anchors: context.anchors.map(a => ({
+        path: a.path,
+        type: a.type as 'entry' | 'hotspot' | 'boundary',
+        description: a.description,
+        isGlob: a.isGlob,
+      })),
+      heatInfo: context.heatInfo.map(h => ({
+        path: h.path,
+        type: h.type,
+        changes: h.changes,
+        coverage: h.coverage,
+        confidence: h.confidence,
+        caution: h.caution,
+      })),
+      intents: context.intents.map(i => ({
+        module: i.module,
+        component: i.component,
+        does: i.does,
+        doesNot: i.doesNot,
+        contract: i.contract,
+        singleResponsibility: i.singleResponsibility,
+        antiPattern: i.antiPattern,
+        extends: i.extends ? [...i.extends] : null,
+      })),
+      dependencies: [...context.dependencies],
+      dependents: [...context.dependents],
+      overallRisk: context.overallRisk,
+    };
   }
 
   /**

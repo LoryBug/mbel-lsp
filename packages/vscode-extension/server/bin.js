@@ -4395,8 +4395,8 @@ var require_main2 = __commonJS({
         }
         CodeAction2.is = is;
       })(CodeAction || (exports3.CodeAction = CodeAction = {}));
-      var CodeLens;
-      (function(CodeLens2) {
+      var CodeLens2;
+      (function(CodeLens3) {
         function create(range, data) {
           var result = { range };
           if (Is.defined(data)) {
@@ -4404,13 +4404,13 @@ var require_main2 = __commonJS({
           }
           return result;
         }
-        CodeLens2.create = create;
+        CodeLens3.create = create;
         function is(value) {
           var candidate = value;
           return Is.defined(candidate) && Range2.is(candidate.range) && (Is.undefined(candidate.command) || Command.is(candidate.command));
         }
-        CodeLens2.is = is;
-      })(CodeLens || (exports3.CodeLens = CodeLens = {}));
+        CodeLens3.is = is;
+      })(CodeLens2 || (exports3.CodeLens = CodeLens2 = {}));
       var FormattingOptions;
       (function(FormattingOptions2) {
         function create(tabSize, insertSpaces) {
@@ -12069,6 +12069,460 @@ var MbelAnalyzer = class {
   }
 };
 
+// ../mbel-analyzer/dist/query-engine/index.js
+var QueryEngine = class {
+  document = null;
+  links = [];
+  anchors = [];
+  decisions = [];
+  intents = [];
+  heats = [];
+  _dependencyGraph = null;
+  /**
+   * Build the query engine from a parsed MBEL document
+   */
+  buildFromDocument(document) {
+    this.document = document;
+    this.extractStatements();
+    this.buildDependencyGraphInternal();
+  }
+  // =========================================
+  // Dependency Graph Methods
+  // =========================================
+  /**
+   * Get the dependency graph
+   */
+  getDependencyGraph() {
+    if (!this._dependencyGraph) {
+      return { nodeCount: 0, nodes: /* @__PURE__ */ new Map() };
+    }
+    return this._dependencyGraph;
+  }
+  /**
+   * Find features that depend on the given feature
+   */
+  findDependents(featureName) {
+    const node = this._dependencyGraph?.nodes.get(featureName);
+    if (!node)
+      return [];
+    return [...node.dependents];
+  }
+  /**
+   * Find features that the given feature depends on
+   */
+  findDependencies(featureName) {
+    const node = this._dependencyGraph?.nodes.get(featureName);
+    if (!node)
+      return [];
+    return [...node.dependencies];
+  }
+  /**
+   * Detect circular dependencies in the graph
+   */
+  detectCircularDependencies() {
+    const cycles = [];
+    const visited = /* @__PURE__ */ new Set();
+    const recursionStack = /* @__PURE__ */ new Set();
+    const dfs = (node, path) => {
+      visited.add(node);
+      recursionStack.add(node);
+      const deps = this.findDependencies(node);
+      for (const dep of deps) {
+        if (!visited.has(dep)) {
+          dfs(dep, [...path, dep]);
+        } else if (recursionStack.has(dep)) {
+          const cycleStart = path.indexOf(dep);
+          if (cycleStart >= 0) {
+            cycles.push(path.slice(cycleStart));
+          } else {
+            cycles.push([...path, dep]);
+          }
+        }
+      }
+      recursionStack.delete(node);
+    };
+    if (this._dependencyGraph) {
+      for (const nodeName of this._dependencyGraph.nodes.keys()) {
+        if (!visited.has(nodeName)) {
+          dfs(nodeName, [nodeName]);
+        }
+      }
+    }
+    return cycles;
+  }
+  /**
+   * Get all transitive dependencies
+   */
+  getTransitiveDependencies(featureName) {
+    const result = /* @__PURE__ */ new Set();
+    const visited = /* @__PURE__ */ new Set();
+    const traverse = (name) => {
+      if (visited.has(name))
+        return;
+      visited.add(name);
+      const deps = this.findDependencies(name);
+      for (const dep of deps) {
+        result.add(dep);
+        traverse(dep);
+      }
+    };
+    traverse(featureName);
+    return [...result];
+  }
+  /**
+   * Get files associated with a feature
+   */
+  getFeatureFiles(featureName) {
+    const node = this._dependencyGraph?.nodes.get(featureName);
+    if (!node)
+      return [];
+    return [...node.files];
+  }
+  // =========================================
+  // Semantic Search Methods
+  // =========================================
+  /**
+   * Find anchors by concept/keyword
+   */
+  findAnchor(concept) {
+    const lowerConcept = concept.toLowerCase();
+    return this.anchors.filter((a) => a.anchorType.toLowerCase().includes(lowerConcept) || a.path.toLowerCase().includes(lowerConcept) || (a.description?.toLowerCase().includes(lowerConcept) ?? false)).map((a) => this.toAnchorResult(a));
+  }
+  /**
+   * Find anchors by type
+   */
+  findAnchorsByType(anchorType) {
+    return this.anchors.filter((a) => a.anchorType === anchorType).map((a) => this.toAnchorResult(a));
+  }
+  /**
+   * Find decisions by pattern/keyword
+   */
+  findDecisions(pattern) {
+    const lowerPattern = pattern.toLowerCase();
+    return this.decisions.filter((d) => d.name.toLowerCase().includes(lowerPattern) || (d.reason?.toLowerCase().includes(lowerPattern) ?? false)).map((d) => this.toDecisionResult(d));
+  }
+  /**
+   * Find decisions that affect a specific file
+   */
+  findDecisionsByContext(filePath) {
+    const normalizedPath = this.normalizePath(filePath);
+    return this.decisions.filter((d) => {
+      if (!d.context || d.context.length === 0)
+        return false;
+      return d.context.some((ctx) => this.pathMatchesPattern(normalizedPath, ctx));
+    }).map((d) => this.toDecisionResult(d));
+  }
+  /**
+   * Find decisions by status
+   */
+  findDecisionsByStatus(status) {
+    return this.decisions.filter((d) => d.status === status).map((d) => this.toDecisionResult(d));
+  }
+  /**
+   * Find intents by module name
+   */
+  findIntentsByModule(moduleName) {
+    return this.intents.filter((i) => i.module === moduleName).map((i) => this.toIntentResult(i));
+  }
+  /**
+   * Find a specific intent by module and component
+   */
+  findIntent(moduleName, componentName) {
+    const intent = this.intents.find((i) => i.module === moduleName && i.component === componentName);
+    return intent ? this.toIntentResult(intent) : null;
+  }
+  /**
+   * Search across all semantic elements
+   */
+  semanticSearch(query) {
+    return {
+      anchors: this.findAnchor(query),
+      decisions: this.findDecisions(query),
+      intents: this.intents.filter((i) => i.module.toLowerCase().includes(query.toLowerCase()) || i.component.toLowerCase().includes(query.toLowerCase())).map((i) => this.toIntentResult(i)),
+      links: this.links.filter((l) => l.name.toLowerCase().includes(query.toLowerCase())).map((l) => l.name)
+    };
+  }
+  // =========================================
+  // Impact Analysis Methods
+  // =========================================
+  /**
+   * Calculate edit risk for a file
+   */
+  getEditRisk(filePath) {
+    const normalizedPath = this.normalizePath(filePath);
+    const reasons = [];
+    const recommendations = [];
+    const heat = this.findHeatForFile(normalizedPath);
+    if (heat) {
+      if (heat.heatType === "critical") {
+        reasons.push("critical heat level");
+        recommendations.push("Run full regression tests");
+        if (heat.caution) {
+          recommendations.push(heat.caution);
+        }
+      } else if (heat.heatType === "volatile" || heat.heatType === "hot") {
+        reasons.push(`${heat.heatType} heat level`);
+        recommendations.push("Review recent changes before modifying");
+      }
+    }
+    const isHotspot = this.anchors.some((a) => a.anchorType === "hotspot" && this.pathMatchesPattern(normalizedPath, a.path));
+    if (isHotspot) {
+      reasons.push("hotspot area");
+      recommendations.push("Extra code review recommended");
+    }
+    const affectedFeatures = this.findFeaturesForFile(normalizedPath);
+    if (affectedFeatures.length > 0) {
+      const allDependents = /* @__PURE__ */ new Set();
+      for (const feature of affectedFeatures) {
+        const dependents = this.findDependents(feature);
+        dependents.forEach((d) => allDependents.add(d));
+      }
+      if (allDependents.size > 2) {
+        reasons.push(`affects ${allDependents.size} dependent features`);
+        recommendations.push("Consider impact on dependent features");
+      }
+    }
+    let level = "low";
+    if (heat === null && affectedFeatures.length === 0 && !isHotspot) {
+      level = "unknown";
+    } else if (reasons.some((r) => r.includes("critical") || r.includes("hotspot"))) {
+      level = "high";
+    } else if (reasons.length > 0) {
+      level = "medium";
+    }
+    if (recommendations.length === 0 && level !== "unknown") {
+      recommendations.push("Standard review process");
+    }
+    return { level, reasons, recommendations };
+  }
+  /**
+   * Analyze impact of changing files
+   */
+  getImpactAnalysis(files) {
+    const affectedFiles = /* @__PURE__ */ new Set();
+    const affectedTests = /* @__PURE__ */ new Set();
+    const affectedFeatures = /* @__PURE__ */ new Set();
+    const transitiveImpact = /* @__PURE__ */ new Set();
+    for (const file of files) {
+      const normalizedPath = this.normalizePath(file);
+      const features = this.findFeaturesForFile(normalizedPath);
+      features.forEach((f) => affectedFeatures.add(f));
+      const heat = this.findHeatForFile(normalizedPath);
+      if (heat?.dependents) {
+        heat.dependents.forEach((d) => affectedFiles.add(d));
+      }
+      for (const feature of features) {
+        const dependents = this.findDependents(feature);
+        dependents.forEach((d) => {
+          affectedFeatures.add(d);
+          transitiveImpact.add(d);
+        });
+        const node = this._dependencyGraph?.nodes.get(feature);
+        if (node?.tests) {
+          node.tests.forEach((t) => affectedTests.add(t));
+        }
+      }
+    }
+    return {
+      affectedFiles: [...affectedFiles],
+      affectedTests: [...affectedTests],
+      affectedFeatures: [...affectedFeatures],
+      transitiveImpact: [...transitiveImpact]
+    };
+  }
+  // =========================================
+  // Work Context Methods
+  // =========================================
+  /**
+   * Get complete work context for a feature
+   */
+  getWorkContext(featureName) {
+    const link = this.links.find((l) => l.name === featureName);
+    if (!link) {
+      return {
+        feature: null,
+        files: [],
+        tests: [],
+        blueprint: null,
+        decisions: [],
+        anchors: [],
+        heatInfo: [],
+        intents: [],
+        dependencies: [],
+        dependents: [],
+        overallRisk: "low"
+      };
+    }
+    const files = link.files?.map((f) => f.path) ?? [];
+    const tests = link.tests?.map((t) => t.path) ?? [];
+    const blueprint = link.blueprint ?? null;
+    const dependencies = link.depends ?? [];
+    const dependents = this.findDependents(featureName);
+    const relatedDecisions = this.decisions.filter((d) => {
+      if (!d.context || d.context.length === 0)
+        return false;
+      const ctx = d.context;
+      return files.some((file) => ctx.some((c) => this.pathMatchesPattern(file, c)));
+    }).map((d) => this.toDecisionResult(d));
+    const relatedAnchors = this.anchors.filter((a) => files.some((file) => this.pathMatchesPattern(file, a.path))).map((a) => this.toAnchorResult(a));
+    const heatInfo = [];
+    for (const file of files) {
+      const heat = this.findHeatForFile(file);
+      if (heat) {
+        heatInfo.push(this.toHeatInfo(heat));
+      }
+    }
+    const relatedIntents = this.intents.filter((i) => featureName.toLowerCase().includes(i.module.toLowerCase()) || i.module.toLowerCase().includes(featureName.toLowerCase())).map((i) => this.toIntentResult(i));
+    let overallRisk = "low";
+    if (heatInfo.some((h) => h.type === "critical")) {
+      overallRisk = "high";
+    } else if (heatInfo.some((h) => h.type === "volatile" || h.type === "hot")) {
+      overallRisk = "medium";
+    } else if (relatedAnchors.some((a) => a.anchorType === "hotspot")) {
+      overallRisk = "medium";
+    }
+    return {
+      feature: featureName,
+      files,
+      tests,
+      blueprint,
+      decisions: relatedDecisions,
+      anchors: relatedAnchors,
+      heatInfo,
+      intents: relatedIntents,
+      dependencies: [...dependencies],
+      dependents,
+      overallRisk
+    };
+  }
+  // =========================================
+  // Private Methods
+  // =========================================
+  extractStatements() {
+    if (!this.document)
+      return;
+    this.links = [];
+    this.anchors = [];
+    this.decisions = [];
+    this.intents = [];
+    this.heats = [];
+    for (const stmt of this.document.statements) {
+      switch (stmt.type) {
+        case "LinkDeclaration":
+          this.links.push(stmt);
+          break;
+        case "AnchorDeclaration":
+          this.anchors.push(stmt);
+          break;
+        case "DecisionDeclaration":
+          this.decisions.push(stmt);
+          break;
+        case "IntentDeclaration":
+          this.intents.push(stmt);
+          break;
+        case "HeatDeclaration":
+          this.heats.push(stmt);
+          break;
+      }
+    }
+  }
+  buildDependencyGraphInternal() {
+    const nodes = /* @__PURE__ */ new Map();
+    for (const link of this.links) {
+      const node = {
+        name: link.name,
+        dependencies: link.depends ?? [],
+        dependents: [],
+        files: link.files?.map((f) => f.path) ?? [],
+        tests: link.tests?.map((t) => t.path) ?? []
+      };
+      nodes.set(link.name, node);
+    }
+    const mutableNodes = /* @__PURE__ */ new Map();
+    for (const [key, node] of nodes) {
+      mutableNodes.set(key, { ...node, dependents: [] });
+    }
+    for (const link of this.links) {
+      if (link.depends) {
+        for (const dep of link.depends) {
+          const depNode = mutableNodes.get(dep);
+          if (depNode) {
+            depNode.dependents.push(link.name);
+          }
+        }
+      }
+    }
+    const finalNodes = /* @__PURE__ */ new Map();
+    for (const [key, node] of mutableNodes) {
+      finalNodes.set(key, node);
+    }
+    this._dependencyGraph = {
+      nodeCount: finalNodes.size,
+      nodes: finalNodes
+    };
+  }
+  toAnchorResult(anchor) {
+    return {
+      path: anchor.path,
+      anchorType: anchor.anchorType,
+      description: anchor.description,
+      isGlob: anchor.isGlob
+    };
+  }
+  toDecisionResult(decision) {
+    return {
+      name: decision.name,
+      date: decision.date,
+      status: decision.status,
+      reason: decision.reason,
+      context: decision.context ?? []
+    };
+  }
+  toIntentResult(intent) {
+    return {
+      module: intent.module,
+      component: intent.component,
+      does: intent.does,
+      doesNot: intent.doesNot,
+      contract: intent.contract,
+      singleResponsibility: intent.singleResponsibility,
+      antiPattern: intent.antiPattern,
+      extends: intent.extends
+    };
+  }
+  toHeatInfo(heat) {
+    return {
+      path: heat.path,
+      type: heat.heatType,
+      changes: heat.changes,
+      coverage: heat.coverage,
+      confidence: heat.confidence,
+      caution: heat.caution
+    };
+  }
+  normalizePath(path) {
+    return path.replace(/\\/g, "/").toLowerCase();
+  }
+  pathMatchesPattern(filePath, pattern) {
+    const normalizedFile = this.normalizePath(filePath);
+    const normalizedPattern = this.normalizePath(pattern);
+    if (normalizedPattern.includes("*")) {
+      const regexPattern = normalizedPattern.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*").replace(/\//g, "\\/");
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(normalizedFile);
+    }
+    return normalizedFile.includes(normalizedPattern) || normalizedPattern.includes(normalizedFile);
+  }
+  findHeatForFile(filePath) {
+    const normalizedPath = this.normalizePath(filePath);
+    return this.heats.find((h) => this.pathMatchesPattern(normalizedPath, h.path)) ?? null;
+  }
+  findFeaturesForFile(filePath) {
+    const normalizedPath = this.normalizePath(filePath);
+    return this.links.filter((link) => link.files?.some((f) => this.pathMatchesPattern(normalizedPath, f.path)) ?? false).map((link) => link.name);
+  }
+};
+
 // ../mbel-lsp/src/types.ts
 var import_vscode_languageserver = __toESM(require_main4(), 1);
 var MBEL_SERVER_CAPABILITIES = {
@@ -12081,7 +12535,10 @@ var MBEL_SERVER_CAPABILITIES = {
   documentSymbolProvider: true,
   definitionProvider: true,
   referencesProvider: true,
-  workspaceSymbolProvider: true
+  workspaceSymbolProvider: true,
+  codeLensProvider: {
+    resolveProvider: false
+  }
 };
 function createInitializeResult() {
   return {
@@ -12811,6 +13268,319 @@ var QueryService = class {
   }
 };
 
+// ../mbel-lsp/src/llm-api/index.ts
+var LlmApi = class {
+  parser;
+  engine;
+  document = null;
+  loaded = false;
+  constructor() {
+    this.parser = new MbelParser();
+    this.engine = new QueryEngine();
+  }
+  /**
+   * Load an MBEL document for querying
+   */
+  loadDocument(content) {
+    if (!content || content.trim() === "") {
+      this.document = null;
+      this.loaded = false;
+      return;
+    }
+    try {
+      const result = this.parser.parse(content);
+      this.document = result.document;
+      this.engine.buildFromDocument(this.document);
+      this.loaded = true;
+    } catch {
+      this.document = null;
+      this.loaded = false;
+    }
+  }
+  /**
+   * Check if a document is loaded
+   */
+  isLoaded() {
+    return this.loaded;
+  }
+  /**
+   * Find an anchor by path or type
+   */
+  getAnchor(request) {
+    if (!this.loaded)
+      return null;
+    if (request.type) {
+      const anchors = this.engine.findAnchorsByType(request.type);
+      const anchor = anchors[0];
+      if (anchor) {
+        return {
+          path: anchor.path,
+          type: anchor.anchorType,
+          description: anchor.description,
+          isGlob: anchor.isGlob
+        };
+      }
+    }
+    if (request.path) {
+      const searchPath = request.path.toLowerCase();
+      const types = ["entry", "hotspot", "boundary", "test", "docs"];
+      for (const type of types) {
+        const anchors = this.engine.findAnchorsByType(type);
+        const match = anchors.find((a) => {
+          const anchorPath = a.path.toLowerCase();
+          return anchorPath === searchPath || anchorPath.endsWith("/" + searchPath) || searchPath.endsWith("/" + anchorPath) || anchorPath.includes(searchPath);
+        });
+        if (match) {
+          return {
+            path: match.path,
+            type: match.anchorType,
+            description: match.description,
+            isGlob: match.isGlob
+          };
+        }
+      }
+    }
+    return null;
+  }
+  /**
+   * Get cross-references for a feature
+   */
+  getCrossRefs(featureName) {
+    if (!this.loaded || !this.document)
+      return null;
+    const graph = this.engine.getDependencyGraph();
+    const node = graph.nodes.get(featureName);
+    if (!node)
+      return null;
+    const link = this.document.statements.find(
+      (s) => s.type === "LinkDeclaration" && s.name === featureName
+    );
+    if (!link || link.type !== "LinkDeclaration")
+      return null;
+    const dependents = this.engine.findDependents(featureName);
+    return {
+      name: featureName,
+      type: link.linkType,
+      files: node.files,
+      tests: node.tests,
+      docs: link.docs?.map((d) => d.path) ?? [],
+      dependencies: node.dependencies,
+      dependents,
+      related: link.related ?? [],
+      entryPoint: link.entryPoint ? {
+        file: link.entryPoint.file,
+        symbol: link.entryPoint.symbol,
+        line: link.entryPoint.line
+      } : null
+    };
+  }
+  /**
+   * Get edit risk assessment for a file
+   */
+  getEditRisk(request) {
+    if (!this.loaded)
+      return null;
+    const risk = this.engine.getEditRisk(request.file);
+    const impact = this.engine.getImpactAnalysis([request.file]);
+    return {
+      level: risk.level,
+      reasons: risk.reasons,
+      recommendations: risk.recommendations,
+      affectedTests: impact.affectedTests
+    };
+  }
+  /**
+   * Analyze impact of changing files
+   */
+  getImpactAnalysis(request) {
+    if (!this.loaded)
+      return null;
+    const impact = this.engine.getImpactAnalysis([...request.files]);
+    return {
+      affectedFeatures: impact.affectedFeatures,
+      affectedTests: impact.affectedTests,
+      affectedFiles: impact.affectedFiles,
+      transitiveImpact: impact.transitiveImpact
+    };
+  }
+  /**
+   * Find decisions matching criteria
+   */
+  getDecisions(request) {
+    const doc = this.document;
+    if (!this.loaded || !doc)
+      return [];
+    let decisions = [];
+    if (request.pattern) {
+      decisions = this.engine.findDecisions(request.pattern);
+    } else if (request.status) {
+      decisions = this.engine.findDecisionsByStatus(request.status);
+    } else if (request.contextFile) {
+      decisions = this.engine.findDecisionsByContext(request.contextFile);
+    } else {
+      decisions = this.engine.findDecisions("");
+    }
+    return decisions.map((d) => {
+      const fullDecision = doc.statements.find(
+        (s) => s.type === "DecisionDeclaration" && s.name === d.name
+      );
+      return {
+        name: d.name,
+        date: d.date,
+        status: d.status,
+        reason: d.reason,
+        alternatives: fullDecision?.alternatives ?? [],
+        context: d.context
+      };
+    });
+  }
+  /**
+   * Get intent for a module/component
+   */
+  getIntent(request) {
+    if (!this.loaded)
+      return null;
+    const intent = this.engine.findIntent(request.module, request.component);
+    if (!intent)
+      return null;
+    return {
+      module: intent.module,
+      component: intent.component,
+      does: intent.does,
+      doesNot: intent.doesNot,
+      contract: intent.contract,
+      singleResponsibility: intent.singleResponsibility,
+      antiPattern: intent.antiPattern,
+      extends: intent.extends ? [...intent.extends] : null
+    };
+  }
+  /**
+   * Get all intents for a module
+   */
+  getIntentsByModule(moduleName) {
+    if (!this.loaded)
+      return [];
+    const intents = this.engine.findIntentsByModule(moduleName);
+    return intents.map((i) => ({
+      module: i.module,
+      component: i.component,
+      does: i.does,
+      doesNot: i.doesNot,
+      contract: i.contract,
+      singleResponsibility: i.singleResponsibility,
+      antiPattern: i.antiPattern,
+      extends: i.extends ? [...i.extends] : null
+    }));
+  }
+  /**
+   * Get complete work context for a feature
+   */
+  getWorkContext(featureName) {
+    const doc = this.document;
+    if (!this.loaded || !doc)
+      return null;
+    const context = this.engine.getWorkContext(featureName);
+    const heatInfo = context.heatInfo.map((h) => ({
+      path: h.path,
+      type: h.type,
+      changes: h.changes,
+      coverage: h.coverage,
+      confidence: h.confidence,
+      caution: h.caution
+    }));
+    const decisions = context.decisions.map((d) => {
+      const fullDecision = doc.statements.find(
+        (s) => s.type === "DecisionDeclaration" && s.name === d.name
+      );
+      return {
+        name: d.name,
+        date: d.date,
+        status: d.status,
+        reason: d.reason,
+        alternatives: fullDecision?.alternatives ?? [],
+        context: d.context
+      };
+    });
+    const anchors = context.anchors.map((a) => ({
+      path: a.path,
+      type: a.anchorType,
+      description: a.description,
+      isGlob: a.isGlob
+    }));
+    const intents = context.intents.map((i) => ({
+      module: i.module,
+      component: i.component,
+      does: i.does,
+      doesNot: i.doesNot,
+      contract: i.contract,
+      singleResponsibility: i.singleResponsibility,
+      antiPattern: i.antiPattern,
+      extends: i.extends ? [...i.extends] : null
+    }));
+    return {
+      feature: context.feature,
+      files: context.files,
+      tests: context.tests,
+      blueprint: context.blueprint ? [...context.blueprint] : null,
+      decisions,
+      anchors,
+      heatInfo,
+      intents,
+      dependencies: context.dependencies,
+      dependents: context.dependents,
+      overallRisk: context.overallRisk
+    };
+  }
+  /**
+   * Get all feature names
+   */
+  getAllFeatures() {
+    if (!this.loaded)
+      return [];
+    const graph = this.engine.getDependencyGraph();
+    return [...graph.nodes.keys()];
+  }
+  /**
+   * Get all anchors
+   */
+  getAllAnchors() {
+    if (!this.loaded)
+      return [];
+    const types = ["entry", "hotspot", "boundary", "test", "docs"];
+    const anchors = [];
+    for (const type of types) {
+      const found = this.engine.findAnchorsByType(type);
+      for (const anchor of found) {
+        anchors.push({
+          path: anchor.path,
+          type: anchor.anchorType,
+          description: anchor.description,
+          isGlob: anchor.isGlob
+        });
+      }
+    }
+    return anchors;
+  }
+  /**
+   * Get all decisions
+   */
+  getAllDecisions() {
+    if (!this.loaded || !this.document)
+      return [];
+    const decisions = this.document.statements.filter(
+      (s) => s.type === "DecisionDeclaration"
+    );
+    return decisions.map((d) => ({
+      name: d.name,
+      date: d.date,
+      status: d.status,
+      reason: d.reason,
+      alternatives: d.alternatives ?? [],
+      context: d.context ?? []
+    }));
+  }
+};
+
 // ../mbel-lsp/src/server.ts
 var OPERATOR_INFO = {
   // Temporal
@@ -12853,6 +13623,7 @@ var MbelServer = class {
   analyzer;
   parser = new MbelParser();
   queryService = new QueryService();
+  llmApi = new LlmApi();
   documents = /* @__PURE__ */ new Map();
   options;
   constructor(options = {}) {
@@ -12940,6 +13711,10 @@ var MbelServer = class {
     if (!line) {
       return null;
     }
+    const semanticHover = this.getSemanticHover(doc.content, position);
+    if (semanticHover) {
+      return semanticHover;
+    }
     const char = line.charAt(position.character);
     const twoChar = line.substring(position.character, position.character + 2);
     if (twoChar === "::" || twoChar === "||") {
@@ -12965,6 +13740,100 @@ ${info2.description}`
 ${info.description}`
         }
       };
+    }
+    return null;
+  }
+  /**
+   * Get semantic hover for MBEL v6 constructs
+   */
+  getSemanticHover(content, position) {
+    const parseResult = this.parser.parse(content);
+    for (const stmt of parseResult.document.statements) {
+      if (stmt.start.line - 1 !== position.line)
+        continue;
+      if (stmt.type === "LinkDeclaration") {
+        const typeLabel = stmt.linkType === "feature" ? "\u{1F4E6} Feature" : "\u{1F4CB} Task";
+        const files = stmt.files?.map((f) => f.path).join(", ") ?? "none";
+        const tests = stmt.tests?.map((t) => t.path).join(", ") ?? "none";
+        const deps = stmt.depends?.join(", ") ?? "none";
+        return {
+          contents: {
+            kind: import_node.MarkupKind.Markdown,
+            value: `## ${typeLabel}: ${stmt.name}
+
+**Files:** ${files}
+
+**Tests:** ${tests}
+
+**Dependencies:** ${deps}`
+          }
+        };
+      }
+      if (stmt.type === "AnchorDeclaration") {
+        const icon = stmt.anchorType === "entry" ? "\u{1F6AA}" : stmt.anchorType === "hotspot" ? "\u26A0\uFE0F" : "\u{1F512}";
+        const desc = stmt.description ?? "No description";
+        return {
+          contents: {
+            kind: import_node.MarkupKind.Markdown,
+            value: `## ${icon} Anchor: ${stmt.anchorType}
+
+**Path:** \`${stmt.path}\`
+
+**Description:** ${desc}
+
+` + (stmt.isGlob ? "_This is a glob pattern_" : "")
+          }
+        };
+      }
+      if (stmt.type === "DecisionDeclaration") {
+        const status = stmt.status ?? "ACTIVE";
+        const alternatives = stmt.alternatives?.join(", ") ?? "none";
+        return {
+          contents: {
+            kind: import_node.MarkupKind.Markdown,
+            value: `## \u{1F4DD} Decision: ${stmt.name}
+
+**Date:** ${stmt.date}
+
+**Status:** ${status}
+
+**Reason:** ${stmt.reason ?? "Not specified"}
+
+**Alternatives:** ${alternatives}`
+          }
+        };
+      }
+      if (stmt.type === "IntentDeclaration") {
+        return {
+          contents: {
+            kind: import_node.MarkupKind.Markdown,
+            value: `## \u{1F3AF} Intent: @${stmt.module}::${stmt.component}
+
+**Does:** ${stmt.does ?? "Not specified"}
+
+**Does Not:** ${stmt.doesNot ?? "Not specified"}
+
+**Contract:** ${stmt.contract ?? "Not specified"}`
+          }
+        };
+      }
+      if (stmt.type === "HeatDeclaration") {
+        const icon = stmt.heatType === "critical" ? "\u{1F525}" : stmt.heatType === "hot" ? "\u{1F321}\uFE0F" : stmt.heatType === "volatile" ? "\u26A1" : "\u2744\uFE0F";
+        return {
+          contents: {
+            kind: import_node.MarkupKind.Markdown,
+            value: `## ${icon} Heat: ${stmt.heatType}
+
+**Path:** \`${stmt.path}\`
+
+**Coverage:** ${stmt.coverage ?? "N/A"}
+
+**Confidence:** ${stmt.confidence ?? "N/A"}
+
+**Caution:** ${stmt.caution ?? "None"}`
+          }
+        };
+      }
     }
     return null;
   }
@@ -13329,6 +14198,131 @@ ${info.description}`
     if (!doc)
       return [];
     return this.queryService.getAllFeatures(doc.content);
+  }
+  // ============================================
+  // TDDAB#16: Tool Integrations - CodeLens, WorkContext
+  // ============================================
+  /**
+   * Get CodeLens for semantic elements in the document
+   */
+  getCodeLenses(uri) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return [];
+    const codeLenses = [];
+    const parseResult = this.parser.parse(doc.content);
+    for (const stmt of parseResult.document.statements) {
+      const range = this.toLspRange(stmt.start, stmt.end);
+      if (stmt.type === "LinkDeclaration") {
+        const typeIcon = stmt.linkType === "feature" ? "\u{1F4E6}" : "\u{1F4CB}";
+        const fileCount = stmt.files?.length ?? 0;
+        const testCount = stmt.tests?.length ?? 0;
+        codeLenses.push({
+          range,
+          command: {
+            title: `${typeIcon} ${stmt.name} (${fileCount} files, ${testCount} tests)`,
+            command: "mbel.showFeatureContext",
+            arguments: [uri, stmt.name]
+          }
+        });
+      } else if (stmt.type === "AnchorDeclaration") {
+        const icon = stmt.anchorType === "entry" ? "\u{1F6AA}" : stmt.anchorType === "hotspot" ? "\u26A0\uFE0F" : "\u{1F512}";
+        const label = stmt.anchorType === "hotspot" ? `\u26A0 ${stmt.anchorType}` : stmt.anchorType;
+        codeLenses.push({
+          range,
+          command: {
+            title: `${icon} ${label}: ${stmt.path}`,
+            command: "mbel.showAnchor",
+            arguments: [uri, stmt.path]
+          }
+        });
+      } else if (stmt.type === "DecisionDeclaration") {
+        const statusIcon = stmt.status === "ACTIVE" ? "\u2705" : stmt.status === "SUPERSEDED" ? "\u{1F504}" : "\u{1F4DD}";
+        codeLenses.push({
+          range,
+          command: {
+            title: `${statusIcon} ${stmt.name} [${stmt.status ?? "ACTIVE"}]`,
+            command: "mbel.showDecision",
+            arguments: [uri, stmt.name]
+          }
+        });
+      } else if (stmt.type === "HeatDeclaration") {
+        const heatIcon = stmt.heatType === "critical" ? "\u{1F525}" : stmt.heatType === "hot" ? "\u{1F321}\uFE0F" : stmt.heatType === "volatile" ? "\u26A1" : "\u2744\uFE0F";
+        codeLenses.push({
+          range,
+          command: {
+            title: `${heatIcon} ${stmt.heatType}: ${stmt.path}`,
+            command: "mbel.showHeat",
+            arguments: [uri, stmt.path]
+          }
+        });
+      } else if (stmt.type === "IntentDeclaration") {
+        codeLenses.push({
+          range,
+          command: {
+            title: `\u{1F3AF} @${stmt.module}::${stmt.component}`,
+            command: "mbel.showIntent",
+            arguments: [uri, stmt.module, stmt.component]
+          }
+        });
+      }
+    }
+    return codeLenses;
+  }
+  /**
+   * Get work context for a feature (TDDAB#16: mbel-workcontext tool)
+   * @param uri - Document URI
+   * @param featureName - Name of the feature to get context for
+   */
+  getWorkContext(uri, featureName) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return null;
+    this.llmApi.loadDocument(doc.content);
+    const context = this.llmApi.getWorkContext(featureName);
+    if (!context || !context.feature)
+      return null;
+    return {
+      feature: context.feature,
+      files: [...context.files],
+      tests: [...context.tests],
+      blueprint: context.blueprint ? [...context.blueprint] : null,
+      decisions: context.decisions.map((d) => ({
+        name: d.name,
+        date: d.date,
+        status: d.status,
+        reason: d.reason,
+        alternatives: [...d.alternatives],
+        context: [...d.context]
+      })),
+      anchors: context.anchors.map((a) => ({
+        path: a.path,
+        type: a.type,
+        description: a.description,
+        isGlob: a.isGlob
+      })),
+      heatInfo: context.heatInfo.map((h) => ({
+        path: h.path,
+        type: h.type,
+        changes: h.changes,
+        coverage: h.coverage,
+        confidence: h.confidence,
+        caution: h.caution
+      })),
+      intents: context.intents.map((i) => ({
+        module: i.module,
+        component: i.component,
+        does: i.does,
+        doesNot: i.doesNot,
+        contract: i.contract,
+        singleResponsibility: i.singleResponsibility,
+        antiPattern: i.antiPattern,
+        extends: i.extends ? [...i.extends] : null
+      })),
+      dependencies: [...context.dependencies],
+      dependents: [...context.dependents],
+      overallRisk: context.overallRisk
+    };
   }
   /**
    * Get the word (identifier) at a given position

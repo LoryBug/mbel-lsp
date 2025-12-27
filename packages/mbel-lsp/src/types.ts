@@ -171,6 +171,76 @@ export interface OrphanFilesResult {
 }
 
 // =========================================
+// MBEL v6 ToolIntegrations Types (TDDAB#16)
+// =========================================
+
+/**
+ * Work context for a feature (combines all semantic info)
+ */
+export interface WorkContext {
+  /** Feature name */
+  readonly feature: string | null;
+  /** Files associated with the feature */
+  readonly files: readonly string[];
+  /** Test files for the feature */
+  readonly tests: readonly string[];
+  /** Blueprint steps if applicable */
+  readonly blueprint: readonly string[] | null;
+  /** Related decisions */
+  readonly decisions: readonly DecisionInfo[];
+  /** Related anchors */
+  readonly anchors: readonly AnchorInfo[];
+  /** Heat information for related files */
+  readonly heatInfo: readonly HeatInfo[];
+  /** Intent declarations for related modules */
+  readonly intents: readonly IntentInfo[];
+  /** Feature dependencies */
+  readonly dependencies: readonly string[];
+  /** Features that depend on this one */
+  readonly dependents: readonly string[];
+  /** Overall risk level */
+  readonly overallRisk: 'low' | 'medium' | 'high';
+}
+
+/**
+ * Decision information for work context
+ */
+export interface DecisionInfo {
+  readonly name: string;
+  readonly date: string;
+  readonly status: string | null;
+  readonly reason: string | null;
+  readonly alternatives: readonly string[];
+  readonly context: readonly string[];
+}
+
+/**
+ * Heat information for work context
+ */
+export interface HeatInfo {
+  readonly path: string;
+  readonly type: 'critical' | 'stable' | 'volatile' | 'hot';
+  readonly changes: number | null;
+  readonly coverage: string | null;
+  readonly confidence: string | null;
+  readonly caution: string | null;
+}
+
+/**
+ * Intent information for work context
+ */
+export interface IntentInfo {
+  readonly module: string;
+  readonly component: string;
+  readonly does: string | null;
+  readonly doesNot: string | null;
+  readonly contract: string | null;
+  readonly singleResponsibility: string | null;
+  readonly antiPattern: string | null;
+  readonly extends: readonly string[] | null;
+}
+
+// =========================================
 // MBEL v6 QueryAPI-Dependencies Types (TDDAB#19)
 // =========================================
 
@@ -252,6 +322,9 @@ export const MBEL_SERVER_CAPABILITIES: ServerCapabilities = {
   definitionProvider: true,
   referencesProvider: true,
   workspaceSymbolProvider: true,
+  codeLensProvider: {
+    resolveProvider: false,
+  },
 };
 
 /**
