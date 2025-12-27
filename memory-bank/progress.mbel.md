@@ -77,16 +77,22 @@
 └─ Config::opencode.json{lsp-integration}
 
 [TDDAB_V6_STATUS]
-@status::Planning{8blocks,147tests,~40new-tokens}
+@status::Phase1-Active{1of8-complete}
 @reference::tasks/MBEL-6.0-TDDAB-PLAN.md
 
 [TDDAB#9]
-?CrossRefLinks{§links-section}
-├─ Status::Pending
-├─ Tests::~25{lexer,parser,analyzer}
-├─ Tokens::+8{->files,->tests,->docs,->decisions,->related,->entryPoint,->blueprint,->depends}
-├─ Priority::1{Game-Changer}
-└─ Files::tokens.ts,lexer.ts,ast.ts,parser.ts,links-rules.ts
+✓CrossRefLinks{§links-section}
+├─ Status::Complete✓
+├─ RED::79tests{lexer:25,parser:22,analyzer:32}✓
+├─ GREEN::Implementation{14tokens,6files-modified,3tests-created}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{338/338}+Coverage✓{90.32%}
+├─ Commit::Pending
+└─ Features::
+   ├─ Lexer::10arrows{FILES,TESTS,DOCS,DECISIONS,RELATED,ENTRYPOINT,BLUEPRINT,DEPENDS,FEATURES,WHY}
+   ├─ Lexer::2markers{@feature,@task}+1struct{[...]}
+   ├─ AST::LinkDeclaration{type,name,entries}+FileRef{path,marker,lineRange,isGlob}+EntryPoint{file,symbol,line}
+   ├─ AST-Types::LinkType+FileMarker{TO-CREATE,TO-MODIFY}+LineRange+ArrowClauseType
+   └─ Analyzer::17codes{MBEL-LINK-001→070,EMPTY→ORPHAN}
 
 [TDDAB#10]
 ?SemanticAnchors{§anchors-section}
@@ -147,9 +153,12 @@
 [METRICS]
 @metrics::
 - TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-- TotalTests-V6::+147{links:25,anchors:18,decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
+- TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
+- TotalTests-Running::#338{V5:259+Phase1:79}
+- TotalTests-V6::+68{anchors:18,decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
 - TotalTests-Projected::406{V5:259+V6:147}
-- Coverage-Current::%87{overall}
+- Coverage-V5::%87{overall}
+- Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
 - Coverage-Target::%90{v6}
 - NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
 - NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}
@@ -166,3 +175,7 @@
 8. e41ba3a::feat(lsp):find-references+workspace-symbols
 9. 3fe492d::feat(lsp):llm-query-methods
 10. 9e671f0::feat(opencode):slash-commands+custom-tool
+
+[GIT_HISTORY_V6]
+@commits::
+Pending::TDDAB#9::CrossRefLinks

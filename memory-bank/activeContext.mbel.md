@@ -1,10 +1,11 @@
 §MBEL:6.0
 
 [FOCUS]
-@focus::MBEL6.0{Planning+Preparation}
+@focus::MBEL6.0{Implementation-Phase1}
 >completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
 >completed::OpenCodeIntegration{SlashCommands+CustomTool}✓
->in-progress::MBEL6.0-Planning{LanguageExtensions+InfrastructureDesign}
+>completed::MBEL6.0-Planning{Design-complete}✓
+>completed::TDDAB#9::CrossRefLinks{14tokens,79tests,90.32%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -32,12 +33,23 @@
 ✓ArchitectureReview{Phase1-Lang,Phase2-Infra,Phase3-API,Phase4-Tools}
 ✓MemoryBankUpdated{systemPatterns,progress,activeContext}
 
+[DONE_V6_PHASE1]
+✓TDDAB#9::CrossRefLinks{14tokens,79tests,90.32%coverage}
+  ↳lexer::10arrows{FILES,TESTS,DOCS,DECISIONS,RELATED,ENTRYPOINT,BLUEPRINT,DEPENDS,FEATURES,WHY}
+  ↳lexer::2links{@feature,@task}+1struct{[...]}
+  ↳ast::LinkDeclaration+FileRef+EntryPoint+LinkType+FileMarker+LineRange+ArrowClauseType
+  ↳analyzer::17codes{MBEL-LINK-001→070,empty-name,invalid-chars,duplicates,glob,line-range,circular-dep,orphan}
+  ↳tests::25lexer+22parser+32analyzer{338total}
+  ↳files-modified::types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts
+  ↳files-created::lexer-links.test.ts,parser-links.test.ts,links-validation.test.ts
+  ↳all-checks::build✓,lint✓,tests✓,coverage✓
+
 [RECENT]
 >completed::MBEL6.0-Planning{Design-complete,ready-for-implementation}
 >updated::systemPatterns.mbel.md{Version5→6,AddedTDDAB#9-#16}
 >updated::progress.mbel.md{AddedPending-TDDAB#9-#16,metrics}
->updated::activeContext.mbel.md{Focus-to-MBEL6.0}
->added::ExecutionPhases{4-sequential-phases,dependencies-mapped}
+>completed::TDDAB#9{CrossRefLinks-implementation}
+>updated::activeContext.mbel.md{Focus-to-Phase1,added-DONE_V6_PHASE1}
 
 [DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
@@ -70,17 +82,14 @@
   ↳design::RequestResponse{typed-inputs,rich-outputs}
 
 [NEXT]
-?TDDAB#9::CrossRefLinks{priority:1,estimated-duration:3-5days}
-  ↳depends::None{LanguageExtension}
-  ↳enables::TDDAB#10,#14,#15
 ?TDDAB#10::SemanticAnchors{priority:2,estimated-duration:2-3days}
-  ↳depends::TDDAB#9
+  ↳depends::TDDAB#9✓
   ↳enables::TDDAB#14,#15
 ?TDDAB#14::LLMAPILayer{priority:3,estimated-duration:3-4days}
-  ↳depends::TDDAB#9,#10,#15
+  ↳depends::TDDAB#9✓,#10,#15
   ↳enables::TDDAB#16
 ?TDDAB#15::QueryEngine{priority:3.5,estimated-duration:2-3days}
-  ↳depends::TDDAB#9,#10,#11
+  ↳depends::TDDAB#9✓,#10,#11
   ↳enables::TDDAB#14
 ?TDDAB#11::DecisionLog{priority:4,estimated-duration:2-3days}
 ?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
@@ -89,13 +98,13 @@
 
 [BLOCKERS]
 !OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
-!MBEL6.0::NotStarted{waiting-for-TDDAB#9}
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
+@note::TotalTests-V6-So-Far::#338{V5:259+TDDAB#9:79}
 @note::TotalTests-Projected::#406{V5:259+V6:147}
-@note::Coverage-Current::%87{overall}
-@note::Coverage-Target-V6::%90
+@note::Coverage-Current::%90.32{TDDAB#9-analyzer:95.92%}
+@note::Coverage-Target-V6::%90{met}
 @note::NewTokens::#40{sections:5,operators:25,prefixes:7,markers:3}
 @note::NewASTNodes::#8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,...}
 @note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}

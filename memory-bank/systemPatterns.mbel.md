@@ -33,15 +33,19 @@ mbel-lsp/
 
 [TDDAB_PLAN_V6]
 @methodology::TDDAB{LLM-Native,SemanticStorage,Integrations}
-@status::Planning{8blocks,147tests}
+@status::Phase1-Active{1of8-complete}
 @vision::CodebaseBrain{LLM-native-memory-bank}
 
 [TDDAB_BLOCKS_V6_PHASE1_LANG_EXT]
 §focus::LanguageExtensions{Sequential}
-?TDDAB#9::CrossRefLinks{scope:§links,tokens:~8,tests:25,priority:1}
-  ↳new-operators::{->files,->tests,->docs,->decisions,->related,->entryPoint,->blueprint,->depends}
-  ↳new-tokens::{@feature{},@task{},{TO-CREATE},{TO-MODIFY}}
-  ↳files-to-create::{tokens.ts,lexer.ts,ast.ts,parser.ts,links-rules.ts}
+✓TDDAB#9::CrossRefLinks{scope:§links,tokens:14,tests:79,coverage:90.32%,priority:1}
+  ↳new-operators::{->files,->tests,->docs,->decisions,->related,->entrypoint,->blueprint,->depends,->features,->why}
+  ↳new-tokens::{@feature,@task,{TO-CREATE},{TO-MODIFY},[...]}
+  ↳ast-nodes::{LinkDeclaration,FileRef,EntryPoint,LinkType,FileMarker,LineRange,ArrowClauseType}
+  ↳analyzer-codes::17{MBEL-LINK-001→070}
+  ↳test-files::{lexer-links.test.ts,parser-links.test.ts,links-validation.test.ts}
+  ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
+  ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
 ?TDDAB#10::SemanticAnchors{scope:§anchors,tokens:~5,tests:18,priority:2}
   ↳new-operators::{->descrizione}
   ↳new-tokens::{@entry::,@hotspot::,@boundary::}
@@ -79,12 +83,13 @@ mbel-lsp/
 
 [NEW_TOKENS_V6]
 @tokens::Section{§links,§anchors,§decisions,§heat,§intents}
-@tokens::Operators{->files,->tests,->docs,->decisions,->related,->entryPoint,->blueprint,->depends}
-@tokens::Operators{->descrizione,->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy}
-@tokens::Operators{->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution}
-@tokens::Operators{->does,->doesNot,->contract,->singleResponsibility,->antiPattern,->extends}
+@tokens::Operators-Links{->files,->tests,->docs,->decisions,->related,->entrypoint,->blueprint,->depends,->features,->why}
+@tokens::Operators-Anchors{->descrizione}
+@tokens::Operators-Decisions{->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy}
+@tokens::Operators-Heat{->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution}
+@tokens::Operators-Intents{->does,->doesNot,->contract,->singleResponsibility,->antiPattern,->extends}
 @tokens::Prefixes{@entry::,@hotspot::,@boundary::,@critical::,@stable::,@volatile::,@hot::}
-@tokens::Markers{@feature{},@task{},{TO-CREATE},{TO-MODIFY},@date::,@Module::Component}
+@tokens::Markers{@feature,@task,{TO-CREATE},{TO-MODIFY},@date::,@Module::Component,[...]}
 
 [DATA_FLOW]
 @flow::Pipeline-V5
