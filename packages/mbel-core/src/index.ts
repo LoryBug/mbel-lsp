@@ -27,6 +27,7 @@ export type {
   LogicOperator,
   MetaOperator,
   HeatPrefix,  // TDDAB#12: HeatMap
+  IntentPrefix,  // TDDAB#13: IntentMarkers
 } from './types.js';
 
 // AST Types
@@ -70,4 +71,6 @@ export type {
   // MBEL v6 HeatMap (TDDAB#12)
   HeatDeclaration,
   HeatType,
+  // MBEL v6 IntentMarkers (TDDAB#13)
+  IntentDeclaration,
 } from './ast.js';

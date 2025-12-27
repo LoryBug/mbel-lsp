@@ -83,7 +83,18 @@ export type DiagnosticCode =
   | 'MBEL-HEAT-050'           // Invalid confidence level
   | 'MBEL-HEAT-051'           // Empty confidence
   | 'MBEL-HEAT-060'           // Empty impact
-  | 'MBEL-HEAT-070';          // Empty caution
+  | 'MBEL-HEAT-070'           // Empty caution
+  // MBEL v6 IntentMarkers validation (TDDAB#13)
+  | 'MBEL-INTENT-001'         // Empty module name
+  | 'MBEL-INTENT-002'         // Empty component name
+  | 'MBEL-INTENT-003'         // Duplicate intent (same module::component)
+  | 'MBEL-INTENT-010'         // Empty ->does clause
+  | 'MBEL-INTENT-011'         // Empty ->doesNot clause
+  | 'MBEL-INTENT-020'         // Empty ->contract clause
+  | 'MBEL-INTENT-030'         // Empty ->singleResponsibility clause
+  | 'MBEL-INTENT-040'         // Empty ->antiPattern clause
+  | 'MBEL-INTENT-050'         // Empty ->extends list
+  | 'MBEL-INTENT-051';        // Invalid ->extends item (empty)
 
 /**
  * Range in source document

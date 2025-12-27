@@ -36,6 +36,8 @@ import type {
   // MBEL v6 HeatMap (TDDAB#12)
   HeatDeclaration,
   HeatType,
+  // MBEL v6 IntentMarkers (TDDAB#13)
+  IntentDeclaration,
 } from './ast.js';
 
 /**
@@ -144,6 +146,11 @@ export class MbelParser {
     // MBEL v6: Heat declarations (@critical::, @stable::, @volatile::, @hot::) - TDDAB#12
     if (this.isHeatToken(token.type)) {
       return this.parseHeatDeclaration();
+    }
+
+    // MBEL v6: Intent declarations (@Module::Component) - TDDAB#13
+    if (token.type === 'INTENT_MODULE') {
+      return this.parseIntentDeclaration();
     }
 
     // Other expressions
@@ -1350,6 +1357,122 @@ export class MbelParser {
       confidence,
       impact,
       caution,
+      start,
+      end: this.previous()?.end ?? start,
+    };
+  }
+
+  // =========================================
+  // MBEL v6 IntentMarkers Parsing (TDDAB#13)
+  // =========================================
+
+  /**
+   * Check if token is an intent arrow operator (TDDAB#13)
+   */
+  private isIntentArrowOperator(type: TokenType): boolean {
+    return [
+      'ARROW_DOES',
+      'ARROW_DOES_NOT',
+      'ARROW_CONTRACT',
+      'ARROW_SINGLE_RESPONSIBILITY',
+      'ARROW_ANTI_PATTERN',
+      'ARROW_EXTENDS',
+    ].includes(type);
+  }
+
+  /**
+   * Parse intent declaration
+   * e.g., @Parser::StatementHandler
+   *         ->does{Parse MBEL statements}
+   *         ->doesNot{Validate semantics}
+   *         ->contract{Returns Statement}
+   */
+  private parseIntentDeclaration(): IntentDeclaration {
+    const start = this.peek().start;
+    const moduleToken = this.advance(); // INTENT_MODULE (@Module::)
+
+    // Extract module name from @Module::
+    const moduleValue = moduleToken.value; // e.g., "@Parser::"
+    const module = moduleValue.slice(1, -2); // Remove @ and ::
+
+    // Parse component name (identifier after module)
+    let component = '';
+    if (this.check('IDENTIFIER')) {
+      component = this.advance().value;
+    }
+
+    // Initialize all clause values
+    let does: string | null = null;
+    let doesNot: string | null = null;
+    let contract: string | null = null;
+    let singleResponsibility: string | null = null;
+    let antiPattern: string | null = null;
+    let extendsClause: string[] | null = null;
+
+    // Parse arrow clauses (may span multiple lines)
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      // Skip newlines between arrow clauses
+      while (this.check('NEWLINE')) {
+        this.advance();
+      }
+
+      if (!this.isIntentArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+
+      const arrowToken = this.advance();
+
+      switch (arrowToken.type) {
+        case 'ARROW_DOES':
+          if (this.check('STRUCT_METADATA')) {
+            does = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_DOES_NOT':
+          if (this.check('STRUCT_METADATA')) {
+            doesNot = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_CONTRACT':
+          if (this.check('STRUCT_METADATA')) {
+            contract = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_SINGLE_RESPONSIBILITY':
+          if (this.check('STRUCT_METADATA')) {
+            singleResponsibility = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_ANTI_PATTERN':
+          if (this.check('STRUCT_METADATA')) {
+            antiPattern = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_EXTENDS':
+          if (this.check('STRUCT_LIST')) {
+            extendsClause = this.parseStringList();
+          }
+          break;
+      }
+    }
+
+    return {
+      type: 'IntentDeclaration',
+      module,
+      component,
+      does,
+      doesNot,
+      contract,
+      singleResponsibility,
+      antiPattern,
+      extends: extendsClause,
       start,
       end: this.previous()?.end ?? start,
     };

@@ -9166,7 +9166,14 @@ var MbelLexer = class _MbelLexer {
     ["coverage", "ARROW_COVERAGE"],
     ["confidence", "ARROW_CONFIDENCE"],
     ["impact", "ARROW_IMPACT"],
-    ["caution", "ARROW_CAUTION"]
+    ["caution", "ARROW_CAUTION"],
+    // TDDAB#13: IntentMarkers
+    ["does", "ARROW_DOES"],
+    ["doesNot", "ARROW_DOES_NOT"],
+    ["contract", "ARROW_CONTRACT"],
+    ["singleResponsibility", "ARROW_SINGLE_RESPONSIBILITY"],
+    ["antiPattern", "ARROW_ANTI_PATTERN"],
+    ["extends", "ARROW_EXTENDS"]
   ]);
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
   static ANCHOR_PREFIXES = /* @__PURE__ */ new Map([
@@ -9515,6 +9522,16 @@ var MbelLexer = class _MbelLexer {
         this.lastTokenWasArrow = false;
         return true;
       }
+      const firstChar = keyword.charAt(0);
+      if (keyword.length > 0 && firstChar >= "A" && firstChar <= "Z") {
+        const value = "@" + keyword + "::";
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken("INTENT_MODULE", value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
     }
     if (keyword === "feature") {
       const value = "@feature";
@@ -9692,6 +9709,9 @@ var MbelParser = class {
     }
     if (this.isHeatToken(token.type)) {
       return this.parseHeatDeclaration();
+    }
+    if (token.type === "INTENT_MODULE") {
+      return this.parseIntentDeclaration();
     }
     if (token.type === "IDENTIFIER" || token.type === "NUMBER") {
       return this.parseExpressionStatement();
@@ -10704,6 +10724,101 @@ var MbelParser = class {
       end: this.previous()?.end ?? start
     };
   }
+  // =========================================
+  // MBEL v6 IntentMarkers Parsing (TDDAB#13)
+  // =========================================
+  /**
+   * Check if token is an intent arrow operator (TDDAB#13)
+   */
+  isIntentArrowOperator(type) {
+    return [
+      "ARROW_DOES",
+      "ARROW_DOES_NOT",
+      "ARROW_CONTRACT",
+      "ARROW_SINGLE_RESPONSIBILITY",
+      "ARROW_ANTI_PATTERN",
+      "ARROW_EXTENDS"
+    ].includes(type);
+  }
+  /**
+   * Parse intent declaration
+   * e.g., @Parser::StatementHandler
+   *         ->does{Parse MBEL statements}
+   *         ->doesNot{Validate semantics}
+   *         ->contract{Returns Statement}
+   */
+  parseIntentDeclaration() {
+    const start = this.peek().start;
+    const moduleToken = this.advance();
+    const moduleValue = moduleToken.value;
+    const module2 = moduleValue.slice(1, -2);
+    let component = "";
+    if (this.check("IDENTIFIER")) {
+      component = this.advance().value;
+    }
+    let does = null;
+    let doesNot = null;
+    let contract = null;
+    let singleResponsibility = null;
+    let antiPattern = null;
+    let extendsClause = null;
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      while (this.check("NEWLINE")) {
+        this.advance();
+      }
+      if (!this.isIntentArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+      const arrowToken = this.advance();
+      switch (arrowToken.type) {
+        case "ARROW_DOES":
+          if (this.check("STRUCT_METADATA")) {
+            does = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_DOES_NOT":
+          if (this.check("STRUCT_METADATA")) {
+            doesNot = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_CONTRACT":
+          if (this.check("STRUCT_METADATA")) {
+            contract = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_SINGLE_RESPONSIBILITY":
+          if (this.check("STRUCT_METADATA")) {
+            singleResponsibility = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_ANTI_PATTERN":
+          if (this.check("STRUCT_METADATA")) {
+            antiPattern = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_EXTENDS":
+          if (this.check("STRUCT_LIST")) {
+            extendsClause = this.parseStringList();
+          }
+          break;
+      }
+    }
+    return {
+      type: "IntentDeclaration",
+      module: module2,
+      component,
+      does,
+      doesNot,
+      contract,
+      singleResponsibility,
+      antiPattern,
+      extends: extendsClause,
+      start,
+      end: this.previous()?.end ?? start
+    };
+  }
 };
 
 // ../mbel-analyzer/dist/analyzer.js
@@ -10966,6 +11081,7 @@ var MbelAnalyzer = class {
     diagnostics.push(...this.checkAnchorDeclarations(document));
     diagnostics.push(...this.checkDecisionDeclarations(document));
     diagnostics.push(...this.checkHeatDeclarations(document));
+    diagnostics.push(...this.checkIntentDeclarations(document));
     return diagnostics;
   }
   checkMissingVersion(document) {
@@ -11737,6 +11853,125 @@ var MbelAnalyzer = class {
           message: "Heat caution is empty",
           source: "mbel"
         });
+      }
+    }
+    return diagnostics;
+  }
+  // =========================================
+  // MBEL v6 IntentMarkers Validation (TDDAB#13)
+  // =========================================
+  /**
+   * Check intent declarations for validation issues
+   */
+  checkIntentDeclarations(document) {
+    const diagnostics = [];
+    const intents = document.statements.filter((stmt) => stmt.type === "IntentDeclaration");
+    const intentKeys = /* @__PURE__ */ new Map();
+    for (const intent of intents) {
+      const intentKey = `${intent.module}::${intent.component}`;
+      if (!intent.module || intent.module.trim() === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "error",
+          code: "MBEL-INTENT-001",
+          message: "Intent module name cannot be empty",
+          source: "mbel"
+        });
+      }
+      if (!intent.component || intent.component.trim() === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "error",
+          code: "MBEL-INTENT-002",
+          message: "Intent component name cannot be empty",
+          source: "mbel"
+        });
+      }
+      if (intent.module && intent.component) {
+        const existingIntent = intentKeys.get(intentKey);
+        if (existingIntent) {
+          diagnostics.push({
+            range: { start: intent.start, end: intent.end },
+            severity: "warning",
+            code: "MBEL-INTENT-003",
+            message: `Duplicate intent declaration "${intentKey}"`,
+            source: "mbel",
+            relatedInfo: [{
+              location: { start: existingIntent.start, end: existingIntent.end },
+              message: "First intent declaration here"
+            }]
+          });
+        } else {
+          intentKeys.set(intentKey, intent);
+        }
+      }
+      if (intent.does === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-010",
+          message: "Intent ->does clause is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.doesNot === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-011",
+          message: "Intent ->doesNot clause is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.contract === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-020",
+          message: "Intent ->contract clause is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.singleResponsibility === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-030",
+          message: "Intent ->singleResponsibility clause is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.antiPattern === "") {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-040",
+          message: "Intent ->antiPattern clause is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.extends !== null && intent.extends.length === 0) {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: "warning",
+          code: "MBEL-INTENT-050",
+          message: "Intent ->extends list is empty",
+          source: "mbel"
+        });
+      }
+      if (intent.extends) {
+        for (const item of intent.extends) {
+          if (!item || item.trim() === "") {
+            diagnostics.push({
+              range: { start: intent.start, end: intent.end },
+              severity: "warning",
+              code: "MBEL-INTENT-051",
+              message: "Intent ->extends contains empty item",
+              source: "mbel"
+            });
+            break;
+          }
+        }
       }
     }
     return diagnostics;

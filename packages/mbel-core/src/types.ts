@@ -26,7 +26,7 @@ export type LogicOperator = '&' | '||' | '¬';
 // Meta operators [2]
 export type MetaOperator = '©' | '§';
 
-// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1] + Decisions [7] + HeatMap [7]
+// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1] + Decisions [7] + HeatMap [7] + IntentMarkers [6]
 export type ArrowOperator =
   | '->files'
   | '->tests'
@@ -52,7 +52,13 @@ export type ArrowOperator =
   | '->coverage'       // TDDAB#12: HeatMap
   | '->confidence'     // TDDAB#12: HeatMap
   | '->impact'         // TDDAB#12: HeatMap
-  | '->caution';       // TDDAB#12: HeatMap
+  | '->caution'        // TDDAB#12: HeatMap
+  | '->does'           // TDDAB#13: IntentMarkers
+  | '->doesNot'        // TDDAB#13: IntentMarkers
+  | '->contract'       // TDDAB#13: IntentMarkers
+  | '->singleResponsibility'  // TDDAB#13: IntentMarkers
+  | '->antiPattern'    // TDDAB#13: IntentMarkers
+  | '->extends';       // TDDAB#13: IntentMarkers
 
 // MBEL v6 Anchor prefixes for SemanticAnchors [3]
 export type AnchorPrefix =
@@ -66,6 +72,10 @@ export type HeatPrefix =
   | '@stable::'
   | '@volatile::'
   | '@hot::';
+
+// MBEL v6 Intent prefix pattern (TDDAB#13)
+// Format: @Module::Component where Module and Component are identifiers
+export type IntentPrefix = '@${string}::${string}';
 
 export type MbelOperator =
   | TemporalOperator
@@ -136,6 +146,13 @@ export type TokenType =
   | 'ARROW_CONFIDENCE'     // ->confidence
   | 'ARROW_IMPACT'         // ->impact
   | 'ARROW_CAUTION'        // ->caution
+  // MBEL v6 Intent Arrow Operators (TDDAB#13)
+  | 'ARROW_DOES'           // ->does
+  | 'ARROW_DOES_NOT'       // ->doesNot
+  | 'ARROW_CONTRACT'       // ->contract
+  | 'ARROW_SINGLE_RESPONSIBILITY'  // ->singleResponsibility
+  | 'ARROW_ANTI_PATTERN'   // ->antiPattern
+  | 'ARROW_EXTENDS'        // ->extends
   // MBEL v6 Decision Date Prefix (TDDAB#11)
   | 'DECISION_DATE'        // @YYYY-MM-DD::
   // MBEL v6 Link Type Markers
@@ -150,6 +167,8 @@ export type TokenType =
   | 'HEAT_STABLE'          // @stable::
   | 'HEAT_VOLATILE'        // @volatile::
   | 'HEAT_HOT'             // @hot::
+  // MBEL v6 Intent Prefix (TDDAB#13)
+  | 'INTENT_MODULE'        // @Module:: (dynamic module name)
   // MBEL v6 Structure
   | 'STRUCT_LIST'          // [...] for lists (different from STRUCT_SECTION)
   // Literals and identifiers

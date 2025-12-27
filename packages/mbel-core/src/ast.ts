@@ -30,7 +30,8 @@ export type Statement =
   | LinkDeclaration
   | AnchorDeclaration     // TDDAB#10: SemanticAnchors
   | DecisionDeclaration   // TDDAB#11: DecisionLog
-  | HeatDeclaration;      // TDDAB#12: HeatMap
+  | HeatDeclaration       // TDDAB#12: HeatMap
+  | IntentDeclaration;    // TDDAB#13: IntentMarkers
 
 // [SectionName] - Section declaration
 export interface SectionDeclaration extends AstNode {
@@ -335,4 +336,30 @@ export interface HeatDeclaration extends AstNode {
   readonly confidence: string | null;                 // confidence level (high/medium/low)
   readonly impact: string | null;                     // impact level if changed
   readonly caution: string | null;                    // warning/caution message
+}
+
+// =========================================
+// MBEL v6 IntentMarkers AST Nodes (TDDAB#13)
+// =========================================
+
+/**
+ * Intent declaration - node for §intents section
+ * Documents the purpose and contracts of code components
+ * e.g., @Parser::StatementHandler
+ *         ->does{Parse MBEL statements into AST nodes}
+ *         ->doesNot{Validate semantic correctness}
+ *         ->contract{Returns Statement | null}
+ *         ->singleResponsibility{Statement parsing only}
+ *         ->extends[BaseHandler]
+ */
+export interface IntentDeclaration extends AstNode {
+  readonly type: 'IntentDeclaration';
+  readonly module: string;                            // Module name (e.g., "Parser")
+  readonly component: string;                         // Component name (e.g., "StatementHandler")
+  readonly does: string | null;                       // What this component does
+  readonly doesNot: string | null;                    // What this component explicitly doesn't do
+  readonly contract: string | null;                   // The contract/interface this component fulfills
+  readonly singleResponsibility: string | null;       // Single responsibility description
+  readonly antiPattern: string | null;                // Known anti-patterns or things to avoid
+  readonly extends: readonly string[] | null;         // What this component extends
 }

@@ -43,6 +43,13 @@ export class MbelLexer {
     ['confidence', 'ARROW_CONFIDENCE'],
     ['impact', 'ARROW_IMPACT'],
     ['caution', 'ARROW_CAUTION'],
+    // TDDAB#13: IntentMarkers
+    ['does', 'ARROW_DOES'],
+    ['doesNot', 'ARROW_DOES_NOT'],
+    ['contract', 'ARROW_CONTRACT'],
+    ['singleResponsibility', 'ARROW_SINGLE_RESPONSIBILITY'],
+    ['antiPattern', 'ARROW_ANTI_PATTERN'],
+    ['extends', 'ARROW_EXTENDS'],
   ]);
 
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
@@ -473,6 +480,19 @@ export class MbelLexer {
           this.advance();
         }
         this.addToken(heatType, value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
+
+      // TDDAB#13: Check for intent module prefix (@Module::)
+      // Must start with uppercase letter (CamelCase) to distinguish from other prefixes
+      const firstChar = keyword.charAt(0);
+      if (keyword.length > 0 && firstChar >= 'A' && firstChar <= 'Z') {
+        const value = '@' + keyword + '::';
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken('INTENT_MODULE', value, start);
         this.lastTokenWasArrow = false;
         return true;
       }

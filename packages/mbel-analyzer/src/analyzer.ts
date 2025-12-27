@@ -21,6 +21,8 @@ import type {
   DecisionDeclaration,
   // MBEL v6 HeatMap (TDDAB#12)
   HeatDeclaration,
+  // MBEL v6 IntentMarkers (TDDAB#13)
+  IntentDeclaration,
 } from '@mbel/core';
 import type { AnalysisResult, AnalyzerOptions, Diagnostic, DiagnosticCode, QuickFix, TextEdit, RelatedInformation } from './types.js';
 
@@ -374,6 +376,9 @@ export class MbelAnalyzer {
 
     // MBEL v6: Check heat declarations (TDDAB#12)
     diagnostics.push(...this.checkHeatDeclarations(document));
+
+    // MBEL v6: Check intent declarations (TDDAB#13)
+    diagnostics.push(...this.checkIntentDeclarations(document));
 
     return diagnostics;
   }
@@ -1326,6 +1331,155 @@ export class MbelAnalyzer {
           message: 'Heat caution is empty',
           source: 'mbel',
         });
+      }
+    }
+
+    return diagnostics;
+  }
+
+  // =========================================
+  // MBEL v6 IntentMarkers Validation (TDDAB#13)
+  // =========================================
+
+  /**
+   * Check intent declarations for validation issues
+   */
+  private checkIntentDeclarations(document: Document): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Filter for IntentDeclaration nodes
+    const intents = document.statements.filter(
+      (stmt): stmt is IntentDeclaration => stmt.type === 'IntentDeclaration'
+    );
+
+    // Track intent module::component for duplicate detection
+    const intentKeys = new Map<string, IntentDeclaration>();
+
+    for (const intent of intents) {
+      const intentKey = `${intent.module}::${intent.component}`;
+
+      // MBEL-INTENT-001: Empty module name
+      if (!intent.module || intent.module.trim() === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'error',
+          code: 'MBEL-INTENT-001',
+          message: 'Intent module name cannot be empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-002: Empty component name
+      if (!intent.component || intent.component.trim() === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'error',
+          code: 'MBEL-INTENT-002',
+          message: 'Intent component name cannot be empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-003: Duplicate intent (same module::component)
+      if (intent.module && intent.component) {
+        const existingIntent = intentKeys.get(intentKey);
+        if (existingIntent) {
+          diagnostics.push({
+            range: { start: intent.start, end: intent.end },
+            severity: 'warning',
+            code: 'MBEL-INTENT-003',
+            message: `Duplicate intent declaration "${intentKey}"`,
+            source: 'mbel',
+            relatedInfo: [{
+              location: { start: existingIntent.start, end: existingIntent.end },
+              message: 'First intent declaration here',
+            }],
+          });
+        } else {
+          intentKeys.set(intentKey, intent);
+        }
+      }
+
+      // MBEL-INTENT-010: Empty ->does clause
+      if (intent.does === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-010',
+          message: 'Intent ->does clause is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-011: Empty ->doesNot clause
+      if (intent.doesNot === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-011',
+          message: 'Intent ->doesNot clause is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-020: Empty ->contract clause
+      if (intent.contract === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-020',
+          message: 'Intent ->contract clause is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-030: Empty ->singleResponsibility clause
+      if (intent.singleResponsibility === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-030',
+          message: 'Intent ->singleResponsibility clause is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-040: Empty ->antiPattern clause
+      if (intent.antiPattern === '') {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-040',
+          message: 'Intent ->antiPattern clause is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-050: Empty ->extends list
+      if (intent.extends !== null && intent.extends.length === 0) {
+        diagnostics.push({
+          range: { start: intent.start, end: intent.end },
+          severity: 'warning',
+          code: 'MBEL-INTENT-050',
+          message: 'Intent ->extends list is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-INTENT-051: Invalid ->extends item (empty)
+      if (intent.extends) {
+        for (const item of intent.extends) {
+          if (!item || item.trim() === '') {
+            diagnostics.push({
+              range: { start: intent.start, end: intent.end },
+              severity: 'warning',
+              code: 'MBEL-INTENT-051',
+              message: 'Intent ->extends contains empty item',
+              source: 'mbel',
+            });
+            break; // Only report once per intent
+          }
+        }
       }
     }
 
