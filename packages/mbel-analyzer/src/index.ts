@@ -8,6 +8,21 @@
 // Analyzer
 export { MbelAnalyzer } from './analyzer.js';
 
+// Query Engine (TDDAB#15)
+export { QueryEngine } from './query-engine/index.js';
+export type {
+  DependencyGraph,
+  DependencyNode,
+  AnchorResult,
+  DecisionResult,
+  IntentResult,
+  HeatInfo,
+  RiskAssessment,
+  ImpactResult,
+  SemanticSearchResult,
+  WorkContext,
+} from './query-engine/types.js';
+
 // Types
 export type {
   Diagnostic,

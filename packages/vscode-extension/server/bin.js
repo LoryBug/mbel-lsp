@@ -9151,6 +9151,8 @@ var MbelLexer = class _MbelLexer {
     ["why", "ARROW_WHY"],
     ["descrizione", "ARROW_DESCRIZIONE"],
     // TDDAB#10: SemanticAnchors
+    ["description", "ARROW_DESCRIPTION"],
+    // TDDAB#14: English alias
     // TDDAB#11: DecisionLog
     ["alternatives", "ARROW_ALTERNATIVES"],
     ["reason", "ARROW_REASON"],
@@ -10474,9 +10476,13 @@ var MbelParser = class {
     while (this.check("NEWLINE")) {
       this.advance();
     }
-    if (this.check("ARROW_DESCRIZIONE")) {
+    if (this.check("ARROW_DESCRIZIONE") || this.check("ARROW_DESCRIPTION")) {
       this.advance();
-      if (this.check("RELATION_DEFINES")) {
+      if (this.check("STRUCT_METADATA")) {
+        const metaToken = this.advance();
+        description = metaToken.value.slice(1, -1);
+        end = metaToken.end;
+      } else if (this.check("RELATION_DEFINES")) {
         this.advance();
         const descTokens = [];
         while (!this.isAtEnd() && !this.check("NEWLINE")) {

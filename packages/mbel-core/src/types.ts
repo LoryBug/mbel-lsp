@@ -130,6 +130,7 @@ export type TokenType =
   | 'ARROW_FEATURES'       // ->features
   | 'ARROW_WHY'            // ->why
   | 'ARROW_DESCRIZIONE'    // ->descrizione (TDDAB#10)
+  | 'ARROW_DESCRIPTION'    // ->description (TDDAB#14 English alias)
   // MBEL v6 Decision Arrow Operators (TDDAB#11)
   | 'ARROW_ALTERNATIVES'   // ->alternatives
   | 'ARROW_REASON'         // ->reason

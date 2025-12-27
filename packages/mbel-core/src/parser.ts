@@ -1090,11 +1090,17 @@ export class MbelParser {
       this.advance();
     }
 
-    if (this.check('ARROW_DESCRIZIONE')) {
-      this.advance(); // consume ->descrizione
+    if (this.check('ARROW_DESCRIZIONE') || this.check('ARROW_DESCRIPTION')) {
+      this.advance(); // consume ->descrizione or ->description
 
-      // Expect :: after ->descrizione
-      if (this.check('RELATION_DEFINES')) {
+      // Check for STRUCT_METADATA {text} format (TDDAB#14)
+      if (this.check('STRUCT_METADATA')) {
+        const metaToken = this.advance();
+        description = metaToken.value.slice(1, -1); // Remove { and }
+        end = metaToken.end;
+      }
+      // Or expect :: after ->descrizione (legacy format)
+      else if (this.check('RELATION_DEFINES')) {
         this.advance(); // consume ::
 
         // Collect description text until newline or end

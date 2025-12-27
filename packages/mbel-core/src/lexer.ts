@@ -27,6 +27,7 @@ export class MbelLexer {
     ['features', 'ARROW_FEATURES'],
     ['why', 'ARROW_WHY'],
     ['descrizione', 'ARROW_DESCRIZIONE'],  // TDDAB#10: SemanticAnchors
+    ['description', 'ARROW_DESCRIPTION'],  // TDDAB#14: English alias
     // TDDAB#11: DecisionLog
     ['alternatives', 'ARROW_ALTERNATIVES'],
     ['reason', 'ARROW_REASON'],
