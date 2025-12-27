@@ -26,7 +26,8 @@ export type Statement =
   | TemporalStatement
   | VersionStatement
   | SourceStatement
-  | ExpressionStatement;
+  | ExpressionStatement
+  | LinkDeclaration;
 
 // [SectionName] - Section declaration
 export interface SectionDeclaration extends AstNode {
@@ -153,4 +154,92 @@ export interface ParseError {
 export interface ParseResult {
   readonly document: Document;
   readonly errors: readonly ParseError[];
+}
+
+// =========================================
+// MBEL v6 CrossRefLinks AST Nodes
+// =========================================
+
+/**
+ * Link type marker
+ * @feature for features, @task for tasks
+ */
+export type LinkType = 'feature' | 'task';
+
+/**
+ * File status marker for planned files
+ */
+export type FileMarker = 'TO-CREATE' | 'TO-MODIFY';
+
+/**
+ * Line range within a file (e.g., file.ts:10-50)
+ */
+export interface LineRange {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * File reference in a link declaration
+ * e.g., src/file.ts, src/file.ts{TO-CREATE}, src/file.ts:10-50, src/**\/*.ts
+ */
+export interface FileRef extends AstNode {
+  readonly type: 'FileRef';
+  readonly path: string;
+  readonly marker: FileMarker | null;
+  readonly lineRange: LineRange | null;
+  readonly isGlob: boolean;
+}
+
+/**
+ * Entry point reference
+ * e.g., entryPoint{file.ts:functionName:42}
+ */
+export interface EntryPoint extends AstNode {
+  readonly type: 'EntryPoint';
+  readonly file: string;
+  readonly symbol: string;
+  readonly line: number | null;
+}
+
+/**
+ * Link declaration - main node for §links section
+ * e.g., @feature{Lexer}->files[src/lexer.ts]->tests[tests/lexer.test.ts]
+ */
+export interface LinkDeclaration extends AstNode {
+  readonly type: 'LinkDeclaration';
+  readonly linkType: LinkType;
+  readonly name: string;
+  readonly files: readonly FileRef[] | null;
+  readonly tests: readonly FileRef[] | null;
+  readonly docs: readonly FileRef[] | null;
+  readonly decisions: readonly string[] | null;
+  readonly related: readonly string[] | null;
+  readonly entryPoint: EntryPoint | null;
+  readonly blueprint: readonly string[] | null;
+  readonly depends: readonly string[] | null;
+}
+
+/**
+ * Arrow clause type (for internal parser use)
+ */
+export type ArrowClauseType =
+  | 'files'
+  | 'tests'
+  | 'docs'
+  | 'decisions'
+  | 'related'
+  | 'entryPoint'
+  | 'blueprint'
+  | 'depends'
+  | 'features'
+  | 'why';
+
+/**
+ * Arrow clause AST node (intermediate representation)
+ */
+export interface ArrowClause extends AstNode {
+  readonly type: 'ArrowClause';
+  readonly clauseType: ArrowClauseType;
+  readonly content: string;
 }

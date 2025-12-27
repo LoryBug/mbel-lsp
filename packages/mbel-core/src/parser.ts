@@ -20,6 +20,13 @@ import type {
   Metadata,
   Note,
   Variant,
+  // MBEL v6 CrossRefLinks
+  LinkDeclaration,
+  LinkType,
+  FileRef,
+  FileMarker,
+  EntryPoint,
+  LineRange,
 } from './ast.js';
 
 /**
@@ -108,6 +115,11 @@ export class MbelParser {
     // Logic NOT expression: ¬
     if (token.type === 'LOGIC_NOT') {
       return this.parseExpressionStatement();
+    }
+
+    // MBEL v6: Link declarations (@feature, @task)
+    if (token.type === 'LINK_FEATURE' || token.type === 'LINK_TASK') {
+      return this.parseLinkDeclaration();
     }
 
     // Other expressions
@@ -549,6 +561,300 @@ export class MbelParser {
       } as ChainExpression;
     }
     return left;
+  }
+
+  // =========================================
+  // MBEL v6 CrossRefLinks Parsing
+  // =========================================
+
+  /**
+   * Parse link declaration: @feature{Name}->files[...]->tests[...]...
+   */
+  private parseLinkDeclaration(): LinkDeclaration {
+    const start = this.peek().start;
+    const linkTypeToken = this.advance();
+    const linkType: LinkType = linkTypeToken.type === 'LINK_FEATURE' ? 'feature' : 'task';
+
+    // Parse name from following STRUCT_METADATA {Name}
+    let name = '';
+    if (this.check('STRUCT_METADATA')) {
+      const metadataToken = this.advance();
+      name = metadataToken.value.slice(1, -1); // Remove { and }
+    } else {
+      this.addError('Expected link name in braces', this.peek().start);
+    }
+
+    // Initialize all clause values
+    let files: FileRef[] | null = null;
+    let tests: FileRef[] | null = null;
+    let docs: FileRef[] | null = null;
+    let decisions: string[] | null = null;
+    let related: string[] | null = null;
+    let entryPoint: EntryPoint | null = null;
+    let blueprint: string[] | null = null;
+    let depends: string[] | null = null;
+
+    // Parse arrow clauses (may span multiple lines)
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      // Skip newlines between arrow clauses
+      while (this.check('NEWLINE')) {
+        this.advance();
+      }
+
+      if (!this.isArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+
+      const arrowToken = this.advance();
+
+      switch (arrowToken.type) {
+        case 'ARROW_FILES':
+          if (this.check('STRUCT_LIST')) {
+            files = this.parseFileRefList();
+          }
+          break;
+
+        case 'ARROW_TESTS':
+          if (this.check('STRUCT_LIST')) {
+            tests = this.parseFileRefList();
+          }
+          break;
+
+        case 'ARROW_DOCS':
+          if (this.check('STRUCT_LIST')) {
+            docs = this.parseFileRefList();
+          }
+          break;
+
+        case 'ARROW_DECISIONS':
+          if (this.check('STRUCT_LIST')) {
+            decisions = this.parseStringList();
+          }
+          break;
+
+        case 'ARROW_RELATED':
+          if (this.check('STRUCT_LIST')) {
+            related = this.parseStringList();
+          }
+          break;
+
+        case 'ARROW_ENTRYPOINT':
+          if (this.check('STRUCT_METADATA')) {
+            entryPoint = this.parseEntryPoint();
+          }
+          break;
+
+        case 'ARROW_BLUEPRINT':
+          if (this.check('STRUCT_LIST')) {
+            blueprint = this.parseQuotedStringList();
+          }
+          break;
+
+        case 'ARROW_DEPENDS':
+          if (this.check('STRUCT_LIST')) {
+            depends = this.parseStringList();
+          }
+          break;
+
+        case 'ARROW_FEATURES':
+        case 'ARROW_WHY':
+          // Skip these for now, just consume the list if present
+          if (this.check('STRUCT_LIST')) {
+            this.advance();
+          }
+          break;
+      }
+    }
+
+    return {
+      type: 'LinkDeclaration',
+      linkType,
+      name,
+      files,
+      tests,
+      docs,
+      decisions,
+      related,
+      entryPoint,
+      blueprint,
+      depends,
+      start,
+      end: this.previous()?.end ?? start,
+    };
+  }
+
+  /**
+   * Parse file reference list from STRUCT_LIST token
+   * e.g., [src/a.ts,src/b.ts{TO-CREATE}]
+   */
+  private parseFileRefList(): FileRef[] {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1); // Remove [ and ]
+    const files: FileRef[] = [];
+
+    if (!content.trim()) {
+      return files;
+    }
+
+    // Split by comma, but be careful with commas inside braces
+    const parts = this.splitByComma(content);
+
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed) {
+        files.push(this.parseFileRef(trimmed, listToken.start));
+      }
+    }
+
+    return files;
+  }
+
+  /**
+   * Parse a single file reference
+   * e.g., src/file.ts, src/file.ts{TO-CREATE}, src/file.ts:10-50, src/**\/*.ts
+   */
+  private parseFileRef(input: string, position: Position): FileRef {
+    let path = input;
+    let marker: FileMarker | null = null;
+    let lineRange: LineRange | null = null;
+    let isGlob = false;
+
+    // Check for marker {TO-CREATE} or {TO-MODIFY}
+    const markerMatch = input.match(/\{(TO-CREATE|TO-MODIFY)\}$/);
+    if (markerMatch) {
+      marker = markerMatch[1] as FileMarker;
+      path = input.slice(0, -markerMatch[0].length);
+    }
+
+    // Check for line range :start-end (but not glob pattern colons)
+    const lineRangeMatch = path.match(/:(\d+)-(\d+)$/);
+    if (lineRangeMatch && lineRangeMatch[1] && lineRangeMatch[2]) {
+      lineRange = {
+        start: parseInt(lineRangeMatch[1], 10),
+        end: parseInt(lineRangeMatch[2], 10),
+      };
+      path = path.slice(0, -lineRangeMatch[0].length);
+    }
+
+    // Check for glob patterns
+    if (path.includes('*') || path.includes('?')) {
+      isGlob = true;
+    }
+
+    return {
+      type: 'FileRef',
+      path,
+      marker,
+      lineRange,
+      isGlob,
+      start: position,
+      end: position,
+    };
+  }
+
+  /**
+   * Parse string list from STRUCT_LIST token
+   * e.g., [ItemA,ItemB,ItemC]
+   */
+  private parseStringList(): string[] {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1); // Remove [ and ]
+
+    if (!content.trim()) {
+      return [];
+    }
+
+    return this.splitByComma(content).map(s => s.trim()).filter(s => s);
+  }
+
+  /**
+   * Parse quoted string list from STRUCT_LIST token
+   * e.g., ["Step 1: Create","Step 2: Test"]
+   */
+  private parseQuotedStringList(): string[] {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1); // Remove [ and ]
+    const strings: string[] = [];
+
+    // Match quoted strings
+    const regex = /"([^"]*)"(?:,|$)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (match[1] !== undefined) {
+        strings.push(match[1]);
+      }
+    }
+
+    return strings;
+  }
+
+  /**
+   * Parse entry point from STRUCT_METADATA token
+   * e.g., {file.ts:functionName:42}
+   */
+  private parseEntryPoint(): EntryPoint {
+    const token = this.advance();
+    const content = token.value.slice(1, -1); // Remove { and }
+    const parts = content.split(':');
+
+    return {
+      type: 'EntryPoint',
+      file: parts[0] ?? '',
+      symbol: parts[1] ?? '',
+      line: parts[2] ? parseInt(parts[2], 10) : null,
+      start: token.start,
+      end: token.end,
+    };
+  }
+
+  /**
+   * Split string by comma, respecting braces
+   */
+  private splitByComma(input: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let depth = 0;
+
+    for (const char of input) {
+      if (char === '{') {
+        depth++;
+        current += char;
+      } else if (char === '}') {
+        depth--;
+        current += char;
+      } else if (char === ',' && depth === 0) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    if (current) {
+      result.push(current);
+    }
+
+    return result;
+  }
+
+  /**
+   * Check if token is an arrow operator
+   */
+  private isArrowOperator(type: TokenType): boolean {
+    return [
+      'ARROW_FILES',
+      'ARROW_TESTS',
+      'ARROW_DOCS',
+      'ARROW_DECISIONS',
+      'ARROW_RELATED',
+      'ARROW_ENTRYPOINT',
+      'ARROW_BLUEPRINT',
+      'ARROW_DEPENDS',
+      'ARROW_FEATURES',
+      'ARROW_WHY',
+    ].includes(type);
   }
 
   // Helper methods

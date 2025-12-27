@@ -98,7 +98,8 @@ describe('MbelParser', () => {
     });
 
     it('should parse attribute with metadata', () => {
-      const stmt = parseFirst('@task{priority:high,status:active}') as AttributeStatement;
+      // Note: @task is now reserved for MBEL v6 LinkDeclaration, use @item instead
+      const stmt = parseFirst('@item{priority:high,status:active}') as AttributeStatement;
       expect(stmt.type).toBe('AttributeStatement');
       expect(stmt.metadata).not.toBeNull();
       expect(stmt.metadata?.content).toContain('priority');

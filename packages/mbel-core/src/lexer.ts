@@ -14,6 +14,23 @@ export class MbelLexer {
   private tokens: Token[] = [];
   private errors: LexerError[] = [];
 
+  // MBEL v6 Arrow operators mapping (->keyword)
+  private static readonly ARROW_OPERATORS: ReadonlyMap<string, TokenType> = new Map([
+    ['files', 'ARROW_FILES'],
+    ['tests', 'ARROW_TESTS'],
+    ['docs', 'ARROW_DOCS'],
+    ['decisions', 'ARROW_DECISIONS'],
+    ['related', 'ARROW_RELATED'],
+    ['entryPoint', 'ARROW_ENTRYPOINT'],
+    ['blueprint', 'ARROW_BLUEPRINT'],
+    ['depends', 'ARROW_DEPENDS'],
+    ['features', 'ARROW_FEATURES'],
+    ['why', 'ARROW_WHY'],
+  ]);
+
+  // Track if last token was an arrow operator (for STRUCT_LIST detection)
+  private lastTokenWasArrow = false;
+
   // Single-char operators mapped to token types
   private static readonly SINGLE_CHAR_OPERATORS: ReadonlyMap<string, TokenType> = new Map([
     // Temporal
@@ -88,6 +105,7 @@ export class MbelLexer {
     this.column = 1;
     this.tokens = [];
     this.errors = [];
+    this.lastTokenWasArrow = false;
   }
 
   private isAtEnd(): boolean {
@@ -201,6 +219,20 @@ export class MbelLexer {
       return;
     }
 
+    // MBEL v6: Check for arrow operators (->keyword) BEFORE checking for '-'
+    if (char === '-' && this.peekNext() === '>') {
+      if (this.scanArrowOperator(start)) {
+        return;
+      }
+    }
+
+    // MBEL v6: Check for link markers (@feature, @task) BEFORE checking for '@'
+    if (char === '@') {
+      if (this.scanLinkMarker(start)) {
+        return;
+      }
+    }
+
     // Check for two-character operators first
     if (this.matchTwoCharOperator(start)) {
       return;
@@ -209,6 +241,12 @@ export class MbelLexer {
     // Check for bracket structures
     const bracket = MbelLexer.BRACKETS.get(char);
     if (bracket) {
+      // MBEL v6: After arrow operators, [ becomes STRUCT_LIST
+      if (char === '[' && this.lastTokenWasArrow) {
+        this.scanBracketedContent(']', 'STRUCT_LIST', start);
+        this.lastTokenWasArrow = false;
+        return;
+      }
       this.scanBracketedContent(bracket.close, bracket.type, start);
       return;
     }
@@ -218,6 +256,7 @@ export class MbelLexer {
     if (singleOp) {
       this.advance();
       this.addToken(singleOp, char, start);
+      this.lastTokenWasArrow = false;
       return;
     }
 
@@ -319,6 +358,81 @@ export class MbelLexer {
     }
 
     this.addToken('IDENTIFIER', value, start);
+    this.lastTokenWasArrow = false;
+  }
+
+  /**
+   * MBEL v6: Scan arrow operators (->keyword)
+   * Returns true if an arrow operator was matched, false otherwise.
+   */
+  private scanArrowOperator(start: Position): boolean {
+    // We already know we're at '->'
+    // Look ahead to extract the keyword following '->'
+    let keyword = '';
+    let offset = 2; // Skip '->'
+
+    // Extract keyword characters
+    while (this.isIdentifierPart(this.peekAt(offset))) {
+      keyword += this.peekAt(offset);
+      offset++;
+    }
+
+    // Check if this keyword is a known arrow operator
+    const tokenType = MbelLexer.ARROW_OPERATORS.get(keyword);
+    if (tokenType) {
+      // Consume '->' + keyword
+      const value = '->' + keyword;
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken(tokenType, value, start);
+      this.lastTokenWasArrow = true;
+      return true;
+    }
+
+    // Not a recognized arrow operator
+    return false;
+  }
+
+  /**
+   * MBEL v6: Scan link markers (@feature, @task)
+   * Returns true if a link marker was matched, false otherwise.
+   */
+  private scanLinkMarker(start: Position): boolean {
+    // We already know we're at '@'
+    // Look ahead to extract the keyword following '@'
+    let keyword = '';
+    let offset = 1; // Skip '@'
+
+    // Extract keyword characters
+    while (this.isIdentifierPart(this.peekAt(offset))) {
+      keyword += this.peekAt(offset);
+      offset++;
+    }
+
+    // Check for @feature or @task
+    if (keyword === 'feature') {
+      const value = '@feature';
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken('LINK_FEATURE', value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
+
+    if (keyword === 'task') {
+      const value = '@task';
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken('LINK_TASK', value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
+
+    // Not a recognized link marker
+    return false;
   }
 
   private scanCodeBlock(start: Position): void {

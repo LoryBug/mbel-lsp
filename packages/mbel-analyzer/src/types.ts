@@ -37,7 +37,25 @@ export type DiagnosticCode =
   | 'DUPLICATE_ATTRIBUTE'     // Same attribute defined twice
   | 'MISSING_VERSION'         // No version statement in document
   // Hints
-  | 'PREFER_OPERATOR';        // Could use operator instead of text
+  | 'PREFER_OPERATOR'         // Could use operator instead of text
+  // MBEL v6 CrossRefLinks validation
+  | 'MBEL-LINK-001'           // Link without name
+  | 'MBEL-LINK-002'           // Link with invalid name characters
+  | 'MBEL-LINK-003'           // Duplicate link names
+  | 'MBEL-LINK-010'           // Invalid glob pattern syntax
+  | 'MBEL-LINK-011'           // Invalid line range format
+  | 'MBEL-LINK-012'           // Line range start > end
+  | 'MBEL-LINK-020'           // Reference to undefined decision
+  | 'MBEL-LINK-021'           // Reference to undefined feature in related
+  | 'MBEL-LINK-022'           // Self-reference in related
+  | 'MBEL-LINK-030'           // Circular dependency
+  | 'MBEL-LINK-031'           // Reference to undefined dependency
+  | 'MBEL-LINK-040'           // Empty blueprint
+  | 'MBEL-LINK-041'           // Unquoted blueprint step
+  | 'MBEL-LINK-050'           // Invalid entryPoint format
+  | 'MBEL-LINK-051'           // Non-numeric line number in entryPoint
+  | 'MBEL-LINK-060'           // Unknown file marker
+  | 'MBEL-LINK-070';          // Orphan link (no files or tests)
 
 /**
  * Range in source document

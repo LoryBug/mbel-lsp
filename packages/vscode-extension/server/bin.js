@@ -9137,6 +9137,21 @@ var MbelLexer = class _MbelLexer {
   column = 1;
   tokens = [];
   errors = [];
+  // MBEL v6 Arrow operators mapping (->keyword)
+  static ARROW_OPERATORS = /* @__PURE__ */ new Map([
+    ["files", "ARROW_FILES"],
+    ["tests", "ARROW_TESTS"],
+    ["docs", "ARROW_DOCS"],
+    ["decisions", "ARROW_DECISIONS"],
+    ["related", "ARROW_RELATED"],
+    ["entryPoint", "ARROW_ENTRYPOINT"],
+    ["blueprint", "ARROW_BLUEPRINT"],
+    ["depends", "ARROW_DEPENDS"],
+    ["features", "ARROW_FEATURES"],
+    ["why", "ARROW_WHY"]
+  ]);
+  // Track if last token was an arrow operator (for STRUCT_LIST detection)
+  lastTokenWasArrow = false;
   // Single-char operators mapped to token types
   static SINGLE_CHAR_OPERATORS = /* @__PURE__ */ new Map([
     // Temporal
@@ -9212,6 +9227,7 @@ var MbelLexer = class _MbelLexer {
     this.column = 1;
     this.tokens = [];
     this.errors = [];
+    this.lastTokenWasArrow = false;
   }
   isAtEnd() {
     return this.pos >= this.input.length;
@@ -9304,11 +9320,26 @@ var MbelLexer = class _MbelLexer {
       this.scanCodeBlock(start);
       return;
     }
+    if (char === "-" && this.peekNext() === ">") {
+      if (this.scanArrowOperator(start)) {
+        return;
+      }
+    }
+    if (char === "@") {
+      if (this.scanLinkMarker(start)) {
+        return;
+      }
+    }
     if (this.matchTwoCharOperator(start)) {
       return;
     }
     const bracket = _MbelLexer.BRACKETS.get(char);
     if (bracket) {
+      if (char === "[" && this.lastTokenWasArrow) {
+        this.scanBracketedContent("]", "STRUCT_LIST", start);
+        this.lastTokenWasArrow = false;
+        return;
+      }
       this.scanBracketedContent(bracket.close, bracket.type, start);
       return;
     }
@@ -9316,6 +9347,7 @@ var MbelLexer = class _MbelLexer {
     if (singleOp) {
       this.advance();
       this.addToken(singleOp, char, start);
+      this.lastTokenWasArrow = false;
       return;
     }
     if (this.isDigit(char)) {
@@ -9389,6 +9421,61 @@ var MbelLexer = class _MbelLexer {
       value += this.advance();
     }
     this.addToken("IDENTIFIER", value, start);
+    this.lastTokenWasArrow = false;
+  }
+  /**
+   * MBEL v6: Scan arrow operators (->keyword)
+   * Returns true if an arrow operator was matched, false otherwise.
+   */
+  scanArrowOperator(start) {
+    let keyword = "";
+    let offset = 2;
+    while (this.isIdentifierPart(this.peekAt(offset))) {
+      keyword += this.peekAt(offset);
+      offset++;
+    }
+    const tokenType = _MbelLexer.ARROW_OPERATORS.get(keyword);
+    if (tokenType) {
+      const value = "->" + keyword;
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken(tokenType, value, start);
+      this.lastTokenWasArrow = true;
+      return true;
+    }
+    return false;
+  }
+  /**
+   * MBEL v6: Scan link markers (@feature, @task)
+   * Returns true if a link marker was matched, false otherwise.
+   */
+  scanLinkMarker(start) {
+    let keyword = "";
+    let offset = 1;
+    while (this.isIdentifierPart(this.peekAt(offset))) {
+      keyword += this.peekAt(offset);
+      offset++;
+    }
+    if (keyword === "feature") {
+      const value = "@feature";
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken("LINK_FEATURE", value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
+    if (keyword === "task") {
+      const value = "@task";
+      for (let i = 0; i < value.length; i++) {
+        this.advance();
+      }
+      this.addToken("LINK_TASK", value, start);
+      this.lastTokenWasArrow = false;
+      return true;
+    }
+    return false;
   }
   scanCodeBlock(start) {
     let content = this.advance() + this.advance() + this.advance();
@@ -9491,6 +9578,9 @@ var MbelParser = class {
     }
     if (token.type === "LOGIC_NOT") {
       return this.parseExpressionStatement();
+    }
+    if (token.type === "LINK_FEATURE" || token.type === "LINK_TASK") {
+      return this.parseLinkDeclaration();
     }
     if (token.type === "IDENTIFIER" || token.type === "NUMBER") {
       return this.parseExpressionStatement();
@@ -9841,6 +9931,250 @@ var MbelParser = class {
     }
     return left;
   }
+  // =========================================
+  // MBEL v6 CrossRefLinks Parsing
+  // =========================================
+  /**
+   * Parse link declaration: @feature{Name}->files[...]->tests[...]...
+   */
+  parseLinkDeclaration() {
+    const start = this.peek().start;
+    const linkTypeToken = this.advance();
+    const linkType = linkTypeToken.type === "LINK_FEATURE" ? "feature" : "task";
+    let name = "";
+    if (this.check("STRUCT_METADATA")) {
+      const metadataToken = this.advance();
+      name = metadataToken.value.slice(1, -1);
+    } else {
+      this.addError("Expected link name in braces", this.peek().start);
+    }
+    let files = null;
+    let tests = null;
+    let docs = null;
+    let decisions = null;
+    let related = null;
+    let entryPoint = null;
+    let blueprint = null;
+    let depends = null;
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      while (this.check("NEWLINE")) {
+        this.advance();
+      }
+      if (!this.isArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+      const arrowToken = this.advance();
+      switch (arrowToken.type) {
+        case "ARROW_FILES":
+          if (this.check("STRUCT_LIST")) {
+            files = this.parseFileRefList();
+          }
+          break;
+        case "ARROW_TESTS":
+          if (this.check("STRUCT_LIST")) {
+            tests = this.parseFileRefList();
+          }
+          break;
+        case "ARROW_DOCS":
+          if (this.check("STRUCT_LIST")) {
+            docs = this.parseFileRefList();
+          }
+          break;
+        case "ARROW_DECISIONS":
+          if (this.check("STRUCT_LIST")) {
+            decisions = this.parseStringList();
+          }
+          break;
+        case "ARROW_RELATED":
+          if (this.check("STRUCT_LIST")) {
+            related = this.parseStringList();
+          }
+          break;
+        case "ARROW_ENTRYPOINT":
+          if (this.check("STRUCT_METADATA")) {
+            entryPoint = this.parseEntryPoint();
+          }
+          break;
+        case "ARROW_BLUEPRINT":
+          if (this.check("STRUCT_LIST")) {
+            blueprint = this.parseQuotedStringList();
+          }
+          break;
+        case "ARROW_DEPENDS":
+          if (this.check("STRUCT_LIST")) {
+            depends = this.parseStringList();
+          }
+          break;
+        case "ARROW_FEATURES":
+        case "ARROW_WHY":
+          if (this.check("STRUCT_LIST")) {
+            this.advance();
+          }
+          break;
+      }
+    }
+    return {
+      type: "LinkDeclaration",
+      linkType,
+      name,
+      files,
+      tests,
+      docs,
+      decisions,
+      related,
+      entryPoint,
+      blueprint,
+      depends,
+      start,
+      end: this.previous()?.end ?? start
+    };
+  }
+  /**
+   * Parse file reference list from STRUCT_LIST token
+   * e.g., [src/a.ts,src/b.ts{TO-CREATE}]
+   */
+  parseFileRefList() {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1);
+    const files = [];
+    if (!content.trim()) {
+      return files;
+    }
+    const parts = this.splitByComma(content);
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed) {
+        files.push(this.parseFileRef(trimmed, listToken.start));
+      }
+    }
+    return files;
+  }
+  /**
+   * Parse a single file reference
+   * e.g., src/file.ts, src/file.ts{TO-CREATE}, src/file.ts:10-50, src/**\/*.ts
+   */
+  parseFileRef(input, position) {
+    let path = input;
+    let marker = null;
+    let lineRange = null;
+    let isGlob = false;
+    const markerMatch = input.match(/\{(TO-CREATE|TO-MODIFY)\}$/);
+    if (markerMatch) {
+      marker = markerMatch[1];
+      path = input.slice(0, -markerMatch[0].length);
+    }
+    const lineRangeMatch = path.match(/:(\d+)-(\d+)$/);
+    if (lineRangeMatch && lineRangeMatch[1] && lineRangeMatch[2]) {
+      lineRange = {
+        start: parseInt(lineRangeMatch[1], 10),
+        end: parseInt(lineRangeMatch[2], 10)
+      };
+      path = path.slice(0, -lineRangeMatch[0].length);
+    }
+    if (path.includes("*") || path.includes("?")) {
+      isGlob = true;
+    }
+    return {
+      type: "FileRef",
+      path,
+      marker,
+      lineRange,
+      isGlob,
+      start: position,
+      end: position
+    };
+  }
+  /**
+   * Parse string list from STRUCT_LIST token
+   * e.g., [ItemA,ItemB,ItemC]
+   */
+  parseStringList() {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1);
+    if (!content.trim()) {
+      return [];
+    }
+    return this.splitByComma(content).map((s) => s.trim()).filter((s) => s);
+  }
+  /**
+   * Parse quoted string list from STRUCT_LIST token
+   * e.g., ["Step 1: Create","Step 2: Test"]
+   */
+  parseQuotedStringList() {
+    const listToken = this.advance();
+    const content = listToken.value.slice(1, -1);
+    const strings = [];
+    const regex = /"([^"]*)"(?:,|$)/g;
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (match[1] !== void 0) {
+        strings.push(match[1]);
+      }
+    }
+    return strings;
+  }
+  /**
+   * Parse entry point from STRUCT_METADATA token
+   * e.g., {file.ts:functionName:42}
+   */
+  parseEntryPoint() {
+    const token = this.advance();
+    const content = token.value.slice(1, -1);
+    const parts = content.split(":");
+    return {
+      type: "EntryPoint",
+      file: parts[0] ?? "",
+      symbol: parts[1] ?? "",
+      line: parts[2] ? parseInt(parts[2], 10) : null,
+      start: token.start,
+      end: token.end
+    };
+  }
+  /**
+   * Split string by comma, respecting braces
+   */
+  splitByComma(input) {
+    const result = [];
+    let current = "";
+    let depth = 0;
+    for (const char of input) {
+      if (char === "{") {
+        depth++;
+        current += char;
+      } else if (char === "}") {
+        depth--;
+        current += char;
+      } else if (char === "," && depth === 0) {
+        result.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current) {
+      result.push(current);
+    }
+    return result;
+  }
+  /**
+   * Check if token is an arrow operator
+   */
+  isArrowOperator(type) {
+    return [
+      "ARROW_FILES",
+      "ARROW_TESTS",
+      "ARROW_DOCS",
+      "ARROW_DECISIONS",
+      "ARROW_RELATED",
+      "ARROW_ENTRYPOINT",
+      "ARROW_BLUEPRINT",
+      "ARROW_DEPENDS",
+      "ARROW_FEATURES",
+      "ARROW_WHY"
+    ].includes(type);
+  }
   // Helper methods
   isTemporalOperator(type) {
     return ["TEMPORAL_PRESENT", "TEMPORAL_PAST", "TEMPORAL_FUTURE", "TEMPORAL_APPROX"].includes(type);
@@ -10002,6 +10336,9 @@ var MbelAnalyzer = class {
         diagnostics.push(diag);
         this.diagnosticsWithContext.set(diag, { source });
       }
+      this.checkEntryPointFromSource(diagnostics);
+      this.checkLineRangeFormat(diagnostics);
+      this.checkUnknownMarkers(diagnostics);
     }
     return { diagnostics, quickFixes };
   }
@@ -10184,6 +10521,7 @@ var MbelAnalyzer = class {
     diagnostics.push(...this.checkUnusedSections(document));
     diagnostics.push(...this.checkDuplicateSections(document));
     diagnostics.push(...this.checkDuplicateAttributes(document));
+    diagnostics.push(...this.checkLinkDeclarations(document));
     return diagnostics;
   }
   checkMissingVersion(document) {
@@ -10281,6 +10619,366 @@ var MbelAnalyzer = class {
         } else {
           attrMap.set(attr.name.name, attr);
         }
+      }
+    }
+    return diagnostics;
+  }
+  // =========================================
+  // MBEL v6 CrossRefLinks Validation
+  // =========================================
+  /**
+   * Check all link declarations for issues
+   */
+  checkLinkDeclarations(document) {
+    const diagnostics = [];
+    const links = [];
+    const linkNames = /* @__PURE__ */ new Map();
+    const decisionNames = /* @__PURE__ */ new Set();
+    for (const stmt of document.statements) {
+      if (stmt.type === "LinkDeclaration") {
+        const link = stmt;
+        links.push(link);
+      }
+      if (stmt.type === "AttributeStatement") {
+        const attr = stmt;
+        if (attr.temporal === "present" && attr.name.name.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        }
+      }
+    }
+    const decisionMatches = this.sourceText.match(/@\d{4}-\d{2}-\d{2}::(\w+)/g);
+    if (decisionMatches) {
+      for (const m of decisionMatches) {
+        const name = m.match(/@\d{4}-\d{2}-\d{2}::(\w+)/)?.[1];
+        if (name) {
+          decisionNames.add(name);
+        }
+      }
+    }
+    for (const link of links) {
+      if (!link.name || link.name.trim() === "") {
+        diagnostics.push({
+          range: { start: link.start, end: link.end },
+          severity: "error",
+          code: "MBEL-LINK-001",
+          message: "Link declaration is missing a name",
+          source: "mbel"
+        });
+      }
+      if (link.name && /\s/.test(link.name)) {
+        diagnostics.push({
+          range: { start: link.start, end: link.end },
+          severity: "error",
+          code: "MBEL-LINK-002",
+          message: `Link name "${link.name}" contains invalid characters (spaces)`,
+          source: "mbel"
+        });
+      }
+      const existingLink = linkNames.get(link.name);
+      if (existingLink) {
+        diagnostics.push({
+          range: { start: link.start, end: link.end },
+          severity: "warning",
+          code: "MBEL-LINK-003",
+          message: `Duplicate link name "${link.name}"`,
+          source: "mbel",
+          relatedInfo: [{
+            location: { start: existingLink.start, end: existingLink.end },
+            message: "First declaration here"
+          }]
+        });
+      } else {
+        linkNames.set(link.name, link);
+      }
+      if (link.files) {
+        diagnostics.push(...this.validateFileRefs(link.files));
+      }
+      if (link.tests) {
+        diagnostics.push(...this.validateFileRefs(link.tests));
+      }
+      if (link.docs) {
+        diagnostics.push(...this.validateFileRefs(link.docs));
+      }
+      if (link.decisions) {
+        for (const decision of link.decisions) {
+          if (!decisionNames.has(decision)) {
+            diagnostics.push({
+              range: { start: link.start, end: link.end },
+              severity: "warning",
+              code: "MBEL-LINK-020",
+              message: `Reference to undefined decision "${decision}"`,
+              source: "mbel"
+            });
+          }
+        }
+      }
+      if (link.related) {
+        for (const related of link.related) {
+          if (related === link.name) {
+            diagnostics.push({
+              range: { start: link.start, end: link.end },
+              severity: "warning",
+              code: "MBEL-LINK-022",
+              message: `Link "${link.name}" references itself in related`,
+              source: "mbel"
+            });
+          } else if (!linkNames.has(related) && !links.some((l) => l.name === related)) {
+            diagnostics.push({
+              range: { start: link.start, end: link.end },
+              severity: "warning",
+              code: "MBEL-LINK-021",
+              message: `Reference to undefined feature "${related}" in related`,
+              source: "mbel"
+            });
+          }
+        }
+      }
+      if (link.depends) {
+        for (const dep of link.depends) {
+          if (!linkNames.has(dep) && !links.some((l) => l.name === dep)) {
+            diagnostics.push({
+              range: { start: link.start, end: link.end },
+              severity: "warning",
+              code: "MBEL-LINK-031",
+              message: `Reference to undefined dependency "${dep}"`,
+              source: "mbel"
+            });
+          }
+        }
+      }
+      if (link.blueprint !== null && link.blueprint !== void 0) {
+        if (link.blueprint.length === 0) {
+          diagnostics.push({
+            range: { start: link.start, end: link.end },
+            severity: "warning",
+            code: "MBEL-LINK-040",
+            message: "Blueprint is empty",
+            source: "mbel"
+          });
+        }
+      }
+      this.checkUnquotedBlueprint(link, diagnostics);
+      if (link.entryPoint) {
+        const ep = link.entryPoint;
+        if (!ep.file || !ep.symbol) {
+          diagnostics.push({
+            range: { start: ep.start, end: ep.end },
+            severity: "error",
+            code: "MBEL-LINK-050",
+            message: "Invalid entryPoint format - expected file:symbol:line",
+            source: "mbel"
+          });
+        }
+      }
+      if (this.options.hints && (!link.files || link.files.length === 0) && (!link.tests || link.tests.length === 0)) {
+        if (link.related || link.depends || link.decisions) {
+          diagnostics.push({
+            range: { start: link.start, end: link.end },
+            severity: "hint",
+            code: "MBEL-LINK-070",
+            message: `Link "${link.name}" has no files or tests associated`,
+            source: "mbel"
+          });
+        }
+      }
+    }
+    diagnostics.push(...this.checkCircularDependencies(links));
+    return diagnostics;
+  }
+  /**
+   * Validate file references for issues
+   */
+  validateFileRefs(files) {
+    const diagnostics = [];
+    for (const file of files) {
+      if (file.isGlob) {
+        if (file.path.includes("***")) {
+          diagnostics.push({
+            range: { start: file.start, end: file.end },
+            severity: "error",
+            code: "MBEL-LINK-010",
+            message: `Invalid glob pattern "${file.path}"`,
+            source: "mbel"
+          });
+        }
+      }
+      if (file.lineRange && file.lineRange.start > file.lineRange.end) {
+        diagnostics.push({
+          range: { start: file.start, end: file.end },
+          severity: "warning",
+          code: "MBEL-LINK-012",
+          message: `Line range start (${file.lineRange.start}) is greater than end (${file.lineRange.end})`,
+          source: "mbel"
+        });
+      }
+    }
+    return diagnostics;
+  }
+  /**
+   * Check for unquoted blueprint steps by examining source text
+   */
+  checkUnquotedBlueprint(link, diagnostics) {
+    const blueprintMatch = this.sourceText.match(/->blueprint\[([^\]]*)\]/);
+    if (blueprintMatch) {
+      const content = blueprintMatch[1];
+      if (content && content.trim() && !content.trim().startsWith('"')) {
+        diagnostics.push({
+          range: { start: link.start, end: link.end },
+          severity: "warning",
+          code: "MBEL-LINK-041",
+          message: "Blueprint steps should be quoted strings",
+          source: "mbel"
+        });
+      }
+    }
+  }
+  /**
+   * Check for invalid entryPoint format and line number
+   */
+  checkEntryPointFromSource(diagnostics) {
+    const entryPointMatches = this.sourceText.matchAll(/->entryPoint\{([^}]*)\}/g);
+    for (const match of entryPointMatches) {
+      const content = match[1];
+      if (!content)
+        continue;
+      const parts = content.split(":");
+      if (parts.length < 2 || !parts[0] || !parts[1]) {
+        continue;
+      }
+      if (parts[2] && isNaN(parseInt(parts[2], 10))) {
+        const offset = match.index ?? 0;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === "\n") {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + content.length, offset: offset + content.length }
+          },
+          severity: "error",
+          code: "MBEL-LINK-051",
+          message: `Non-numeric line number "${parts[2]}" in entryPoint`,
+          source: "mbel"
+        });
+      }
+    }
+  }
+  /**
+   * Check for unknown file markers in source
+   */
+  checkUnknownMarkers(diagnostics) {
+    const markerPattern = /\{([A-Z]+-[A-Z]+)\}/g;
+    let match;
+    while ((match = markerPattern.exec(this.sourceText)) !== null) {
+      const marker = match[1];
+      if (marker !== "TO-CREATE" && marker !== "TO-MODIFY") {
+        const offset = match.index;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === "\n") {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + match[0].length, offset: offset + match[0].length }
+          },
+          severity: "warning",
+          code: "MBEL-LINK-060",
+          message: `Unknown file marker "${marker}". Valid markers are: TO-CREATE, TO-MODIFY`,
+          source: "mbel"
+        });
+      }
+    }
+  }
+  /**
+   * Check for invalid line range format in source
+   */
+  checkLineRangeFormat(diagnostics) {
+    const invalidRangePattern = /\[([^\]]*:[a-zA-Z]+-[a-zA-Z]+[^\]]*)\]/g;
+    let match;
+    while ((match = invalidRangePattern.exec(this.sourceText)) !== null) {
+      const offset = match.index;
+      let line = 1;
+      let column = 1;
+      for (let i = 0; i < offset; i++) {
+        if (this.sourceText[i] === "\n") {
+          line++;
+          column = 1;
+        } else {
+          column++;
+        }
+      }
+      diagnostics.push({
+        range: {
+          start: { line, column, offset },
+          end: { line, column: column + match[0].length, offset: offset + match[0].length }
+        },
+        severity: "error",
+        code: "MBEL-LINK-011",
+        message: "Invalid line range format - expected numeric range like :10-50",
+        source: "mbel"
+      });
+    }
+  }
+  /**
+   * Check for circular dependencies between links
+   */
+  checkCircularDependencies(links) {
+    const diagnostics = [];
+    const dependencyMap = /* @__PURE__ */ new Map();
+    for (const link of links) {
+      if (link.depends && link.depends.length > 0) {
+        dependencyMap.set(link.name, [...link.depends]);
+      }
+    }
+    const visited = /* @__PURE__ */ new Set();
+    const recursionStack = /* @__PURE__ */ new Set();
+    const cycleNodes = /* @__PURE__ */ new Set();
+    const hasCycle = (node, path) => {
+      visited.add(node);
+      recursionStack.add(node);
+      const deps = dependencyMap.get(node) ?? [];
+      for (const dep of deps) {
+        if (!visited.has(dep)) {
+          if (hasCycle(dep, [...path, node])) {
+            cycleNodes.add(node);
+            return true;
+          }
+        } else if (recursionStack.has(dep)) {
+          cycleNodes.add(node);
+          cycleNodes.add(dep);
+          return true;
+        }
+      }
+      recursionStack.delete(node);
+      return false;
+    };
+    for (const link of links) {
+      if (!visited.has(link.name)) {
+        hasCycle(link.name, []);
+      }
+    }
+    for (const link of links) {
+      if (cycleNodes.has(link.name)) {
+        diagnostics.push({
+          range: { start: link.start, end: link.end },
+          severity: "warning",
+          code: "MBEL-LINK-030",
+          message: `Circular dependency detected involving "${link.name}"`,
+          source: "mbel"
+        });
       }
     }
     return diagnostics;

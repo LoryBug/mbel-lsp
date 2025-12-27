@@ -1,11 +1,12 @@
-§MBEL:5.0
+§MBEL:6.0
 
 [FOCUS]
-@focus::OpenCodeIntegration{Complete}
+@focus::MBEL6.0{Planning+Preparation}
 >completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
 >completed::OpenCodeIntegration{SlashCommands+CustomTool}✓
+>in-progress::MBEL6.0-Planning{LanguageExtensions+InfrastructureDesign}
 
-[DONE]
+[DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
 ✓TypeScriptConfig::StrictMode{noAny,noImplicitReturns}
 ✓VitestConfig::Coverage%100{thresholds}
@@ -26,14 +27,19 @@
 ✓OpenCodeCustomTool::mbel-query{status,pending,completed,failed,critical,active,recent,all}
 ✓OpenCodeConfig::opencode.json{lsp-integration}
 
-[RECENT]
->added::OpenCodeSlashCommands{/mb,/mb-pending,/mb-recent}
->added::OpenCodeCustomTool{mbel-query}
->fixed::opencode.json{lsp-config-format}
->converted::MemoryBankFiles{##→[SECTION]}
->added::LLMQueryMethods{getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus}
+[DONE_V6_PLANNING]
+✓MBEL6.0-PlanCreated{8blocks,147tests,~40tokens}
+✓ArchitectureReview{Phase1-Lang,Phase2-Infra,Phase3-API,Phase4-Tools}
+✓MemoryBankUpdated{systemPatterns,progress,activeContext}
 
-[DECISIONS]
+[RECENT]
+>completed::MBEL6.0-Planning{Design-complete,ready-for-implementation}
+>updated::systemPatterns.mbel.md{Version5→6,AddedTDDAB#9-#16}
+>updated::progress.mbel.md{AddedPending-TDDAB#9-#16,metrics}
+>updated::activeContext.mbel.md{Focus-to-MBEL6.0}
+>added::ExecutionPhases{4-sequential-phases,dependencies-mapped}
+
+[DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
 §decision::Vitest>Jest{modern,faster}
 §decision::ESM{type:module}
@@ -47,19 +53,50 @@
 §decision::SectionBrackets{[SECTION]not##Title}
 §decision::OpenCodeIntegration{SlashCommands+CustomTool>MCP}
 
+[DECISIONS_V6]
+§decision::MBEL6.0-LLM-Native-Evolution
+  ↳rationale::CodebaseBrain{semantic-storage,native-language-support}
+  ↳approach::IncrementalPhases{Lang-Extensions→Infrastructure→API→Tools}
+  ↳priority-order::1-CrossRefs,2-Anchors,3-LLM-API,3.5-QueryEngine,4-Decisions,5-HeatMap,6-Intents,Last-Integration
+§decision::NewTokensStrategy
+  ↳semantic-sections::5{§links,§anchors,§decisions,§heat,§intents}
+  ↳operators::25{navigation,reference,analysis,intent}
+  ↳prefixes::7{entry,hotspot,boundary,critical,stable,volatile,hot}
+§decision::QueryEngineArchitecture
+  ↳approach::DependencyGraph+SemanticIndex{buildfromAST}
+  ↳queries::Semantic+Composite{support-LLM-integration}
+§decision::LLMAPIStandalone
+  ↳methods::7{getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext}
+  ↳design::RequestResponse{typed-inputs,rich-outputs}
+
 [NEXT]
-?RenameSymbol::RefactorSupport
-?FoldingRanges::CollapseSections
-?CodeActions::QuickFixes{auto-apply}
-?PublishMarketplace::OfficialExtension
+?TDDAB#9::CrossRefLinks{priority:1,estimated-duration:3-5days}
+  ↳depends::None{LanguageExtension}
+  ↳enables::TDDAB#10,#14,#15
+?TDDAB#10::SemanticAnchors{priority:2,estimated-duration:2-3days}
+  ↳depends::TDDAB#9
+  ↳enables::TDDAB#14,#15
+?TDDAB#14::LLMAPILayer{priority:3,estimated-duration:3-4days}
+  ↳depends::TDDAB#9,#10,#15
+  ↳enables::TDDAB#16
+?TDDAB#15::QueryEngine{priority:3.5,estimated-duration:2-3days}
+  ↳depends::TDDAB#9,#10,#11
+  ↳enables::TDDAB#14
+?TDDAB#11::DecisionLog{priority:4,estimated-duration:2-3days}
+?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
+?TDDAB#13::IntentMarkers{priority:6,estimated-duration:2-3days}
+?TDDAB#16::ToolIntegrations{priority:last,estimated-duration:2-3days}
 
 [BLOCKERS]
 !OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
+!MBEL6.0::NotStarted{waiting-for-TDDAB#9}
 
 [NOTES]
-@note::TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::Coverage::%87{overall}
-@note::AllTDDABBlocksComplete::✓
-@note::LLMQueryMethods::getPending,getCompleted,getFailed,getCritical,getActive,getRecentChanges,getProjectStatus
-@note::OpenCodeCommands::/mb{full-status},/mb-pending{pending-items},/mb-recent{recent-changes}
-@note::OpenCodeTool::mbel-query{semantic-queries-for-llm}
+@note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
+@note::TotalTests-Projected::#406{V5:259+V6:147}
+@note::Coverage-Current::%87{overall}
+@note::Coverage-Target-V6::%90
+@note::NewTokens::#40{sections:5,operators:25,prefixes:7,markers:3}
+@note::NewASTNodes::#8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,...}
+@note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}
+@note::PlanReference::tasks/MBEL-6.0-TDDAB-PLAN.md

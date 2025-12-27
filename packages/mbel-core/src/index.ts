@@ -51,4 +51,13 @@ export type {
   Variant,
   ParseResult,
   ParseError,
+  // MBEL v6 CrossRefLinks
+  LinkDeclaration,
+  LinkType,
+  FileRef,
+  FileMarker,
+  LineRange,
+  EntryPoint,
+  ArrowClause,
+  ArrowClauseType,
 } from './ast.js';

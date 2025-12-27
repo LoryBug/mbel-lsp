@@ -1,7 +1,7 @@
-§MBEL:5.0
+§MBEL:6.0
 
-[TDDAB_STATUS]
-@status::AllComplete
+[TDDAB_V5_STATUS]
+@status::AllComplete✓{259tests}
 
 [TDDAB#1]
 ✓MbelLexer
@@ -67,7 +67,7 @@
 ├─ Commit::3fe492d
 └─ Features::getPending+getCompleted+getFailed+getCritical+getActive+getRecentChanges+getProjectStatus
 
-[OPENCODE_INTEGRATION]
+[OPENCODE_INTEGRATION_V5]
 ✓SlashCommands+CustomTool
 ├─ /mb::FullMemoryBankStatusQuery
 ├─ /mb-pending::PendingItemsQuery
@@ -76,14 +76,85 @@
 ├─ Commit::9e671f0
 └─ Config::opencode.json{lsp-integration}
 
+[TDDAB_V6_STATUS]
+@status::Planning{8blocks,147tests,~40new-tokens}
+@reference::tasks/MBEL-6.0-TDDAB-PLAN.md
+
+[TDDAB#9]
+?CrossRefLinks{§links-section}
+├─ Status::Pending
+├─ Tests::~25{lexer,parser,analyzer}
+├─ Tokens::+8{->files,->tests,->docs,->decisions,->related,->entryPoint,->blueprint,->depends}
+├─ Priority::1{Game-Changer}
+└─ Files::tokens.ts,lexer.ts,ast.ts,parser.ts,links-rules.ts
+
+[TDDAB#10]
+?SemanticAnchors{§anchors-section}
+├─ Status::Pending
+├─ Tests::~18{lexer,parser,analyzer}
+├─ Tokens::+5{->descrizione,@entry::,@hotspot::,@boundary::}
+├─ Priority::2{Quick-Win}
+└─ Files::anchors-rules.ts
+
+[TDDAB#11]
+?DecisionLog{§decisions-extended}
+├─ Status::Pending
+├─ Tests::~20{lexer,parser,analyzer}
+├─ Tokens::+8{->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy,@date::}
+├─ Priority::4{High-Value}
+└─ Files::decisions-rules.ts
+
+[TDDAB#12]
+?HeatMap{§heat-section}
+├─ Status::Pending
+├─ Tests::~18{lexer,parser,analyzer}
+├─ Tokens::+10{->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution,@critical::,@stable::,@volatile::,@hot::}
+├─ Priority::5{Medium}
+└─ Files::heat-rules.ts
+
+[TDDAB#13]
+?IntentMarkers{§intents-section}
+├─ Status::Pending
+├─ Tests::~16{lexer,parser,analyzer}
+├─ Tokens::+8{->does,->doesNot,->contract,->singleResponsibility,->antiPattern,->extends,@Module::Component}
+├─ Priority::6{Guardrails}
+└─ Files::intents-rules.ts
+
+[TDDAB#14]
+?LLMAPILayer{LSP-semantic-methods}
+├─ Status::Pending
+├─ Tests::~25{lsp-api}
+├─ Methods::+7{getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext}
+├─ Priority::3{Combines-all}
+└─ Files::llm-api/{index.ts,*-handler.ts}
+
+[TDDAB#15]
+?QueryEngine{semantic-navigation}
+├─ Status::Pending
+├─ Tests::~15{query-engine}
+├─ Modules::+4{dependency-graph.ts,semantic-search.ts,impact-analyzer.ts}
+├─ Priority::3.5{Infrastructure}
+└─ Files::query-engine/{*.ts}
+
+[TDDAB#16]
+?ToolIntegrations{opencode+vscode}
+├─ Status::Pending
+├─ Tests::~10{integration}
+├─ Tools::+2{mbel-workcontext,codelens,hover-ext,tree-view}
+├─ Priority::Last{Depends-on-all}
+└─ Files::.opencode/,vscode-extension/
+
 [METRICS]
 @metrics::
-- TotalTests::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-- Coverage::Overall%87{server%98,analyzer%95,lexer%93,parser%87}
-- Packages::#4{@mbel/core,@mbel/analyzer,@mbel/lsp,vscode-extension}
-- Lines::~4500
+- TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
+- TotalTests-V6::+147{links:25,anchors:18,decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
+- TotalTests-Projected::406{V5:259+V6:147}
+- Coverage-Current::%87{overall}
+- Coverage-Target::%90{v6}
+- NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
+- NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}
 
-[GIT_HISTORY]
+[GIT_HISTORY_V5]
 @commits::
 1. 504fba3::chore:initial-project-setup
 2. 62f3370::feat(lexer):mbel-v5-lexer

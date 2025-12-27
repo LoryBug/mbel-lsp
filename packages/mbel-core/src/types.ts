@@ -1,7 +1,8 @@
 /**
- * MBEL v5 Token Types
+ * MBEL v5/v6 Token Types
  *
  * Based on the 27 core operators defined in MBEL v5 Grammar
+ * Extended with MBEL v6 CrossRefLinks operators
  */
 
 // Temporal operators [4]
@@ -25,6 +26,19 @@ export type LogicOperator = '&' | '||' | '¬';
 // Meta operators [2]
 export type MetaOperator = '©' | '§';
 
+// MBEL v6 Arrow operators for CrossRefLinks [10]
+export type ArrowOperator =
+  | '->files'
+  | '->tests'
+  | '->docs'
+  | '->decisions'
+  | '->related'
+  | '->entryPoint'
+  | '->blueprint'
+  | '->depends'
+  | '->features'
+  | '->why';
+
 export type MbelOperator =
   | TemporalOperator
   | StateOperator
@@ -32,7 +46,8 @@ export type MbelOperator =
   | StructureOperator
   | QuantificationOperator
   | LogicOperator
-  | MetaOperator;
+  | MetaOperator
+  | ArrowOperator;
 
 export type TokenType =
   // Operators
@@ -63,6 +78,22 @@ export type TokenType =
   | 'LOGIC_NOT'            // ¬
   | 'META_SOURCE'          // ©
   | 'META_VERSION'         // §
+  // MBEL v6 CrossRefLinks Arrow Operators
+  | 'ARROW_FILES'          // ->files
+  | 'ARROW_TESTS'          // ->tests
+  | 'ARROW_DOCS'           // ->docs
+  | 'ARROW_DECISIONS'      // ->decisions
+  | 'ARROW_RELATED'        // ->related
+  | 'ARROW_ENTRYPOINT'     // ->entryPoint
+  | 'ARROW_BLUEPRINT'      // ->blueprint
+  | 'ARROW_DEPENDS'        // ->depends
+  | 'ARROW_FEATURES'       // ->features
+  | 'ARROW_WHY'            // ->why
+  // MBEL v6 Link Type Markers
+  | 'LINK_FEATURE'         // @feature
+  | 'LINK_TASK'            // @task
+  // MBEL v6 Structure
+  | 'STRUCT_LIST'          // [...] for lists (different from STRUCT_SECTION)
   // Literals and identifiers
   | 'IDENTIFIER'           // CamelCase words
   | 'NUMBER'               // Numeric literals

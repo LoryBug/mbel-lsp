@@ -15,7 +15,9 @@
       "Bash(cat:*)",
       "Bash(xxd:*)",
       "Bash(npm run test:*)",
-      "Bash(npx @vscode/vsce:*)"
+      "Bash(npx @vscode/vsce:*)",
+      "Bash(wc:*)",
+      "Skill(x-typescript-npm-tddab)"
     ]
   }
 }
