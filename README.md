@@ -27,6 +27,61 @@ Specialized methods for AI agents to query project status efficiently:
 | `getRecentChanges()` | `>` | Get all recent changes |
 | `getProjectStatus()` | - | Get aggregated counts |
 
+### Claude Code Skill (`mbel-navigator`)
+
+Built-in skill for Claude Code that enables LLM navigation of Memory Bank:
+
+```bash
+# List all features
+node .claude/skills/mbel-navigator/scripts/query-mb.mjs features
+
+# Get feature details
+node .claude/skills/mbel-navigator/scripts/query-mb.mjs feature Parser
+
+# Find features using a file
+node .claude/skills/mbel-navigator/scripts/query-mb.mjs file lexer.ts
+
+# Show dependency tree
+node .claude/skills/mbel-navigator/scripts/query-mb.mjs deps LSPServer
+
+# List hotspots
+node .claude/skills/mbel-navigator/scripts/query-mb.mjs anchors-type hotspot
+```
+
+**Automatic Activation**: Claude automatically uses this skill when you ask:
+- "Where is X implemented?"
+- "What files does feature Y use?"
+- "Show me the entry points"
+- "What are the hotspots?"
+
+**Documentation**:
+- `SKILL.md` - Main instructions
+- `SYNTAX.md` - MBEL 6.0 syntax reference
+- `QUERY-API.md` - QueryService API documentation
+
+### QueryService API
+
+Programmatic API for navigating MBEL documents:
+
+```typescript
+import { QueryService } from '@mbel/lsp';
+
+const qs = new QueryService();
+const content = readFileSync('memory-bank/systemPatterns.mbel.md', 'utf-8');
+
+// Forward lookup: feature → files
+const parser = qs.getFeatureFiles(content, 'Parser');
+
+// Reverse lookup: file → features
+const features = qs.getFileFeatures(content, 'lexer.ts');
+
+// Get all entry points
+const entries = qs.getEntryPoints(content);
+
+// Get anchors by type
+const hotspots = qs.getAnchorsByType(content, 'hotspot');
+```
+
 ### OpenCode Integration
 
 Full integration with [OpenCode](https://opencode.ai) AI coding assistant:
@@ -107,12 +162,15 @@ mbel-lsp/
 ├── packages/
 │   ├── mbel-core/          # Lexer + Parser
 │   ├── mbel-analyzer/      # Semantic analysis + Diagnostics
-│   ├── mbel-lsp/           # LSP Server
+│   ├── mbel-lsp/           # LSP Server + QueryService
 │   └── vscode-extension/   # VSCode client
+├── .claude/
+│   └── skills/
+│       └── mbel-navigator/ # Claude Code skill for MB navigation
 ├── .opencode/
 │   ├── command/            # Slash commands (/mb, /mb-pending, /mb-recent)
 │   └── tool/               # Custom tools (mbel-query)
-├── memory-bank/            # Example MBEL files
+├── memory-bank/            # MBEL Memory Bank files
 ├── opencode.json           # OpenCode LSP config
 └── package.json            # npm workspaces
 ```
@@ -256,20 +314,21 @@ npm run btlt         # Build + Type-check + Lint + Test
 |---------|-------|----------|
 | mbel-core | 177 | 92% |
 | mbel-analyzer | 90 | 96% |
-| mbel-lsp | 108 | 98% |
-| **Total** | **375** | **91%** |
+| mbel-lsp | 131 | 89% |
+| **Total** | **398** | **91%** |
 
 ## Roadmap
 
 ### MBEL v6 Phase 1 (In Progress)
 - [x] **TDDAB#9: CrossRefLinks** - Bidirectional feature-to-file linking
 - [x] **TDDAB#10: SemanticAnchors** - Semantic code entry points
+- [x] **TDDAB#17: QueryService** - Programmatic API for LLM navigation
 - [ ] **TDDAB#11: DecisionLog** - Architectural decision records
-- [ ] **TDDAB#12: BlueprintSteps** - Implementation step tracking
-- [ ] **TDDAB#13: ContextWindow** - Token budget management
-- [ ] **TDDAB#14: MetricsBlock** - Project metrics tracking
-- [ ] **TDDAB#15: DependencyGraph** - Visual dependency mapping
-- [ ] **TDDAB#16: ChangeHistory** - Temporal change tracking
+- [ ] **TDDAB#12: HeatMap** - File change frequency tracking
+- [ ] **TDDAB#13: IntentMarkers** - Code intent documentation
+- [ ] **TDDAB#14: LLMAPILayer** - LSP semantic methods
+- [ ] **TDDAB#15: QueryEngine** - Semantic navigation infrastructure
+- [ ] **TDDAB#16: ToolIntegrations** - OpenCode + VSCode tools
 
 ### Core Features (Completed)
 - [x] **OpenCode Integration** - Slash commands + Custom tools
@@ -277,6 +336,7 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **Go to Definition** - Navigate to declarations
 - [x] **Find References** - Find all usages
 - [x] **Workspace Symbols** - Cross-file symbol search
+- [x] **Claude Code Skill** - mbel-navigator for MB navigation
 
 ### Future
 - [ ] **Rename Symbol** - Rename sections/attributes across file
