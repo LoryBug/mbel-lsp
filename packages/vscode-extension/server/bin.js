@@ -9158,13 +9158,28 @@ var MbelLexer = class _MbelLexer {
     ["context", "ARROW_CONTEXT"],
     ["status", "ARROW_STATUS"],
     ["revisit", "ARROW_REVISIT"],
-    ["supersededBy", "ARROW_SUPERSEDED_BY"]
+    ["supersededBy", "ARROW_SUPERSEDED_BY"],
+    // TDDAB#12: HeatMap
+    ["dependents", "ARROW_DEPENDENTS"],
+    ["untouched", "ARROW_UNTOUCHED"],
+    ["changes", "ARROW_CHANGES"],
+    ["coverage", "ARROW_COVERAGE"],
+    ["confidence", "ARROW_CONFIDENCE"],
+    ["impact", "ARROW_IMPACT"],
+    ["caution", "ARROW_CAUTION"]
   ]);
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
   static ANCHOR_PREFIXES = /* @__PURE__ */ new Map([
     ["entry", "ANCHOR_ENTRY"],
     ["hotspot", "ANCHOR_HOTSPOT"],
     ["boundary", "ANCHOR_BOUNDARY"]
+  ]);
+  // MBEL v6 Heat prefix mapping (@keyword::) - TDDAB#12
+  static HEAT_PREFIXES = /* @__PURE__ */ new Map([
+    ["critical", "HEAT_CRITICAL"],
+    ["stable", "HEAT_STABLE"],
+    ["volatile", "HEAT_VOLATILE"],
+    ["hot", "HEAT_HOT"]
   ]);
   // Track if last token was an arrow operator (for STRUCT_LIST detection)
   lastTokenWasArrow = false;
@@ -9490,6 +9505,16 @@ var MbelLexer = class _MbelLexer {
         this.lastTokenWasArrow = false;
         return true;
       }
+      const heatType = _MbelLexer.HEAT_PREFIXES.get(keyword);
+      if (heatType) {
+        const value = "@" + keyword + "::";
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken(heatType, value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
     }
     if (keyword === "feature") {
       const value = "@feature";
@@ -9664,6 +9689,9 @@ var MbelParser = class {
     }
     if (token.type === "DECISION_DATE") {
       return this.parseDecisionDeclaration();
+    }
+    if (this.isHeatToken(token.type)) {
+      return this.parseHeatDeclaration();
     }
     if (token.type === "IDENTIFIER" || token.type === "NUMBER") {
       return this.parseExpressionStatement();
@@ -10539,6 +10567,143 @@ var MbelParser = class {
       this.advance();
     }
   }
+  // =========================================
+  // MBEL v6 HeatMap Parsing (TDDAB#12)
+  // =========================================
+  /**
+   * Check if token is a heat prefix (@critical::, @stable::, @volatile::, @hot::)
+   */
+  isHeatToken(type) {
+    return ["HEAT_CRITICAL", "HEAT_STABLE", "HEAT_VOLATILE", "HEAT_HOT"].includes(type);
+  }
+  /**
+   * Get heat type from token type
+   */
+  getHeatType(type) {
+    switch (type) {
+      case "HEAT_CRITICAL":
+        return "critical";
+      case "HEAT_STABLE":
+        return "stable";
+      case "HEAT_VOLATILE":
+        return "volatile";
+      case "HEAT_HOT":
+        return "hot";
+      default:
+        return "critical";
+    }
+  }
+  /**
+   * Check if token is a heat arrow operator (TDDAB#12)
+   */
+  isHeatArrowOperator(type) {
+    return [
+      "ARROW_DEPENDENTS",
+      "ARROW_UNTOUCHED",
+      "ARROW_CHANGES",
+      "ARROW_COVERAGE",
+      "ARROW_CONFIDENCE",
+      "ARROW_IMPACT",
+      "ARROW_CAUTION"
+    ].includes(type);
+  }
+  /**
+   * Parse heat declaration
+   * e.g., @critical::src/core/engine.ts
+   *         ->dependents[ModuleA, ModuleB]
+   *         ->changes{12}
+   *         ->coverage{85%}
+   */
+  parseHeatDeclaration() {
+    const start = this.peek().start;
+    const heatToken = this.advance();
+    const heatType = this.getHeatType(heatToken.type);
+    let path = "";
+    let lastEnd = null;
+    while (!this.isAtEnd() && !this.check("NEWLINE") && !this.isHeatArrowOperator(this.peek().type)) {
+      const token = this.advance();
+      if (lastEnd !== null && token.start.offset > lastEnd.offset) {
+        path += " ";
+      }
+      path += token.value;
+      lastEnd = token.end;
+    }
+    path = path.trim();
+    const isGlob = /[*?]/.test(path);
+    let dependents = null;
+    let untouched = null;
+    let changes = null;
+    let coverage = null;
+    let confidence = null;
+    let impact = null;
+    let caution = null;
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      while (this.check("NEWLINE")) {
+        this.advance();
+      }
+      if (!this.isHeatArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+      const arrowToken = this.advance();
+      switch (arrowToken.type) {
+        case "ARROW_DEPENDENTS":
+          if (this.check("STRUCT_LIST")) {
+            dependents = this.parseStringList();
+          }
+          break;
+        case "ARROW_UNTOUCHED":
+          if (this.check("STRUCT_METADATA")) {
+            untouched = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_CHANGES":
+          if (this.check("STRUCT_METADATA")) {
+            const changesStr = this.parseMetadataContent();
+            changes = parseInt(changesStr, 10);
+            if (isNaN(changes))
+              changes = null;
+          }
+          break;
+        case "ARROW_COVERAGE":
+          if (this.check("STRUCT_METADATA")) {
+            coverage = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_CONFIDENCE":
+          if (this.check("STRUCT_METADATA")) {
+            confidence = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_IMPACT":
+          if (this.check("STRUCT_METADATA")) {
+            impact = this.parseMetadataContent();
+          }
+          break;
+        case "ARROW_CAUTION":
+          if (this.check("STRUCT_METADATA")) {
+            caution = this.parseMetadataContent();
+          }
+          break;
+      }
+    }
+    return {
+      type: "HeatDeclaration",
+      heatType,
+      path,
+      isGlob,
+      dependents,
+      untouched,
+      changes,
+      coverage,
+      confidence,
+      impact,
+      caution,
+      start,
+      end: this.previous()?.end ?? start
+    };
+  }
 };
 
 // ../mbel-analyzer/dist/analyzer.js
@@ -10614,6 +10779,7 @@ var MbelAnalyzer = class {
       this.checkLineRangeFormat(diagnostics);
       this.checkUnknownMarkers(diagnostics);
       this.checkInvalidDecisionStatus(diagnostics);
+      this.checkInvalidHeatChanges(diagnostics);
     }
     return { diagnostics, quickFixes };
   }
@@ -10799,6 +10965,7 @@ var MbelAnalyzer = class {
     diagnostics.push(...this.checkLinkDeclarations(document));
     diagnostics.push(...this.checkAnchorDeclarations(document));
     diagnostics.push(...this.checkDecisionDeclarations(document));
+    diagnostics.push(...this.checkHeatDeclarations(document));
     return diagnostics;
   }
   checkMissingVersion(document) {
@@ -11466,6 +11633,143 @@ var MbelAnalyzer = class {
           severity: "error",
           code: "MBEL-DECISION-010",
           message: `Invalid decision status "${status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: "mbel"
+        });
+      }
+    }
+  }
+  // =========================================
+  // MBEL v6 HeatMap Validation (TDDAB#12)
+  // =========================================
+  /**
+   * Check heat declarations for validation issues
+   */
+  checkHeatDeclarations(document) {
+    const diagnostics = [];
+    const heats = document.statements.filter((stmt) => stmt.type === "HeatDeclaration");
+    const heatPaths = /* @__PURE__ */ new Map();
+    for (const heat of heats) {
+      if (!heat.path || heat.path.trim() === "") {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "error",
+          code: "MBEL-HEAT-001",
+          message: "Heat path cannot be empty",
+          source: "mbel"
+        });
+        continue;
+      }
+      if (/\s/.test(heat.path)) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "error",
+          code: "MBEL-HEAT-002",
+          message: `Heat path contains invalid characters (spaces): "${heat.path}"`,
+          source: "mbel"
+        });
+      }
+      const existingHeat = heatPaths.get(heat.path);
+      if (existingHeat) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-003",
+          message: `Duplicate heat for path "${heat.path}"`,
+          source: "mbel",
+          relatedInfo: [{
+            location: { start: existingHeat.start, end: existingHeat.end },
+            message: "First heat declaration here"
+          }]
+        });
+      } else {
+        heatPaths.set(heat.path, heat);
+      }
+      if (heat.isGlob && /\*{3,}/.test(heat.path)) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "error",
+          code: "MBEL-HEAT-011",
+          message: `Invalid glob pattern in heat path: "${heat.path}"`,
+          source: "mbel"
+        });
+      }
+      if (heat.dependents !== null && heat.dependents.length === 0) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-020",
+          message: "Dependents list is empty",
+          source: "mbel"
+        });
+      }
+      if (heat.coverage === "") {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-040",
+          message: "Heat coverage is empty",
+          source: "mbel"
+        });
+      }
+      if (heat.confidence === "") {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-051",
+          message: "Heat confidence is empty",
+          source: "mbel"
+        });
+      }
+      if (heat.impact === "") {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-060",
+          message: "Heat impact is empty",
+          source: "mbel"
+        });
+      }
+      if (heat.caution === "") {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: "warning",
+          code: "MBEL-HEAT-070",
+          message: "Heat caution is empty",
+          source: "mbel"
+        });
+      }
+    }
+    return diagnostics;
+  }
+  /**
+   * Check for invalid heat changes values in source text
+   * (Non-numeric changes need source-level detection)
+   */
+  checkInvalidHeatChanges(diagnostics) {
+    const changesPattern = /->changes\{([^}]*)\}/g;
+    let match;
+    while ((match = changesPattern.exec(this.sourceText)) !== null) {
+      const value = match[1]?.trim();
+      if (value && isNaN(parseInt(value, 10))) {
+        const offset = match.index;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === "\n") {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + match[0].length, offset: offset + match[0].length }
+          },
+          severity: "error",
+          code: "MBEL-HEAT-030",
+          message: `Invalid changes value "${value}". Expected a numeric value`,
           source: "mbel"
         });
       }

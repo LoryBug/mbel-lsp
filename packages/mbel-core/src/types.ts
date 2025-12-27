@@ -26,7 +26,7 @@ export type LogicOperator = '&' | '||' | '¬';
 // Meta operators [2]
 export type MetaOperator = '©' | '§';
 
-// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1] + Decisions [7]
+// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1] + Decisions [7] + HeatMap [7]
 export type ArrowOperator =
   | '->files'
   | '->tests'
@@ -45,13 +45,27 @@ export type ArrowOperator =
   | '->context'        // TDDAB#11: DecisionLog
   | '->status'         // TDDAB#11: DecisionLog
   | '->revisit'        // TDDAB#11: DecisionLog
-  | '->supersededBy';  // TDDAB#11: DecisionLog
+  | '->supersededBy'   // TDDAB#11: DecisionLog
+  | '->dependents'     // TDDAB#12: HeatMap
+  | '->untouched'      // TDDAB#12: HeatMap
+  | '->changes'        // TDDAB#12: HeatMap
+  | '->coverage'       // TDDAB#12: HeatMap
+  | '->confidence'     // TDDAB#12: HeatMap
+  | '->impact'         // TDDAB#12: HeatMap
+  | '->caution';       // TDDAB#12: HeatMap
 
 // MBEL v6 Anchor prefixes for SemanticAnchors [3]
 export type AnchorPrefix =
   | '@entry::'
   | '@hotspot::'
   | '@boundary::';
+
+// MBEL v6 Heat prefixes for HeatMap [4] (TDDAB#12)
+export type HeatPrefix =
+  | '@critical::'
+  | '@stable::'
+  | '@volatile::'
+  | '@hot::';
 
 export type MbelOperator =
   | TemporalOperator
@@ -62,7 +76,8 @@ export type MbelOperator =
   | LogicOperator
   | MetaOperator
   | ArrowOperator
-  | AnchorPrefix;
+  | AnchorPrefix
+  | HeatPrefix;
 
 export type TokenType =
   // Operators
@@ -113,6 +128,14 @@ export type TokenType =
   | 'ARROW_STATUS'         // ->status
   | 'ARROW_REVISIT'        // ->revisit
   | 'ARROW_SUPERSEDED_BY'  // ->supersededBy
+  // MBEL v6 Heat Arrow Operators (TDDAB#12)
+  | 'ARROW_DEPENDENTS'     // ->dependents
+  | 'ARROW_UNTOUCHED'      // ->untouched
+  | 'ARROW_CHANGES'        // ->changes
+  | 'ARROW_COVERAGE'       // ->coverage
+  | 'ARROW_CONFIDENCE'     // ->confidence
+  | 'ARROW_IMPACT'         // ->impact
+  | 'ARROW_CAUTION'        // ->caution
   // MBEL v6 Decision Date Prefix (TDDAB#11)
   | 'DECISION_DATE'        // @YYYY-MM-DD::
   // MBEL v6 Link Type Markers
@@ -122,6 +145,11 @@ export type TokenType =
   | 'ANCHOR_ENTRY'         // @entry::
   | 'ANCHOR_HOTSPOT'       // @hotspot::
   | 'ANCHOR_BOUNDARY'      // @boundary::
+  // MBEL v6 Heat Prefixes (TDDAB#12)
+  | 'HEAT_CRITICAL'        // @critical::
+  | 'HEAT_STABLE'          // @stable::
+  | 'HEAT_VOLATILE'        // @volatile::
+  | 'HEAT_HOT'             // @hot::
   // MBEL v6 Structure
   | 'STRUCT_LIST'          // [...] for lists (different from STRUCT_SECTION)
   // Literals and identifiers

@@ -33,6 +33,9 @@ import type {
   // MBEL v6 DecisionLog (TDDAB#11)
   DecisionDeclaration,
   DecisionStatus,
+  // MBEL v6 HeatMap (TDDAB#12)
+  HeatDeclaration,
+  HeatType,
 } from './ast.js';
 
 /**
@@ -136,6 +139,11 @@ export class MbelParser {
     // MBEL v6: Decision declarations (@YYYY-MM-DD::Name) - TDDAB#11
     if (token.type === 'DECISION_DATE') {
       return this.parseDecisionDeclaration();
+    }
+
+    // MBEL v6: Heat declarations (@critical::, @stable::, @volatile::, @hot::) - TDDAB#12
+    if (this.isHeatToken(token.type)) {
+      return this.parseHeatDeclaration();
     }
 
     // Other expressions
@@ -1189,5 +1197,161 @@ export class MbelParser {
       }
       this.advance();
     }
+  }
+
+  // =========================================
+  // MBEL v6 HeatMap Parsing (TDDAB#12)
+  // =========================================
+
+  /**
+   * Check if token is a heat prefix (@critical::, @stable::, @volatile::, @hot::)
+   */
+  private isHeatToken(type: TokenType): boolean {
+    return ['HEAT_CRITICAL', 'HEAT_STABLE', 'HEAT_VOLATILE', 'HEAT_HOT'].includes(type);
+  }
+
+  /**
+   * Get heat type from token type
+   */
+  private getHeatType(type: TokenType): HeatType {
+    switch (type) {
+      case 'HEAT_CRITICAL': return 'critical';
+      case 'HEAT_STABLE': return 'stable';
+      case 'HEAT_VOLATILE': return 'volatile';
+      case 'HEAT_HOT': return 'hot';
+      default: return 'critical';
+    }
+  }
+
+  /**
+   * Check if token is a heat arrow operator (TDDAB#12)
+   */
+  private isHeatArrowOperator(type: TokenType): boolean {
+    return [
+      'ARROW_DEPENDENTS',
+      'ARROW_UNTOUCHED',
+      'ARROW_CHANGES',
+      'ARROW_COVERAGE',
+      'ARROW_CONFIDENCE',
+      'ARROW_IMPACT',
+      'ARROW_CAUTION',
+    ].includes(type);
+  }
+
+  /**
+   * Parse heat declaration
+   * e.g., @critical::src/core/engine.ts
+   *         ->dependents[ModuleA, ModuleB]
+   *         ->changes{12}
+   *         ->coverage{85%}
+   */
+  private parseHeatDeclaration(): HeatDeclaration {
+    const start = this.peek().start;
+    const heatToken = this.advance(); // HEAT_CRITICAL | HEAT_STABLE | HEAT_VOLATILE | HEAT_HOT
+    const heatType = this.getHeatType(heatToken.type);
+
+    // Parse path (everything until newline, heat arrow, or end)
+    let path = '';
+    let lastEnd: Position | null = null;
+    while (!this.isAtEnd() && !this.check('NEWLINE') && !this.isHeatArrowOperator(this.peek().type)) {
+      const token = this.advance();
+      // Check if there was whitespace between tokens (offset gap)
+      if (lastEnd !== null && token.start.offset > lastEnd.offset) {
+        path += ' ';
+      }
+      path += token.value;
+      lastEnd = token.end;
+    }
+    path = path.trim();
+
+    // Check if path is a glob pattern
+    const isGlob = /[*?]/.test(path);
+
+    // Initialize all clause values
+    let dependents: string[] | null = null;
+    let untouched: string | null = null;
+    let changes: number | null = null;
+    let coverage: string | null = null;
+    let confidence: string | null = null;
+    let impact: string | null = null;
+    let caution: string | null = null;
+
+    // Parse arrow clauses (may span multiple lines)
+    let hasMoreArrows = true;
+    while (hasMoreArrows) {
+      // Skip newlines between arrow clauses
+      while (this.check('NEWLINE')) {
+        this.advance();
+      }
+
+      if (!this.isHeatArrowOperator(this.peek().type)) {
+        hasMoreArrows = false;
+        continue;
+      }
+
+      const arrowToken = this.advance();
+
+      switch (arrowToken.type) {
+        case 'ARROW_DEPENDENTS':
+          if (this.check('STRUCT_LIST')) {
+            dependents = this.parseStringList();
+          }
+          break;
+
+        case 'ARROW_UNTOUCHED':
+          if (this.check('STRUCT_METADATA')) {
+            untouched = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_CHANGES':
+          if (this.check('STRUCT_METADATA')) {
+            const changesStr = this.parseMetadataContent();
+            changes = parseInt(changesStr, 10);
+            if (isNaN(changes)) changes = null;
+          }
+          break;
+
+        case 'ARROW_COVERAGE':
+          if (this.check('STRUCT_METADATA')) {
+            coverage = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_CONFIDENCE':
+          if (this.check('STRUCT_METADATA')) {
+            confidence = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_IMPACT':
+          if (this.check('STRUCT_METADATA')) {
+            impact = this.parseMetadataContent();
+          }
+          break;
+
+        case 'ARROW_CAUTION':
+          if (this.check('STRUCT_METADATA')) {
+            caution = this.parseMetadataContent();
+          }
+          break;
+      }
+    }
+
+    return {
+      type: 'HeatDeclaration',
+      heatType,
+      path,
+      isGlob,
+      dependents,
+      untouched,
+      changes,
+      coverage,
+      confidence,
+      impact,
+      caution,
+      start,
+      end: this.previous()?.end ?? start,
+    };
   }
 }

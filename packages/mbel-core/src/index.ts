@@ -26,6 +26,7 @@ export type {
   QuantificationOperator,
   LogicOperator,
   MetaOperator,
+  HeatPrefix,  // TDDAB#12: HeatMap
 } from './types.js';
 
 // AST Types
@@ -66,4 +67,7 @@ export type {
   // MBEL v6 DecisionLog (TDDAB#11)
   DecisionDeclaration,
   DecisionStatus,
+  // MBEL v6 HeatMap (TDDAB#12)
+  HeatDeclaration,
+  HeatType,
 } from './ast.js';

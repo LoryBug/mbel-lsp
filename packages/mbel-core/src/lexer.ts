@@ -35,6 +35,14 @@ export class MbelLexer {
     ['status', 'ARROW_STATUS'],
     ['revisit', 'ARROW_REVISIT'],
     ['supersededBy', 'ARROW_SUPERSEDED_BY'],
+    // TDDAB#12: HeatMap
+    ['dependents', 'ARROW_DEPENDENTS'],
+    ['untouched', 'ARROW_UNTOUCHED'],
+    ['changes', 'ARROW_CHANGES'],
+    ['coverage', 'ARROW_COVERAGE'],
+    ['confidence', 'ARROW_CONFIDENCE'],
+    ['impact', 'ARROW_IMPACT'],
+    ['caution', 'ARROW_CAUTION'],
   ]);
 
   // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
@@ -42,6 +50,14 @@ export class MbelLexer {
     ['entry', 'ANCHOR_ENTRY'],
     ['hotspot', 'ANCHOR_HOTSPOT'],
     ['boundary', 'ANCHOR_BOUNDARY'],
+  ]);
+
+  // MBEL v6 Heat prefix mapping (@keyword::) - TDDAB#12
+  private static readonly HEAT_PREFIXES: ReadonlyMap<string, TokenType> = new Map([
+    ['critical', 'HEAT_CRITICAL'],
+    ['stable', 'HEAT_STABLE'],
+    ['volatile', 'HEAT_VOLATILE'],
+    ['hot', 'HEAT_HOT'],
   ]);
 
   // Track if last token was an arrow operator (for STRUCT_LIST detection)
@@ -445,6 +461,18 @@ export class MbelLexer {
           this.advance();
         }
         this.addToken(anchorType, value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
+
+      // TDDAB#12: Check for heat prefixes (@keyword::)
+      const heatType = MbelLexer.HEAT_PREFIXES.get(keyword);
+      if (heatType) {
+        const value = '@' + keyword + '::';
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken(heatType, value, start);
         this.lastTokenWasArrow = false;
         return true;
       }

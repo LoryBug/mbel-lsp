@@ -11,6 +11,7 @@
 >completed::TDDAB#18::QueryAPI-Anchors{19tests,417total,91.7%coverage}✓
 >completed::TDDAB#19::QueryAPI-Dependencies{17tests,434total,92.22%coverage}✓
 >completed::TDDAB#11::DecisionLog{8tokens,60tests,494total,92.67%coverage}✓
+>completed::TDDAB#12::HeatMap{11tokens,75tests,569total,93.11%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -128,7 +129,8 @@
 ✓TDDAB#11::DecisionLog{priority:4,60tests,92.67%coverage}
   ↳depends::TDDAB#9✓,#10✓
   ↳completed::2024-12-27
-?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
+✓TDDAB#12::HeatMap{priority:5,75tests,569total,93.11%coverage}
+?TDDAB#13::IntentMarkers{priority:6,estimated-duration:2-3days}
 ?TDDAB#20::GitIntegration{priority:P3,estimated-duration:3days}
   ↳methods::calculateHotspots,suggestAnchorUpdates
 ?TDDAB#21::NaturalLanguageQuery{priority:P3,estimated-duration:XL}
@@ -138,11 +140,11 @@
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::TotalTests-V6-So-Far::#494{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17+TDDAB#11:60}
+@note::TotalTests-V6-So-Far::#569{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17+TDDAB#11:60+TDDAB#12:75}
 @note::TotalTests-Projected::#429{V5:259+V6:170}
-@note::Coverage-Current::%92.67{TDDAB#11-full}
+@note::Coverage-Current::%93.11{TDDAB#12-full}
 @note::Coverage-Target-V6::%90{exceeded}
-@note::NewTokens::#48{sections:5,operators:32,prefixes:7,markers:3,decision:1}
-@note::NewASTNodes::#9{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,IntentNode,...}
+@note::NewTokens::#59{sections:5,operators:39,prefixes:11,markers:3,decision:1}
+@note::NewASTNodes::#11{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,HeatDeclaration,HeatType,IntentNode,...}
 @note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}
 @note::PlanReference::tasks/MBEL-6.0-TDDAB-PLAN.md

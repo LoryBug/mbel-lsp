@@ -19,6 +19,8 @@ import type {
   AnchorDeclaration,
   // MBEL v6 DecisionLog (TDDAB#11)
   DecisionDeclaration,
+  // MBEL v6 HeatMap (TDDAB#12)
+  HeatDeclaration,
 } from '@mbel/core';
 import type { AnalysisResult, AnalyzerOptions, Diagnostic, DiagnosticCode, QuickFix, TextEdit, RelatedInformation } from './types.js';
 
@@ -127,6 +129,9 @@ export class MbelAnalyzer {
 
       // MBEL v6: Additional source-based decision validation (TDDAB#11)
       this.checkInvalidDecisionStatus(diagnostics);
+
+      // MBEL v6: Additional source-based heat validation (TDDAB#12)
+      this.checkInvalidHeatChanges(diagnostics);
     }
 
     return { diagnostics, quickFixes };
@@ -366,6 +371,9 @@ export class MbelAnalyzer {
 
     // MBEL v6: Check decision declarations (TDDAB#11)
     diagnostics.push(...this.checkDecisionDeclarations(document));
+
+    // MBEL v6: Check heat declarations (TDDAB#12)
+    diagnostics.push(...this.checkHeatDeclarations(document));
 
     return diagnostics;
   }
@@ -1188,6 +1196,172 @@ export class MbelAnalyzer {
           severity: 'error',
           code: 'MBEL-DECISION-010',
           message: `Invalid decision status "${status}". Valid values: ACTIVE, SUPERSEDED, RECONSIDERING`,
+          source: 'mbel',
+        });
+      }
+    }
+  }
+
+  // =========================================
+  // MBEL v6 HeatMap Validation (TDDAB#12)
+  // =========================================
+
+  /**
+   * Check heat declarations for validation issues
+   */
+  private checkHeatDeclarations(document: Document): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Filter for HeatDeclaration nodes
+    const heats = document.statements.filter(
+      (stmt): stmt is HeatDeclaration => stmt.type === 'HeatDeclaration'
+    );
+
+    // Track heat paths for duplicate detection
+    const heatPaths = new Map<string, HeatDeclaration>();
+
+    for (const heat of heats) {
+      // MBEL-HEAT-001: Empty heat path
+      if (!heat.path || heat.path.trim() === '') {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'error',
+          code: 'MBEL-HEAT-001',
+          message: 'Heat path cannot be empty',
+          source: 'mbel',
+        });
+        continue; // Skip further validation for invalid heat
+      }
+
+      // MBEL-HEAT-002: Invalid path characters (spaces)
+      if (/\s/.test(heat.path)) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'error',
+          code: 'MBEL-HEAT-002',
+          message: `Heat path contains invalid characters (spaces): "${heat.path}"`,
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-003: Duplicate heat for same path
+      const existingHeat = heatPaths.get(heat.path);
+      if (existingHeat) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-003',
+          message: `Duplicate heat for path "${heat.path}"`,
+          source: 'mbel',
+          relatedInfo: [{
+            location: { start: existingHeat.start, end: existingHeat.end },
+            message: 'First heat declaration here',
+          }],
+        });
+      } else {
+        heatPaths.set(heat.path, heat);
+      }
+
+      // MBEL-HEAT-011: Invalid glob pattern (like ***)
+      if (heat.isGlob && /\*{3,}/.test(heat.path)) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'error',
+          code: 'MBEL-HEAT-011',
+          message: `Invalid glob pattern in heat path: "${heat.path}"`,
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-020: Empty dependents list
+      if (heat.dependents !== null && heat.dependents.length === 0) {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-020',
+          message: 'Dependents list is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-040: Empty coverage
+      if (heat.coverage === '') {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-040',
+          message: 'Heat coverage is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-051: Empty confidence
+      if (heat.confidence === '') {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-051',
+          message: 'Heat confidence is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-060: Empty impact
+      if (heat.impact === '') {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-060',
+          message: 'Heat impact is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-HEAT-070: Empty caution
+      if (heat.caution === '') {
+        diagnostics.push({
+          range: { start: heat.start, end: heat.end },
+          severity: 'warning',
+          code: 'MBEL-HEAT-070',
+          message: 'Heat caution is empty',
+          source: 'mbel',
+        });
+      }
+    }
+
+    return diagnostics;
+  }
+
+  /**
+   * Check for invalid heat changes values in source text
+   * (Non-numeric changes need source-level detection)
+   */
+  private checkInvalidHeatChanges(diagnostics: Diagnostic[]): void {
+    const changesPattern = /->changes\{([^}]*)\}/g;
+    let match;
+    while ((match = changesPattern.exec(this.sourceText)) !== null) {
+      const value = match[1]?.trim();
+      if (value && isNaN(parseInt(value, 10))) {
+        const offset = match.index;
+        let line = 1;
+        let column = 1;
+        for (let i = 0; i < offset; i++) {
+          if (this.sourceText[i] === '\n') {
+            line++;
+            column = 1;
+          } else {
+            column++;
+          }
+        }
+
+        diagnostics.push({
+          range: {
+            start: { line, column, offset },
+            end: { line, column: column + match[0].length, offset: offset + match[0].length },
+          },
+          severity: 'error',
+          code: 'MBEL-HEAT-030',
+          message: `Invalid changes value "${value}". Expected a numeric value`,
           source: 'mbel',
         });
       }

@@ -110,15 +110,25 @@ mbel-lsp/
   ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
   ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
 
-?TDDAB#11::DecisionLog{scope:§decisions-extended,tokens:~8,tests:20,priority:4}
+✓TDDAB#11::DecisionLog{scope:§decisions-extended,tokens:8,tests:60,priority:4}
   ↳new-operators::{->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy}
-  ↳new-tokens::{@date::}
-  ↳files-to-create::{decisions-rules.ts}
-?TDDAB#12::HeatMap{scope:§heat,tokens:~10,tests:18,priority:5}
+  ↳new-tokens::{DECISION_DATE}
+  ↳ast-nodes::{DecisionDeclaration{date,name,alternatives,reason,tradeoff,context,status,supersededBy,revisit},DecisionStatus}
+  ↳analyzer-codes::9{MBEL-DECISION-001→040}
+  ↳test-files::{lexer-decisions.test.ts,parser-decisions.test.ts,decisions-validation.test.ts}
+  ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
+  ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
+
+✓TDDAB#12::HeatMap{scope:§heat,tokens:11,tests:75,priority:5}
   ↳new-operators::{->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution}
   ↳new-tokens::{@critical::,@stable::,@volatile::,@hot::}
-  ↳files-to-create::{heat-rules.ts}
-?TDDAB#13::IntentMarkers{scope:§intents,tokens:~8,tests:16,priority:6}
+  ↳ast-nodes::{HeatDeclaration{date,name,components,analysis,prefixes},HeatType}
+  ↳analyzer-codes::70{MBEL-HEAT-001→070}
+  ↳test-files::{lexer-heat.test.ts,parser-heat.test.ts,heat-validation.test.ts}
+  ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
+  ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
+
+?TDDAB#13::IntentMarkers{scope:§intents,tokens:~8,tests:~16,priority:6}
   ↳new-operators::{->does,->doesNot,->contract,->singleResponsibility,->antiPattern,->extends}
   ↳new-tokens::{@Module::Component}
   ↳files-to-create::{intents-rules.ts}

@@ -28,8 +28,9 @@ export type Statement =
   | SourceStatement
   | ExpressionStatement
   | LinkDeclaration
-  | AnchorDeclaration   // TDDAB#10: SemanticAnchors
-  | DecisionDeclaration;  // TDDAB#11: DecisionLog
+  | AnchorDeclaration     // TDDAB#10: SemanticAnchors
+  | DecisionDeclaration   // TDDAB#11: DecisionLog
+  | HeatDeclaration;      // TDDAB#12: HeatMap
 
 // [SectionName] - Section declaration
 export interface SectionDeclaration extends AstNode {
@@ -299,4 +300,39 @@ export interface DecisionDeclaration extends AstNode {
   readonly status: DecisionStatus | null;
   readonly supersededBy: string | null;
   readonly revisit: string | null;
+}
+
+// =========================================
+// MBEL v6 HeatMap AST Nodes (TDDAB#12)
+// =========================================
+
+/**
+ * Heat type marker for volatility analysis
+ * @critical:: for critical stability paths
+ * @stable:: for rarely modified files
+ * @volatile:: for frequently changed files
+ * @hot:: for recent high-activity areas
+ */
+export type HeatType = 'critical' | 'stable' | 'volatile' | 'hot';
+
+/**
+ * Heat declaration - node for §heat section
+ * e.g., @critical::src/core/engine.ts
+ *         ->dependents[ModuleA, ModuleB]
+ *         ->changes{12}
+ *         ->coverage{85%}
+ *         ->confidence{high}
+ */
+export interface HeatDeclaration extends AstNode {
+  readonly type: 'HeatDeclaration';
+  readonly heatType: HeatType;
+  readonly path: string;
+  readonly isGlob: boolean;
+  readonly dependents: readonly string[] | null;      // files that depend on this
+  readonly untouched: string | null;                  // duration since last change (e.g., "6months")
+  readonly changes: number | null;                    // number of changes in period
+  readonly coverage: string | null;                   // test coverage percentage
+  readonly confidence: string | null;                 // confidence level (high/medium/low)
+  readonly impact: string | null;                     // impact level if changed
+  readonly caution: string | null;                    // warning/caution message
 }

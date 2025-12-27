@@ -158,12 +158,20 @@
    └─ Analyzer::9codes{MBEL-DECISION-001→040}
 
 [TDDAB#12]
-?HeatMap{§heat-section}
-├─ Status::Pending
-├─ Tests::~18{lexer,parser,analyzer}
-├─ Tokens::+10{->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution,@critical::,@stable::,@volatile::,@hot::}
-├─ Priority::5{Medium}
-└─ Files::heat-rules.ts
+✓HeatMap{§heat-section}
+├─ Status::Complete✓
+├─ RED::75tests{lexer:27,parser:25,analyzer:23}✓
+├─ GREEN::Implementation{11tokens,2AST-nodes,70diagnostic-codes,7files-modified,3tests-created}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{569/569}+Coverage✓{93.11%}
+├─ Tokens::+11{7arrows:->dependents,->untouched,->changes,->coverage,->confidence,->impact,->caution;4prefixes:@critical::,@stable::,@volatile::,@hot::}
+├─ AST::HeatDeclaration,HeatType
+├─ Analyzer::70codes{MBEL-HEAT-001→070}
+├─ Priority::5{Complete}
+└─ Features::
+   ├─ Lexer::7arrows{dependents,untouched,changes,coverage,confidence,impact,caution}+4prefixes{critical,stable,volatile,hot}
+   ├─ AST::HeatDeclaration{date,name,components,analysis,prefixes}+HeatType{enum}
+   ├─ Parser::parseHeatDeclaration+isHeatArrowOperator
+   └─ Analyzer::comprehensive-heat-validation+70diagnostic-codes
 
 [TDDAB#13]
 ?IntentMarkers{§intents-section}
@@ -201,8 +209,8 @@
 @metrics::
 - TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
 - TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
-- TotalTests-Running::#434{V5:259+Phase1:79+QueryService:23+QueryAnchors:19+QueryDeps:17}
-- TotalTests-V6::+45{decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
+- TotalTests-Running::#569{V5:259+Phase1:79+QueryService:23+QueryAnchors:19+QueryDeps:17+DecisionLog:60+HeatMap:75}
+- TotalTests-V6::+45{intents:16,api:25,query:15,integration:10}
 - TotalTests-Projected::429{V5:259+V6:170}
 - Coverage-V5::%87{overall}
 - Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
@@ -210,9 +218,10 @@
 - Coverage-TDDAB#18::%91.7{overall},96.94%{query-service}
 - Coverage-TDDAB#19::%92.22{overall},97.46%{query-service}
 - Coverage-TDDAB#11::%92.67{overall},96.16%{analyzer}
+- Coverage-TDDAB#12::%93.11{overall},96.85%{analyzer}
 - Coverage-Target::%90{exceeded}
-- NewTokens::~48{sections:5,operators:32,prefixes:7,markers:3,decisions:1}
-- NewASTNodes::~9{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,IntentNode,QueryNode,...}
+- NewTokens::~59{sections:5,operators:39,prefixes:11,markers:3,decisions:1}
+- NewASTNodes::~11{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,HeatDeclaration,HeatType,IntentNode,QueryNode,...}
 
 [GIT_HISTORY_V5]
 @commits::

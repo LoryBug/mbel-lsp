@@ -71,7 +71,19 @@ export type DiagnosticCode =
   | 'MBEL-DECISION-030'       // Decision without reason (hint)
   | 'MBEL-DECISION-031'       // Empty reason
   | 'MBEL-DECISION-032'       // Empty tradeoff
-  | 'MBEL-DECISION-040';      // Context path with spaces
+  | 'MBEL-DECISION-040'       // Context path with spaces
+  // MBEL v6 HeatMap validation (TDDAB#12)
+  | 'MBEL-HEAT-001'           // Empty heat path
+  | 'MBEL-HEAT-002'           // Path with invalid characters (spaces)
+  | 'MBEL-HEAT-003'           // Duplicate heat for same path
+  | 'MBEL-HEAT-011'           // Invalid glob pattern (like ***)
+  | 'MBEL-HEAT-020'           // Empty dependents list
+  | 'MBEL-HEAT-030'           // Non-numeric changes value
+  | 'MBEL-HEAT-040'           // Empty coverage
+  | 'MBEL-HEAT-050'           // Invalid confidence level
+  | 'MBEL-HEAT-051'           // Empty confidence
+  | 'MBEL-HEAT-060'           // Empty impact
+  | 'MBEL-HEAT-070';          // Empty caution
 
 /**
  * Range in source document
