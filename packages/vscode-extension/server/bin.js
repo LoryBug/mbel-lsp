@@ -11524,6 +11524,118 @@ var QueryService = class {
     };
   }
   // =========================================
+  // TDDAB#19: QueryAPI-Dependencies
+  // =========================================
+  /**
+   * Get dependency information for a feature
+   * @param content - MBEL document content
+   * @param featureName - Name of the feature to analyze
+   * @returns Feature dependencies or null if not found
+   */
+  getFeatureDependencies(content, featureName) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return null;
+    const links = this.getLinks(document);
+    const targetLink = links.find((l) => l.name === featureName);
+    if (!targetLink)
+      return null;
+    const depMap = /* @__PURE__ */ new Map();
+    for (const link of links) {
+      depMap.set(link.name, link.depends ?? []);
+    }
+    const directDependencies = targetLink.depends ?? [];
+    const transitiveDeps = this.calculateTransitiveDependencies(
+      depMap,
+      directDependencies,
+      new Set(directDependencies)
+    );
+    const dependents = this.findFeatureDependents(links, featureName);
+    const related = targetLink.related ?? [];
+    const { depth, hasCircular, circularPath } = this.calculateDepthAndCircular(
+      depMap,
+      featureName
+    );
+    return {
+      name: featureName,
+      type: targetLink.linkType,
+      directDependencies,
+      transitiveDependencies: transitiveDeps,
+      dependents,
+      related,
+      depth,
+      hasCircularDependency: hasCircular,
+      circularPath
+    };
+  }
+  /**
+   * Get blueprint progress for all tasks
+   * @param content - MBEL document content
+   * @returns Blueprint progress with task details and summary
+   */
+  getBlueprintProgress(content) {
+    const document = this.parseDocument(content);
+    const emptyResult = {
+      tasks: [],
+      summary: {
+        totalTasks: 0,
+        totalFilesToCreate: 0,
+        totalFilesToModify: 0,
+        totalSteps: 0
+      }
+    };
+    if (!document)
+      return emptyResult;
+    const links = this.getLinks(document);
+    const tasks = links.filter((l) => l.linkType === "task");
+    if (tasks.length === 0)
+      return emptyResult;
+    const taskProgress = [];
+    let totalFilesToCreate = 0;
+    let totalFilesToModify = 0;
+    let totalSteps = 0;
+    for (const task of tasks) {
+      const filesToCreate = [];
+      const filesToModify = [];
+      for (const file of task.files ?? []) {
+        if (file.marker === "TO-CREATE") {
+          filesToCreate.push(file.path);
+          totalFilesToCreate++;
+        } else if (file.marker === "TO-MODIFY") {
+          filesToModify.push(file.path);
+          totalFilesToModify++;
+        }
+      }
+      for (const test of task.tests ?? []) {
+        if (test.marker === "TO-CREATE") {
+          filesToCreate.push(test.path);
+          totalFilesToCreate++;
+        } else if (test.marker === "TO-MODIFY") {
+          filesToModify.push(test.path);
+          totalFilesToModify++;
+        }
+      }
+      const blueprintSteps = task.blueprint ?? [];
+      totalSteps += blueprintSteps.length;
+      taskProgress.push({
+        name: task.name,
+        filesToCreate,
+        filesToModify,
+        blueprintSteps,
+        depends: task.depends ?? []
+      });
+    }
+    return {
+      tasks: taskProgress,
+      summary: {
+        totalTasks: tasks.length,
+        totalFilesToCreate,
+        totalFilesToModify,
+        totalSteps
+      }
+    };
+  }
+  // =========================================
   // Private Helper Methods
   // =========================================
   /**
@@ -11741,6 +11853,92 @@ var QueryService = class {
       return "./";
     }
     return parts.slice(0, -1).join("/") + "/";
+  }
+  // =========================================
+  // TDDAB#19 Private Helpers
+  // =========================================
+  /**
+   * Calculate transitive dependencies (dependencies of dependencies)
+   */
+  calculateTransitiveDependencies(depMap, directDeps, visited) {
+    const transitive = [];
+    for (const dep of directDeps) {
+      const subDeps = depMap.get(dep) ?? [];
+      for (const subDep of subDeps) {
+        if (!visited.has(subDep)) {
+          visited.add(subDep);
+          transitive.push(subDep);
+          const deeper = this.calculateTransitiveDependencies(
+            depMap,
+            [subDep],
+            visited
+          );
+          transitive.push(...deeper);
+        }
+      }
+    }
+    return transitive;
+  }
+  /**
+   * Find features that depend on a given feature
+   */
+  findFeatureDependents(links, featureName) {
+    const dependents = [];
+    for (const link of links) {
+      if (link.name === featureName)
+        continue;
+      const deps = link.depends ?? [];
+      if (deps.includes(featureName)) {
+        dependents.push(link.name);
+      }
+    }
+    return dependents;
+  }
+  /**
+   * Calculate depth in dependency tree and detect circular dependencies
+   */
+  calculateDepthAndCircular(depMap, featureName) {
+    const visited = /* @__PURE__ */ new Set();
+    const path = [];
+    const calculateDepth = (name, currentPath) => {
+      if (currentPath.includes(name)) {
+        return -1;
+      }
+      if (visited.has(name)) {
+        return 0;
+      }
+      visited.add(name);
+      currentPath.push(name);
+      const deps = depMap.get(name) ?? [];
+      if (deps.length === 0) {
+        currentPath.pop();
+        return 0;
+      }
+      let maxDepth = 0;
+      for (const dep of deps) {
+        const depDepth = calculateDepth(dep, currentPath);
+        if (depDepth === -1) {
+          path.push(...currentPath);
+          return -1;
+        }
+        maxDepth = Math.max(maxDepth, depDepth + 1);
+      }
+      currentPath.pop();
+      return maxDepth;
+    };
+    const depth = calculateDepth(featureName, []);
+    if (depth === -1) {
+      return {
+        depth: 0,
+        hasCircular: true,
+        circularPath: path
+      };
+    }
+    return {
+      depth,
+      hasCircular: false,
+      circularPath: []
+    };
   }
 };
 

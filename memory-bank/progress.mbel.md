@@ -132,6 +132,19 @@
    ├─ Types::ImpactAnalysis,OrphanFilesResult,OrphanFilesOptions,OrphanFilesStats
    └─ Capabilities::transitive-impact,hotspot-detection,risk-levels,suggestions,exclude-patterns
 
+[TDDAB#19]
+✓QueryAPI-Dependencies{dependency-graph+blueprint-tracking}
+├─ Status::Complete✓
+├─ RED::17tests{getFeatureDependencies:9,getBlueprintProgress:8}✓
+├─ GREEN::Implementation{2methods,4types,3helpers}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{434/434}+Coverage✓{92.22%}
+├─ QueryService::97.46%{excellent}
+├─ Commit::Ready
+└─ Features::
+   ├─ Methods::getFeatureDependencies{direct,transitive,dependents,depth,circular},getBlueprintProgress{tasks,files,steps,summary}
+   ├─ Types::FeatureDependencies,BlueprintProgress,TaskProgress,BlueprintSummary
+   └─ Capabilities::circular-detection,depth-calculation,transitive-deps,TO-CREATE/TO-MODIFY-tracking
+
 [TDDAB#11]
 ?DecisionLog{§decisions-extended}
 ├─ Status::Pending
@@ -184,13 +197,14 @@
 @metrics::
 - TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
 - TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
-- TotalTests-Running::#417{V5:259+Phase1:79+QueryService:23+QueryAnchors:19}
+- TotalTests-Running::#434{V5:259+Phase1:79+QueryService:23+QueryAnchors:19+QueryDeps:17}
 - TotalTests-V6::+45{decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
 - TotalTests-Projected::429{V5:259+V6:170}
 - Coverage-V5::%87{overall}
 - Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
 - Coverage-TDDAB#17::%91.27{overall},95.05%{query-service}
 - Coverage-TDDAB#18::%91.7{overall},96.94%{query-service}
+- Coverage-TDDAB#19::%92.22{overall},97.46%{query-service}
 - Coverage-Target::%90{exceeded}
 - NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
 - NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}

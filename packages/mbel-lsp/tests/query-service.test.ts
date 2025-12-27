@@ -554,4 +554,218 @@ describe('QueryService (TDDAB#17)', () => {
       expect(result!.affectedFeatures).toContain('Test');
     });
   });
+
+  // ===========================================
+  // TDDAB#19: QueryAPI-Dependencies
+  // ===========================================
+
+  describe('getFeatureDependencies - Dependency Graph (TDDAB#19)', () => {
+    const depsContent = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@feature{Core}
+  ->files[src/core.ts]
+  ->tests[tests/core.test.ts]
+
+@feature{Parser}
+  ->files[src/parser.ts]
+  ->tests[tests/parser.test.ts]
+  ->depends[Core]
+
+@feature{Analyzer}
+  ->files[src/analyzer.ts]
+  ->tests[tests/analyzer.test.ts]
+  ->depends[Parser, Core]
+
+@feature{LSP}
+  ->files[src/lsp.ts]
+  ->depends[Parser, Analyzer]
+
+@task{RefactorCore}
+  ->files[src/core.ts{TO-MODIFY}]
+  ->depends[Core]
+  ->related[Parser, Analyzer]
+`;
+
+    it('should return direct dependencies of a feature', () => {
+      const result = queryService.getFeatureDependencies(depsContent, 'Parser');
+
+      expect(result).not.toBeNull();
+      expect(result!.name).toBe('Parser');
+      expect(result!.directDependencies).toContain('Core');
+      expect(result!.directDependencies.length).toBe(1);
+    });
+
+    it('should return features that depend on this feature (dependents)', () => {
+      const result = queryService.getFeatureDependencies(depsContent, 'Parser');
+
+      expect(result!.dependents).toContain('Analyzer');
+      expect(result!.dependents).toContain('LSP');
+    });
+
+    it('should calculate transitive dependencies', () => {
+      // LSP depends on Parser and Analyzer
+      // Parser depends on Core
+      // Analyzer depends on Parser and Core
+      // So LSP transitively depends on Core
+      const result = queryService.getFeatureDependencies(depsContent, 'LSP');
+
+      expect(result!.transitiveDependencies).toContain('Core');
+    });
+
+    it('should return related features', () => {
+      const result = queryService.getFeatureDependencies(depsContent, 'RefactorCore');
+
+      expect(result!.related).toContain('Parser');
+      expect(result!.related).toContain('Analyzer');
+    });
+
+    it('should calculate depth in dependency tree', () => {
+      // Core is at depth 0 (no dependencies)
+      const coreResult = queryService.getFeatureDependencies(depsContent, 'Core');
+      expect(coreResult!.depth).toBe(0);
+
+      // Parser depends on Core, depth 1
+      const parserResult = queryService.getFeatureDependencies(depsContent, 'Parser');
+      expect(parserResult!.depth).toBe(1);
+
+      // LSP depends on Parser and Analyzer, depth 2+
+      const lspResult = queryService.getFeatureDependencies(depsContent, 'LSP');
+      expect(lspResult!.depth).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should return null for non-existent feature', () => {
+      const result = queryService.getFeatureDependencies(depsContent, 'NonExistent');
+      expect(result).toBeNull();
+    });
+
+    it('should handle feature with no dependencies', () => {
+      const result = queryService.getFeatureDependencies(depsContent, 'Core');
+
+      expect(result!.directDependencies).toEqual([]);
+      expect(result!.transitiveDependencies).toEqual([]);
+    });
+
+    it('should detect circular dependencies', () => {
+      const circularContent = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@feature{A}->files[a.ts]->depends[B]
+@feature{B}->files[b.ts]->depends[C]
+@feature{C}->files[c.ts]->depends[A]
+`;
+      const result = queryService.getFeatureDependencies(circularContent, 'A');
+
+      expect(result!.hasCircularDependency).toBe(true);
+      expect(result!.circularPath).toContain('A');
+    });
+  });
+
+  describe('getBlueprintProgress - Task Progress Tracking (TDDAB#19)', () => {
+    const blueprintContent = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@task{AddAuth}
+  ->files[src/auth.ts{TO-CREATE}, src/middleware.ts{TO-MODIFY}]
+  ->tests[tests/auth.test.ts{TO-CREATE}]
+  ->blueprint["1. Create auth service", "2. Add middleware", "3. Write tests"]
+
+@task{RefactorDB}
+  ->files[src/db.ts{TO-MODIFY}, src/models.ts{TO-MODIFY}]
+  ->blueprint["1. Update schema", "2. Migrate data"]
+
+@feature{ExistingFeature}
+  ->files[src/existing.ts]
+  ->tests[tests/existing.test.ts]
+`;
+
+    it('should list all tasks with blueprints', () => {
+      const result = queryService.getBlueprintProgress(blueprintContent);
+
+      expect(result.tasks.length).toBe(2);
+      expect(result.tasks.map(t => t.name)).toContain('AddAuth');
+      expect(result.tasks.map(t => t.name)).toContain('RefactorDB');
+    });
+
+    it('should count files to create and modify', () => {
+      const result = queryService.getBlueprintProgress(blueprintContent);
+
+      const addAuth = result.tasks.find(t => t.name === 'AddAuth');
+      expect(addAuth!.filesToCreate).toContain('src/auth.ts');
+      expect(addAuth!.filesToCreate).toContain('tests/auth.test.ts');
+      expect(addAuth!.filesToModify).toContain('src/middleware.ts');
+    });
+
+    it('should extract blueprint steps', () => {
+      const result = queryService.getBlueprintProgress(blueprintContent);
+
+      const addAuth = result.tasks.find(t => t.name === 'AddAuth');
+      expect(addAuth!.blueprintSteps.length).toBe(3);
+      expect(addAuth!.blueprintSteps[0]).toContain('Create auth service');
+    });
+
+    it('should calculate overall progress stats', () => {
+      const result = queryService.getBlueprintProgress(blueprintContent);
+
+      expect(result.summary.totalTasks).toBe(2);
+      expect(result.summary.totalFilesToCreate).toBe(2); // auth.ts, auth.test.ts
+      expect(result.summary.totalFilesToModify).toBe(3); // middleware.ts, db.ts, models.ts
+    });
+
+    it('should not include features (only tasks)', () => {
+      const result = queryService.getBlueprintProgress(blueprintContent);
+
+      expect(result.tasks.map(t => t.name)).not.toContain('ExistingFeature');
+    });
+
+    it('should handle empty content', () => {
+      const result = queryService.getBlueprintProgress('');
+
+      expect(result.tasks).toEqual([]);
+      expect(result.summary.totalTasks).toBe(0);
+    });
+
+    it('should handle tasks without blueprints', () => {
+      const noBlueprintContent = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@task{SimpleTask}->files[src/simple.ts{TO-MODIFY}]
+`;
+      const result = queryService.getBlueprintProgress(noBlueprintContent);
+
+      const task = result.tasks.find(t => t.name === 'SimpleTask');
+      expect(task).toBeDefined();
+      expect(task!.blueprintSteps).toEqual([]);
+      expect(task!.filesToModify).toContain('src/simple.ts');
+    });
+  });
+
+  describe('getFeatureDependencies & getBlueprintProgress - Edge Cases (TDDAB#19)', () => {
+    it('getFeatureDependencies should handle empty content', () => {
+      const result = queryService.getFeatureDependencies('', 'AnyFeature');
+      expect(result).toBeNull();
+    });
+
+    it('getBlueprintProgress should return empty for content without tasks', () => {
+      const featuresOnly = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@feature{OnlyFeature}->files[src/feature.ts]
+`;
+      const result = queryService.getBlueprintProgress(featuresOnly);
+
+      expect(result.tasks).toEqual([]);
+      expect(result.summary.totalTasks).toBe(0);
+    });
+  });
 });

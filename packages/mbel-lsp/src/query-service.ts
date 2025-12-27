@@ -17,6 +17,9 @@ import type {
   ImpactAnalysis,
   OrphanFilesResult,
   OrphanFilesOptions,
+  FeatureDependencies,
+  BlueprintProgress,
+  TaskProgress,
 } from './types.js';
 
 /**
@@ -399,6 +402,152 @@ export class QueryService {
   }
 
   // =========================================
+  // TDDAB#19: QueryAPI-Dependencies
+  // =========================================
+
+  /**
+   * Get dependency information for a feature
+   * @param content - MBEL document content
+   * @param featureName - Name of the feature to analyze
+   * @returns Feature dependencies or null if not found
+   */
+  getFeatureDependencies(
+    content: string,
+    featureName: string
+  ): FeatureDependencies | null {
+    const document = this.parseDocument(content);
+    if (!document) return null;
+
+    const links = this.getLinks(document);
+
+    // Find the target feature
+    const targetLink = links.find(l => l.name === featureName);
+    if (!targetLink) return null;
+
+    // Build dependency map for all features
+    const depMap = new Map<string, readonly string[]>();
+    for (const link of links) {
+      depMap.set(link.name, link.depends ?? []);
+    }
+
+    // Get direct dependencies
+    const directDependencies = targetLink.depends ?? [];
+
+    // Calculate transitive dependencies
+    const transitiveDeps = this.calculateTransitiveDependencies(
+      depMap,
+      directDependencies,
+      new Set(directDependencies)
+    );
+
+    // Find dependents (features that depend on this one)
+    const dependents = this.findFeatureDependents(links, featureName);
+
+    // Get related features
+    const related = targetLink.related ?? [];
+
+    // Calculate depth
+    const { depth, hasCircular, circularPath } = this.calculateDepthAndCircular(
+      depMap,
+      featureName
+    );
+
+    return {
+      name: featureName,
+      type: targetLink.linkType,
+      directDependencies,
+      transitiveDependencies: transitiveDeps,
+      dependents,
+      related,
+      depth,
+      hasCircularDependency: hasCircular,
+      circularPath,
+    };
+  }
+
+  /**
+   * Get blueprint progress for all tasks
+   * @param content - MBEL document content
+   * @returns Blueprint progress with task details and summary
+   */
+  getBlueprintProgress(content: string): BlueprintProgress {
+    const document = this.parseDocument(content);
+
+    const emptyResult: BlueprintProgress = {
+      tasks: [],
+      summary: {
+        totalTasks: 0,
+        totalFilesToCreate: 0,
+        totalFilesToModify: 0,
+        totalSteps: 0,
+      },
+    };
+
+    if (!document) return emptyResult;
+
+    const links = this.getLinks(document);
+
+    // Filter only tasks
+    const tasks = links.filter(l => l.linkType === 'task');
+
+    if (tasks.length === 0) return emptyResult;
+
+    const taskProgress: TaskProgress[] = [];
+    let totalFilesToCreate = 0;
+    let totalFilesToModify = 0;
+    let totalSteps = 0;
+
+    for (const task of tasks) {
+      const filesToCreate: string[] = [];
+      const filesToModify: string[] = [];
+
+      // Process files
+      for (const file of task.files ?? []) {
+        if (file.marker === 'TO-CREATE') {
+          filesToCreate.push(file.path);
+          totalFilesToCreate++;
+        } else if (file.marker === 'TO-MODIFY') {
+          filesToModify.push(file.path);
+          totalFilesToModify++;
+        }
+      }
+
+      // Process tests (can also have markers)
+      for (const test of task.tests ?? []) {
+        if (test.marker === 'TO-CREATE') {
+          filesToCreate.push(test.path);
+          totalFilesToCreate++;
+        } else if (test.marker === 'TO-MODIFY') {
+          filesToModify.push(test.path);
+          totalFilesToModify++;
+        }
+      }
+
+      // Extract blueprint steps
+      const blueprintSteps = task.blueprint ?? [];
+      totalSteps += blueprintSteps.length;
+
+      taskProgress.push({
+        name: task.name,
+        filesToCreate,
+        filesToModify,
+        blueprintSteps,
+        depends: task.depends ?? [],
+      });
+    }
+
+    return {
+      tasks: taskProgress,
+      summary: {
+        totalTasks: tasks.length,
+        totalFilesToCreate,
+        totalFilesToModify,
+        totalSteps,
+      },
+    };
+  }
+
+  // =========================================
   // Private Helper Methods
   // =========================================
 
@@ -717,5 +866,121 @@ export class QueryService {
       return './';
     }
     return parts.slice(0, -1).join('/') + '/';
+  }
+
+  // =========================================
+  // TDDAB#19 Private Helpers
+  // =========================================
+
+  /**
+   * Calculate transitive dependencies (dependencies of dependencies)
+   */
+  private calculateTransitiveDependencies(
+    depMap: Map<string, readonly string[]>,
+    directDeps: readonly string[],
+    visited: Set<string>
+  ): string[] {
+    const transitive: string[] = [];
+
+    for (const dep of directDeps) {
+      const subDeps = depMap.get(dep) ?? [];
+      for (const subDep of subDeps) {
+        if (!visited.has(subDep)) {
+          visited.add(subDep);
+          transitive.push(subDep);
+          // Recurse for deeper transitive deps
+          const deeper = this.calculateTransitiveDependencies(
+            depMap,
+            [subDep],
+            visited
+          );
+          transitive.push(...deeper);
+        }
+      }
+    }
+
+    return transitive;
+  }
+
+  /**
+   * Find features that depend on a given feature
+   */
+  private findFeatureDependents(
+    links: LinkDeclaration[],
+    featureName: string
+  ): string[] {
+    const dependents: string[] = [];
+
+    for (const link of links) {
+      if (link.name === featureName) continue;
+
+      const deps = link.depends ?? [];
+      if (deps.includes(featureName)) {
+        dependents.push(link.name);
+      }
+    }
+
+    return dependents;
+  }
+
+  /**
+   * Calculate depth in dependency tree and detect circular dependencies
+   */
+  private calculateDepthAndCircular(
+    depMap: Map<string, readonly string[]>,
+    featureName: string
+  ): { depth: number; hasCircular: boolean; circularPath: string[] } {
+    const visited = new Set<string>();
+    const path: string[] = [];
+
+    const calculateDepth = (name: string, currentPath: string[]): number => {
+      // Check for circular dependency
+      if (currentPath.includes(name)) {
+        return -1; // Signal circular dependency
+      }
+
+      if (visited.has(name)) {
+        return 0;
+      }
+
+      visited.add(name);
+      currentPath.push(name);
+
+      const deps = depMap.get(name) ?? [];
+      if (deps.length === 0) {
+        currentPath.pop();
+        return 0;
+      }
+
+      let maxDepth = 0;
+      for (const dep of deps) {
+        const depDepth = calculateDepth(dep, currentPath);
+        if (depDepth === -1) {
+          // Circular detected
+          path.push(...currentPath);
+          return -1;
+        }
+        maxDepth = Math.max(maxDepth, depDepth + 1);
+      }
+
+      currentPath.pop();
+      return maxDepth;
+    };
+
+    const depth = calculateDepth(featureName, []);
+
+    if (depth === -1) {
+      return {
+        depth: 0,
+        hasCircular: true,
+        circularPath: path,
+      };
+    }
+
+    return {
+      depth,
+      hasCircular: false,
+      circularPath: [],
+    };
   }
 }

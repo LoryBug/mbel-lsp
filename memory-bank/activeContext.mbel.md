@@ -9,6 +9,7 @@
 >completed::TDDAB#10::SemanticAnchors{4tokens,37tests,90.85%coverage}✓
 >completed::TDDAB#17::QueryService{23tests,398total,91.27%coverage}✓
 >completed::TDDAB#18::QueryAPI-Anchors{19tests,417total,91.7%coverage}✓
+>completed::TDDAB#19::QueryAPI-Dependencies{17tests,434total,92.22%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -56,12 +57,12 @@
   ↳all-checks::build✓,lint✓,tests✓,coverage✓
 
 [RECENT]
->updated::query-service.ts{analyzeImpact,getOrphanFiles,15-helpers}
->updated::query-service.test.ts{+19tests,42total}
->updated::types.ts{ImpactAnalysis,OrphanFilesResult,OrphanFilesOptions,OrphanFilesStats}
->completed::TDDAB#18{QueryAPI-Anchors,417tests-total,91.7%coverage}
+>updated::query-service.ts{getFeatureDependencies,getBlueprintProgress,3-helpers}
+>updated::query-service.test.ts{+17tests,59total}
+>updated::types.ts{FeatureDependencies,BlueprintProgress,TaskProgress,BlueprintSummary}
+>completed::TDDAB#19{QueryAPI-Dependencies,434tests-total,92.22%coverage}
 >updated::activeContext.mbel.md{FOCUS,RECENT,NEXT}
->updated::progress.mbel.md{TDDAB#18-complete}
+>updated::progress.mbel.md{TDDAB#19-complete}
 
 [DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
@@ -108,9 +109,10 @@
   ↳methods::analyzeImpact,getOrphanFiles
   ↳depends::TDDAB#17✓
   ↳enables::impact-analysis,orphan-detection,risk-assessment
-?TDDAB#19::QueryAPI-Dependencies{priority:P2,estimated-duration:2days}
+✓TDDAB#19::QueryAPI-Dependencies{priority:P2,17tests,97.46%coverage}
   ↳methods::getFeatureDependencies,getBlueprintProgress
   ↳depends::TDDAB#17✓,#18✓
+  ↳enables::dependency-graph,blueprint-tracking,circular-detection
 ?TDDAB#11::DecisionLog{priority:4,estimated-duration:2-3days}
   ↳depends::TDDAB#9✓,#10✓
 ?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
@@ -123,9 +125,9 @@
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::TotalTests-V6-So-Far::#417{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19}
+@note::TotalTests-V6-So-Far::#434{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17}
 @note::TotalTests-Projected::#429{V5:259+V6:170}
-@note::Coverage-Current::%91.7{TDDAB#18-full}
+@note::Coverage-Current::%92.22{TDDAB#19-full}
 @note::Coverage-Target-V6::%90{exceeded}
 @note::NewTokens::#40{sections:5,operators:25,prefixes:7,markers:3}
 @note::NewASTNodes::#8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,...}

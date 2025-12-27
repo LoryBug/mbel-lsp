@@ -170,6 +170,74 @@ export interface OrphanFilesResult {
   readonly stats: OrphanFilesStats;
 }
 
+// =========================================
+// MBEL v6 QueryAPI-Dependencies Types (TDDAB#19)
+// =========================================
+
+/**
+ * Feature dependency information
+ */
+export interface FeatureDependencies {
+  /** Feature name */
+  readonly name: string;
+  /** Feature type */
+  readonly type: 'feature' | 'task';
+  /** Direct dependencies (features this one depends on) */
+  readonly directDependencies: readonly string[];
+  /** Transitive dependencies (indirect, through direct deps) */
+  readonly transitiveDependencies: readonly string[];
+  /** Features that depend on this one */
+  readonly dependents: readonly string[];
+  /** Related features */
+  readonly related: readonly string[];
+  /** Depth in dependency tree (0 = no deps) */
+  readonly depth: number;
+  /** Whether circular dependency detected */
+  readonly hasCircularDependency: boolean;
+  /** Path of circular dependency if detected */
+  readonly circularPath: readonly string[];
+}
+
+/**
+ * Task progress information for blueprints
+ */
+export interface TaskProgress {
+  /** Task name */
+  readonly name: string;
+  /** Files marked TO-CREATE */
+  readonly filesToCreate: readonly string[];
+  /** Files marked TO-MODIFY */
+  readonly filesToModify: readonly string[];
+  /** Blueprint steps */
+  readonly blueprintSteps: readonly string[];
+  /** Task dependencies */
+  readonly depends: readonly string[];
+}
+
+/**
+ * Summary of blueprint progress across all tasks
+ */
+export interface BlueprintSummary {
+  /** Total number of tasks */
+  readonly totalTasks: number;
+  /** Total files to create across all tasks */
+  readonly totalFilesToCreate: number;
+  /** Total files to modify across all tasks */
+  readonly totalFilesToModify: number;
+  /** Total blueprint steps */
+  readonly totalSteps: number;
+}
+
+/**
+ * Result of blueprint progress query
+ */
+export interface BlueprintProgress {
+  /** All tasks with their progress */
+  readonly tasks: readonly TaskProgress[];
+  /** Overall summary */
+  readonly summary: BlueprintSummary;
+}
+
 /**
  * Server capabilities for MBEL LSP
  */
