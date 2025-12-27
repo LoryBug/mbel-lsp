@@ -6,5 +6,7 @@ coverage/
 .env
 .env.local
 *.tsbuildinfo
-.claude
+# Claude Code local settings (but keep skills)
+.claude/*
+!.claude/skills/
 nul
