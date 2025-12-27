@@ -1,7 +1,7 @@
 §MBEL:6.0
 
 [FOCUS]
-@focus::MBEL6.0{Implementation-Phase1}
+@focus::MBEL6.0{Implementation-Phase2}
 >completed::FullLSP{Lexer+Parser+Analyzer+Server+Features+Extension}✓
 >completed::OpenCodeIntegration{SlashCommands+CustomTool}✓
 >completed::MBEL6.0-Planning{Design-complete}✓
@@ -12,6 +12,10 @@
 >completed::TDDAB#19::QueryAPI-Dependencies{17tests,434total,92.22%coverage}✓
 >completed::TDDAB#11::DecisionLog{8tokens,60tests,494total,92.67%coverage}✓
 >completed::TDDAB#12::HeatMap{11tokens,75tests,569total,93.11%coverage}✓
+>completed::TDDAB#13::IntentMarkers{7tokens,65tests,634total,93.46%coverage}✓
+>completed::TDDAB#14::LLMAPILayer{11methods,50tests,715total,94.16%coverage}✓
+>completed::TDDAB#15::QueryEngine{4modules,31tests,665total,93.59%coverage}✓
+>completed::TDDAB#16::ToolIntegrations{CodeLens+Hover+getWorkContext,18tests,733total,94.71%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -68,14 +72,19 @@
   ↳all-checks::build✓,lint✓,tests✓,coverage✓
 
 [RECENT]
->completed::TDDAB#11{DecisionLog,60tests,494tests-total,92.67%coverage}
->updated::types.ts{8-new-tokens,DecisionDeclaration,DecisionStatus}
->updated::lexer.ts{7-arrow-ops,isDecisionDatePrefix,scanDecisionDate}
->updated::parser.ts{parseDecisionDeclaration,isDecisionArrowOperator}
->updated::analyzer.ts{checkDecisionDeclarations,checkInvalidDecisionStatus,9-new-codes}
->created::lexer-decisions.test.ts{22tests}
->created::parser-decisions.test.ts{19tests}
->created::decisions-validation.test.ts{19tests}
+
+>completed::TDDAB#16{ToolIntegrations,18tests,733tests-total,94.71%coverage}
+>created::tool-integrations.test.ts{18tests}
+>modified::server.ts{getCodeLenses,getWorkContext,getSemanticHover}
+>modified::types.ts{WorkContext,DecisionInfo,HeatInfo,IntentInfo,codeLensProvider}
+>features::CodeLensProvider{all-semantic-elements},ExtendedHover{rich-semantic-info},getWorkContext{Opencode-integration}
+>committed::e7d19de{TDDAB#16-Complete}
+>completed::TDDAB#15{QueryEngine,31tests,665tests-total,93.59%coverage}
+>created::query-engine/types.ts{TypeDefinitions}
+>created::query-engine/index.ts{QueryEngineClass}
+>created::query-engine.test.ts{31tests}
+>features::DependencyGraph{circular-detection,transitive-deps},SemanticSearch{anchors,decisions,intents},ImpactAnalyzer{edit-risk,impact},WorkContext{composite-context}
+>committed::849b8e6{TDDAB#15-Complete}
 
 [DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
@@ -113,7 +122,7 @@
   ↳design-doc::docs/LLM-NAVIGATION-IMPROVEMENTS.md
 
 [NEXT]
-!PRIORITY::LLM-Query-API{highest,enables-active-navigation}
+!PRIORITY::LLM-APILayer{highest,depends-on-QueryEngine}
 ✓TDDAB#17::QueryService{priority:P0,23tests,95.05%coverage}
   ↳methods::getFeatureFiles,getFileFeatures,getEntryPoints,getAnchors,getAnchorsByType,getAllFeatures
   ↳depends::TDDAB#9✓,#10✓
@@ -130,21 +139,70 @@
   ↳depends::TDDAB#9✓,#10✓
   ↳completed::2024-12-27
 ✓TDDAB#12::HeatMap{priority:5,75tests,569total,93.11%coverage}
-?TDDAB#13::IntentMarkers{priority:6,estimated-duration:2-3days}
-?TDDAB#20::GitIntegration{priority:P3,estimated-duration:3days}
+✓TDDAB#13::IntentMarkers{priority:6,65tests,634total,93.46%coverage}
+✓TDDAB#15::QueryEngine{priority:3.5,31tests,665total,93.59%coverage}
+  ↳modules::DependencyGraph,SemanticSearch,ImpactAnalyzer,WorkContext
+  ↳depends::TDDAB#9✓,#10✓,#17✓,#18✓,#19✓
+  ↳enables::LLM-APILayer,semantic-navigation,composite-queries
+✓TDDAB#14::LLMAPILayer{priority:3,11methods,50tests,715total,94.16%coverage}
+  ↳files::llm-api/index.ts{LlmApi-class},llm-api/types.ts{Request/Response-types},llm-api.test.ts{50-tests}
+  ↳modified::analyzer/index.ts{QueryEngine-export},lexer.ts{ARROW_DESCRIPTION-token},types.ts{ARROW_DESCRIPTION-type},parser.ts{formats}
+  ↳methods::getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext,getAllFeatures,getAllAnchors,getAllDecisions,getIntentsByModule
+  ↳commit::bf63179
+  ↳depends::TDDAB#15✓
+?TDDAB#20::GitIntegration{priority:P4,estimated-duration:3days}
   ↳methods::calculateHotspots,suggestAnchorUpdates
-?TDDAB#21::NaturalLanguageQuery{priority:P3,estimated-duration:XL}
+?TDDAB#21::NaturalLanguageQuery{priority:P5,estimated-duration:XL}
+
+[HEAT]
+@critical::packages/mbel-core/src/lexer.ts
+  ->dependents[parser.ts, analyzer.ts, server.ts, query-service.ts]
+  ->changes{25}
+  ->coverage{96%}
+  ->confidence{high}
+  ->caution{Foundation of all parsing - requires full regression}
+
+@critical::packages/mbel-core/src/parser.ts
+  ->dependents[analyzer.ts, server.ts, query-service.ts]
+  ->changes{18}
+  ->coverage{93%}
+  ->confidence{high}
+
+@hot::packages/mbel-analyzer/src/analyzer.ts
+  ->changes{30}
+  ->coverage{97%}
+  ->confidence{high}
+  ->impact{high}
+
+@stable::packages/mbel-core/src/types.ts
+  ->untouched{2weeks}
+  ->coverage{100%}
+  ->confidence{high}
+
+@volatile::packages/mbel-lsp/src/query-service.ts
+  ->changes{15}
+  ->coverage{97%}
+  ->confidence{medium}
+  ->caution{New API - still evolving}
+
+@hot::packages/mbel-core/src/ast.ts
+  ->changes{12}
+  ->dependents[parser.ts, analyzer.ts, query-service.ts]
+
+@stable::memory-bank/**/*.mbel.md
+  ->untouched{1day}
+  ->confidence{high}
 
 [BLOCKERS]
 !OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::TotalTests-V6-So-Far::#569{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17+TDDAB#11:60+TDDAB#12:75}
+@note::TotalTests-V6-So-Far::#634{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23+TDDAB#18:19+TDDAB#19:17+TDDAB#11:60+TDDAB#12:75+TDDAB#13:65}
 @note::TotalTests-Projected::#429{V5:259+V6:170}
-@note::Coverage-Current::%93.11{TDDAB#12-full}
+@note::Coverage-Current::%93.46{TDDAB#13-full}
 @note::Coverage-Target-V6::%90{exceeded}
-@note::NewTokens::#59{sections:5,operators:39,prefixes:11,markers:3,decision:1}
+@note::NewTokens::#66{sections:5,operators:46,prefixes:11,markers:3,decision:1}
 @note::NewASTNodes::#11{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,HeatDeclaration,HeatType,IntentNode,...}
 @note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}
 @note::PlanReference::tasks/MBEL-6.0-TDDAB-PLAN.md

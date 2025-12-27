@@ -27,7 +27,10 @@
       "Bash(node test-mb-parsing.mjs:*)",
       "Bash(node:*)",
       "Bash(dir \"C:\\\\Progetti\\\\mbel-lsp\\\\memory-bank\")",
-      "Bash(npm run build:core:*)"
+      "Bash(npm run build:core:*)",
+      "Bash(npm run test:analyzer:*)",
+      "Bash(npm run build:analyzer:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

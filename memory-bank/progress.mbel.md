@@ -174,68 +174,66 @@
    └─ Analyzer::comprehensive-heat-validation+70diagnostic-codes
 
 [TDDAB#13]
-?IntentMarkers{§intents-section}
-├─ Status::Pending
-├─ Tests::~16{lexer,parser,analyzer}
-├─ Tokens::+8{->does,->doesNot,->contract,->singleResponsibility,->antiPattern,->extends,@Module::Component}
+✓IntentMarkers{§intents-section}
+├─ Status::Complete✓
+├─ RED::65tests{lexer:22,parser:16,analyzer:27}✓
+├─ GREEN::Implementation{7tokens,1AST-node,11diagnostic-codes,6files-modified,3tests-created}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{634/634}+Coverage✓{93.46%}
+├─ Tokens::+7{INTENT_MODULE,ARROW_DOES,ARROW_DOES_NOT,ARROW_CONTRACT,ARROW_SINGLE_RESPONSIBILITY,ARROW_ANTI_PATTERN,ARROW_EXTENDS}
+├─ AST::IntentDeclaration{module,component,does,doesNot,contract,singleResponsibility,antiPattern,extends}
+├─ Analyzer::11codes{MBEL-INTENT-001→051}
 ├─ Priority::6{Guardrails}
-└─ Files::intents-rules.ts
+├─ Commit::4bc2ec7
+└─ Features::
+   ├─ Lexer::7tokens{INTENT_MODULE,ARROW_DOES,ARROW_DOES_NOT,ARROW_CONTRACT,ARROW_SINGLE_RESPONSIBILITY,ARROW_ANTI_PATTERN,ARROW_EXTENDS}
+   ├─ AST::IntentDeclaration{module,component,does,doesNot,contract,singleResponsibility,antiPattern,extends}
+   ├─ Parser::parseIntentDeclaration+isIntentArrowOperator
+   └─ Analyzer::comprehensive-intent-validation+11diagnostic-codes
 
 [TDDAB#14]
-?LLMAPILayer{LSP-semantic-methods}
-├─ Status::Pending
-├─ Tests::~25{lsp-api}
-├─ Methods::+7{getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext}
+✓LLMAPILayer{LSP-semantic-methods}
+├─ Status::Complete✓
+├─ Tests::50{integration-complete}
+├─ RED::50tests{all-coverage}✓
+├─ GREEN::Implementation{3files-created,4files-modified}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{715/715}+Coverage✓{94.16%}
+├─ Commit::bf63179
 ├─ Priority::3{Combines-all}
-└─ Files::llm-api/{index.ts,*-handler.ts}
+├─ Methods::+11{getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext,getAllFeatures,getAllAnchors,getAllDecisions,getIntentsByModule}
+└─ Features::
+   ├─ Core-Methods::getAnchor{semantic-anchor},getCrossRefs{dependency-links},getEditRisk{risk-assessment},getImpactAnalysis{impact-chain},getDecisions{decision-retrieval},getIntent{intent-analysis},getWorkContext{composite-context}
+   ├─ Convenience-Methods::getAllFeatures{list-all},getAllAnchors{collect-anchors},getAllDecisions{list-decisions},getIntentsByModule{grouped-intents}
+   ├─ Types::Request/Response{typed-inputs,rich-outputs}
+   ├─ Files::llm-api/index.ts{LlmApi-class},llm-api/types.ts{types},llm-api.test.ts{50-tests}
+   └─ Modified::analyzer/index.ts{export},lexer.ts{token},types.ts{type},parser.ts{both-formats}
 
 [TDDAB#15]
-?QueryEngine{semantic-navigation}
-├─ Status::Pending
-├─ Tests::~15{query-engine}
-├─ Modules::+4{dependency-graph.ts,semantic-search.ts,impact-analyzer.ts}
-├─ Priority::3.5{Infrastructure}
-└─ Files::query-engine/{*.ts}
+✓QueryEngine{semantic-navigation}
+├─ Status::Complete✓
+├─ RED::31tests{dependency-graph:11,semantic-search:8,impact-analyzer:9,integration:3}✓
+├─ GREEN::Implementation{4modules,TypeDefinitions,QueryEngine-class}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{665/665}+Coverage✓{93.59%}
+├─ Commit::849b8e6
+└─ Features::
+   ├─ Modules::DependencyGraph{circular-detection,transitive-deps,depth-calculation}
+   ├─ Modules::SemanticSearch{find-anchors,find-decisions,find-intents,by-criteria}
+   ├─ Modules::ImpactAnalyzer{edit-risk-assessment,impact-calculation,chain-analysis}
+   └─ Modules::WorkContext{composite-context-for-LLMs,dependency-aware}
+
 
 [TDDAB#16]
-?ToolIntegrations{opencode+vscode}
-├─ Status::Pending
-├─ Tests::~10{integration}
-├─ Tools::+2{mbel-workcontext,codelens,hover-ext,tree-view}
-├─ Priority::Last{Depends-on-all}
-└─ Files::.opencode/,vscode-extension/
-
-[METRICS]
-@metrics::
-- TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-- TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
-- TotalTests-Running::#569{V5:259+Phase1:79+QueryService:23+QueryAnchors:19+QueryDeps:17+DecisionLog:60+HeatMap:75}
-- TotalTests-V6::+45{intents:16,api:25,query:15,integration:10}
-- TotalTests-Projected::429{V5:259+V6:170}
-- Coverage-V5::%87{overall}
-- Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
-- Coverage-TDDAB#17::%91.27{overall},95.05%{query-service}
-- Coverage-TDDAB#18::%91.7{overall},96.94%{query-service}
-- Coverage-TDDAB#19::%92.22{overall},97.46%{query-service}
-- Coverage-TDDAB#11::%92.67{overall},96.16%{analyzer}
-- Coverage-TDDAB#12::%93.11{overall},96.85%{analyzer}
-- Coverage-Target::%90{exceeded}
-- NewTokens::~59{sections:5,operators:39,prefixes:11,markers:3,decisions:1}
-- NewASTNodes::~11{LinkNode,AnchorNode,DecisionNode,DecisionStatus,HeatNode,HeatDeclaration,HeatType,IntentNode,QueryNode,...}
-
-[GIT_HISTORY_V5]
-@commits::
-1. 504fba3::chore:initial-project-setup
-2. 62f3370::feat(lexer):mbel-v5-lexer
-3. 0336b13::feat(parser):mbel-v5-parser
-4. 704b9e6::feat(analyzer):mbel-v5-diagnostics
-5. 2ee0f5e::feat(lsp):mbel-v5-server
-6. b4f675f::feat(lsp):mbel-v5-features
-7. 317c729::feat(lsp):go-to-definition
-8. e41ba3a::feat(lsp):find-references+workspace-symbols
-9. 3fe492d::feat(lsp):llm-query-methods
-10. 9e671f0::feat(opencode):slash-commands+custom-tool
-
-[GIT_HISTORY_V6]
-@commits::
-Pending::TDDAB#9::CrossRefLinks
+✓ToolIntegrations{LSP-semantic-tool-integration}
+├─ Status::Complete✓
+├─ Tests::18{codelens,hover,workcontext}
+├─ RED::18tests{tool-integrations.test.ts}✓
+├─ GREEN::Implementation{3methods-added,5types-added}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{733/733}+Coverage✓{94.71%}
+├─ Commit::e7d19de
+├─ Priority::Last{Integration}
+└─ Features::
+   ├─ CodeLensProvider::all-MBEL-semantic-elements
+   ├─ Extended-Hover::rich-semantic-info{decisions,heat,intents}
+   ├─ getWorkContext::Opencode-tool-integration
+   ├─ New-Methods::getCodeLenses,getWorkContext,getSemanticHover
+   ├─ New-Types::WorkContext,DecisionInfo,HeatInfo,IntentInfo,CodeLensProvider
+   └─ Files::server.ts{3methods},types.ts{5types},tool-integrations.test.ts{18tests}
