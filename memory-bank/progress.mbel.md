@@ -119,6 +119,19 @@
    ├─ Types::FeatureFiles,FileFeatureInfo,EntryPointInfo,AnchorInfo,QueryResult
    └─ Export::index.ts{QueryService-public-API}
 
+[TDDAB#18]
+✓QueryAPI-Anchors{impact-analysis+orphan-detection}
+├─ Status::Complete✓
+├─ RED::19tests{analyzeImpact:9,getOrphanFiles:10}✓
+├─ GREEN::Implementation{2methods,3types,15helpers}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{417/417}+Coverage✓{91.7%}
+├─ QueryService::96.94%{excellent}
+├─ Commit::Ready
+└─ Features::
+   ├─ Methods::analyzeImpact{risk-assessment,dependency-chain},getOrphanFiles{coverage-stats,directory-grouping}
+   ├─ Types::ImpactAnalysis,OrphanFilesResult,OrphanFilesOptions,OrphanFilesStats
+   └─ Capabilities::transitive-impact,hotspot-detection,risk-levels,suggestions,exclude-patterns
+
 [TDDAB#11]
 ?DecisionLog{§decisions-extended}
 ├─ Status::Pending
@@ -171,12 +184,13 @@
 @metrics::
 - TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
 - TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
-- TotalTests-Running::#398{V5:259+Phase1:79+QueryService:23}
+- TotalTests-Running::#417{V5:259+Phase1:79+QueryService:23+QueryAnchors:19}
 - TotalTests-V6::+45{decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
 - TotalTests-Projected::429{V5:259+V6:170}
 - Coverage-V5::%87{overall}
 - Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
 - Coverage-TDDAB#17::%91.27{overall},95.05%{query-service}
+- Coverage-TDDAB#18::%91.7{overall},96.94%{query-service}
 - Coverage-Target::%90{exceeded}
 - NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
 - NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}

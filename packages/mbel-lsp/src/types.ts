@@ -108,6 +108,68 @@ export interface QueryResult<T> {
   readonly suggestion?: string;
 }
 
+// =========================================
+// MBEL v6 QueryAPI-Anchors Types (TDDAB#18)
+// =========================================
+
+/**
+ * Impact analysis result for a file modification
+ */
+export interface ImpactAnalysis {
+  /** The file path being analyzed */
+  readonly filePath: string;
+  /** Features directly containing this file */
+  readonly affectedFeatures: readonly string[];
+  /** Features that depend on affected features */
+  readonly dependentFeatures: readonly string[];
+  /** Transitive impact (features depending on dependents) */
+  readonly transitiveImpact: readonly string[];
+  /** Test files that should be run */
+  readonly affectedTests: readonly string[];
+  /** Whether this file is marked as a hotspot */
+  readonly isHotspot: boolean;
+  /** Anchor information if file is anchored */
+  readonly anchorInfo: AnchorInfo | null;
+  /** Risk level for modifying this file */
+  readonly riskLevel: 'low' | 'medium' | 'high';
+  /** Suggested actions based on impact */
+  readonly suggestions: readonly string[];
+}
+
+/**
+ * Options for orphan file detection
+ */
+export interface OrphanFilesOptions {
+  /** Glob patterns to exclude from orphan detection */
+  readonly excludePatterns?: readonly string[];
+}
+
+/**
+ * Statistics about file coverage
+ */
+export interface OrphanFilesStats {
+  /** Total files analyzed */
+  readonly totalFiles: number;
+  /** Files referenced in features/anchors */
+  readonly referencedFiles: number;
+  /** Number of orphan files */
+  readonly orphanCount: number;
+  /** Coverage percentage (0-100) */
+  readonly coveragePercent: number;
+}
+
+/**
+ * Result of orphan file detection
+ */
+export interface OrphanFilesResult {
+  /** List of orphan file paths */
+  readonly orphans: readonly string[];
+  /** Orphans grouped by directory */
+  readonly byDirectory: Readonly<Record<string, readonly string[]>>;
+  /** Coverage statistics */
+  readonly stats: OrphanFilesStats;
+}
+
 /**
  * Server capabilities for MBEL LSP
  */

@@ -11373,6 +11373,157 @@ var QueryService = class {
     }));
   }
   // =========================================
+  // TDDAB#18: QueryAPI-Anchors Extension
+  // =========================================
+  /**
+   * Analyze the impact of modifying a file
+   * @param content - MBEL document content
+   * @param filePath - File path to analyze
+   * @returns Impact analysis or null if file not found
+   */
+  analyzeImpact(content, filePath) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return null;
+    const links = this.getLinks(document);
+    const anchors = this.getAnchorDeclarations(document);
+    const affectedFeatures = this.findAffectedFeatures(links, filePath);
+    if (affectedFeatures.length === 0)
+      return null;
+    const dependentFeatures = this.findDependentFeatures(
+      links,
+      affectedFeatures
+    );
+    const transitiveImpact = this.findTransitiveImpact(
+      links,
+      dependentFeatures,
+      /* @__PURE__ */ new Set([...affectedFeatures, ...dependentFeatures])
+    );
+    const affectedTests = this.collectAffectedTests(links, affectedFeatures);
+    const anchor = this.findAnchorForFile(anchors, filePath);
+    const isHotspot = anchor?.anchorType === "hotspot";
+    const riskLevel = this.calculateRiskLevel(
+      isHotspot,
+      dependentFeatures.length,
+      transitiveImpact.length
+    );
+    const suggestions = this.generateSuggestions(
+      affectedTests,
+      isHotspot,
+      riskLevel,
+      dependentFeatures
+    );
+    return {
+      filePath,
+      affectedFeatures,
+      dependentFeatures,
+      transitiveImpact,
+      affectedTests,
+      isHotspot,
+      anchorInfo: anchor ? {
+        path: anchor.path,
+        type: anchor.anchorType,
+        description: anchor.description,
+        isGlob: anchor.isGlob
+      } : null,
+      riskLevel,
+      suggestions
+    };
+  }
+  /**
+   * Find orphan files not referenced in any feature or anchor
+   * @param content - MBEL document content
+   * @param projectFiles - List of all project files
+   * @param options - Optional configuration
+   * @returns Orphan files result with statistics
+   */
+  getOrphanFiles(content, projectFiles, options) {
+    if (projectFiles.length === 0) {
+      return {
+        orphans: [],
+        byDirectory: {},
+        stats: {
+          totalFiles: 0,
+          referencedFiles: 0,
+          orphanCount: 0,
+          coveragePercent: 100
+        }
+      };
+    }
+    const document = this.parseDocument(content);
+    const referencedFiles = /* @__PURE__ */ new Set();
+    if (document) {
+      const links = this.getLinks(document);
+      const anchors = this.getAnchorDeclarations(document);
+      for (const link of links) {
+        for (const file of link.files ?? []) {
+          referencedFiles.add(this.normalizePath(file.path));
+        }
+        for (const test of link.tests ?? []) {
+          referencedFiles.add(this.normalizePath(test.path));
+        }
+        for (const doc of link.docs ?? []) {
+          referencedFiles.add(this.normalizePath(doc.path));
+        }
+      }
+      for (const anchor of anchors) {
+        if (!anchor.isGlob) {
+          referencedFiles.add(this.normalizePath(anchor.path));
+        }
+      }
+    }
+    const defaultExcludes = [
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "tsconfig.*.json",
+      ".eslintrc.*",
+      "eslint.config.*",
+      "vitest.config.*",
+      "jest.config.*",
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE",
+      ".gitignore",
+      ".npmrc"
+    ];
+    const excludePatterns = [
+      ...defaultExcludes,
+      ...options?.excludePatterns ?? []
+    ];
+    const orphans = [];
+    const byDirectory = {};
+    for (const file of projectFiles) {
+      const normalizedFile = this.normalizePath(file);
+      if (this.matchesExcludePattern(file, excludePatterns)) {
+        continue;
+      }
+      if (this.isFileReferenced(normalizedFile, referencedFiles)) {
+        continue;
+      }
+      orphans.push(file);
+      const dir = this.getDirectory(file);
+      if (!byDirectory[dir]) {
+        byDirectory[dir] = [];
+      }
+      byDirectory[dir].push(file);
+    }
+    const nonConfigFiles = projectFiles.filter(
+      (f) => !this.matchesExcludePattern(f, defaultExcludes)
+    );
+    const referencedCount = nonConfigFiles.length - orphans.length;
+    return {
+      orphans,
+      byDirectory,
+      stats: {
+        totalFiles: nonConfigFiles.length,
+        referencedFiles: referencedCount,
+        orphanCount: orphans.length,
+        coveragePercent: nonConfigFiles.length > 0 ? Math.round(referencedCount / nonConfigFiles.length * 100) : 100
+      }
+    };
+  }
+  // =========================================
   // Private Helper Methods
   // =========================================
   /**
@@ -11429,6 +11580,167 @@ var QueryService = class {
       return `${path}{${marker}}`;
     }
     return path;
+  }
+  // =========================================
+  // TDDAB#18 Private Helpers
+  // =========================================
+  /**
+   * Find features containing a file (direct or partial match)
+   */
+  findAffectedFeatures(links, filePath) {
+    const affected = [];
+    for (const link of links) {
+      const allPaths = [
+        ...link.files?.map((f) => f.path) ?? [],
+        ...link.tests?.map((f) => f.path) ?? [],
+        ...link.docs?.map((f) => f.path) ?? []
+      ];
+      if (this.pathMatches(allPaths, filePath)) {
+        affected.push(link.name);
+      }
+    }
+    return affected;
+  }
+  /**
+   * Find features that depend on the given features
+   */
+  findDependentFeatures(links, featureNames) {
+    const featureSet = new Set(featureNames);
+    const dependents = [];
+    for (const link of links) {
+      if (featureSet.has(link.name))
+        continue;
+      const deps = link.depends ?? [];
+      if (deps.some((dep) => featureSet.has(dep))) {
+        dependents.push(link.name);
+      }
+    }
+    return dependents;
+  }
+  /**
+   * Find transitive dependencies (2nd level and beyond)
+   */
+  findTransitiveImpact(links, directDependents, alreadyProcessed) {
+    const transitive = [];
+    const dependentSet = new Set(directDependents);
+    for (const link of links) {
+      if (alreadyProcessed.has(link.name))
+        continue;
+      const deps = link.depends ?? [];
+      if (deps.some((dep) => dependentSet.has(dep))) {
+        transitive.push(link.name);
+      }
+    }
+    return transitive;
+  }
+  /**
+   * Collect tests from affected features
+   */
+  collectAffectedTests(links, featureNames) {
+    const featureSet = new Set(featureNames);
+    const tests = [];
+    for (const link of links) {
+      if (featureSet.has(link.name)) {
+        for (const test of link.tests ?? []) {
+          if (!tests.includes(test.path)) {
+            tests.push(test.path);
+          }
+        }
+      }
+    }
+    return tests;
+  }
+  /**
+   * Find anchor for a file path
+   */
+  findAnchorForFile(anchors, filePath) {
+    const normalizedSearch = this.normalizePath(filePath);
+    for (const anchor of anchors) {
+      if (anchor.isGlob)
+        continue;
+      const normalizedAnchor = this.normalizePath(anchor.path);
+      if (normalizedAnchor === normalizedSearch || normalizedAnchor.endsWith("/" + normalizedSearch) || normalizedAnchor.endsWith("\\" + normalizedSearch) || normalizedSearch.endsWith("/" + normalizedAnchor) || normalizedSearch.endsWith("\\" + normalizedAnchor)) {
+        return anchor;
+      }
+    }
+    return null;
+  }
+  /**
+   * Calculate risk level based on impact factors
+   */
+  calculateRiskLevel(isHotspot, dependentCount, transitiveCount) {
+    if (isHotspot || dependentCount >= 2 || transitiveCount >= 2) {
+      return "high";
+    }
+    if (dependentCount >= 1 || transitiveCount >= 1) {
+      return "medium";
+    }
+    return "low";
+  }
+  /**
+   * Generate suggestions based on impact analysis
+   */
+  generateSuggestions(affectedTests, isHotspot, riskLevel, dependentFeatures) {
+    const suggestions = [];
+    if (affectedTests.length > 0) {
+      suggestions.push(`Run affected tests: ${affectedTests.join(", ")}`);
+    }
+    if (isHotspot) {
+      suggestions.push("This is a hotspot - review changes carefully");
+    }
+    if (riskLevel === "high") {
+      suggestions.push("High-impact change - consider thorough review");
+    }
+    if (dependentFeatures.length > 0) {
+      suggestions.push(
+        `Check dependent features: ${dependentFeatures.join(", ")}`
+      );
+    }
+    return suggestions;
+  }
+  /**
+   * Check if file matches any exclude pattern
+   */
+  matchesExcludePattern(filePath, patterns) {
+    const fileName = filePath.split("/").pop() ?? filePath.split("\\").pop() ?? filePath;
+    for (const pattern of patterns) {
+      if (pattern.includes("*")) {
+        const regexStr = pattern.replace(/\*\*/g, "{{GLOBSTAR}}").replace(/\*/g, "[^/\\\\]*").replace(/{{GLOBSTAR}}/g, ".*").replace(/\./g, "\\.");
+        const regex = new RegExp(regexStr);
+        if (regex.test(filePath) || regex.test(fileName)) {
+          return true;
+        }
+      } else {
+        if (fileName === pattern) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  /**
+   * Check if file is referenced (supports partial path matching)
+   */
+  isFileReferenced(normalizedFile, referencedFiles) {
+    if (referencedFiles.has(normalizedFile)) {
+      return true;
+    }
+    for (const ref of referencedFiles) {
+      if (ref.endsWith("/" + normalizedFile) || ref.endsWith("\\" + normalizedFile) || normalizedFile.endsWith("/" + ref) || normalizedFile.endsWith("\\" + ref)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  /**
+   * Get directory from file path
+   */
+  getDirectory(filePath) {
+    const parts = filePath.replace(/\\/g, "/").split("/");
+    if (parts.length <= 1) {
+      return "./";
+    }
+    return parts.slice(0, -1).join("/") + "/";
   }
 };
 
