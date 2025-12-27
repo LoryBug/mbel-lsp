@@ -20,7 +20,9 @@
       "Skill(x-typescript-npm-tddab)",
       "Bash(ls -la \"C:\\\\Progetti\\\\mbel-lsp\\\\memory-bank\"\" 2>&1 || echo \"Directory does not exist \")",
       "Bash(node --experimental-specifier-resolution=node --loader ts-node/esm -e \"\nimport { MbelParser } from ''./packages/mbel-core/src/parser.ts'';\n\nconst parser = new MbelParser\\(\\);\nconst result = parser.parse\\(''@entry::src/index.ts''\\);\nconsole.log\\(''Statements:'', JSON.stringify\\(result.document.statements.map\\(s => \\({ type: s.type, path: s.path }\\)\\), null, 2\\)\\);\nconsole.log\\(''Errors:'', result.errors\\);\n\")",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(node test-query-service.mjs:*)",
+      "Bash(node test-depends.mjs:*)"
     ]
   }
 }

@@ -11254,7 +11254,9 @@ var QueryService = class {
         file: link.entryPoint.file,
         symbol: link.entryPoint.symbol,
         line: link.entryPoint.line
-      } : null
+      } : null,
+      depends: link.depends ?? [],
+      related: link.related ?? []
     };
   }
   /**
@@ -11365,7 +11367,9 @@ var QueryService = class {
         file: link.entryPoint.file,
         symbol: link.entryPoint.symbol,
         line: link.entryPoint.line
-      } : null
+      } : null,
+      depends: link.depends ?? [],
+      related: link.related ?? []
     }));
   }
   // =========================================

@@ -75,6 +75,8 @@ export interface FeatureFiles {
   readonly tests: readonly string[];
   readonly docs: readonly string[];
   readonly entryPoint: EntryPointInfo | null;
+  readonly depends: readonly string[];
+  readonly related: readonly string[];
 }
 
 /**

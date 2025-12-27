@@ -54,6 +54,8 @@ export class QueryService {
             line: link.entryPoint.line,
           }
         : null,
+      depends: link.depends ?? [],
+      related: link.related ?? [],
     };
   }
 
@@ -186,6 +188,8 @@ export class QueryService {
             line: link.entryPoint.line,
           }
         : null,
+      depends: link.depends ?? [],
+      related: link.related ?? [],
     }));
   }
 
