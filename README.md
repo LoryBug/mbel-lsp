@@ -1,11 +1,11 @@
-# MBEL v5 Language Server
+# MBEL v6 Language Server
 
-Language Server Protocol (LSP) implementation for **MBEL v5** (Memory Bank Expression Language) - a concise notation language for AI context management.
+Language Server Protocol (LSP) implementation for **MBEL v6** (Memory Bank Expression Language) - a concise notation language for AI context management.
 
 ## Features
 
 ### Core LSP Features
-- **Syntax Highlighting** - Full support for all 27+ MBEL operators
+- **Syntax Highlighting** - Full support for all 35+ MBEL operators
 - **Diagnostics** - Real-time error detection and warnings
 - **Hover Information** - Documentation for operators on hover
 - **Code Completion** - Operator suggestions with descriptions
@@ -117,9 +117,9 @@ mbel-lsp/
 └── package.json            # npm workspaces
 ```
 
-## MBEL v5 Syntax
+## MBEL v6 Syntax
 
-### Operators (27+)
+### Core Operators (27+)
 
 | Category | Operators | Description |
 |----------|-----------|-------------|
@@ -131,10 +131,68 @@ mbel-lsp/
 | **Logic** | `&` `\|\|` `¬` | AND, OR, NOT |
 | **Meta** | `§` `©` | Version, source/attribution |
 
-### Example
+### MBEL v6 Extensions
+
+#### CrossRefLinks (`§links` section)
+Bidirectional linking system connecting features to implementation files:
 
 ```mbel
-§MBEL:5.0
+[LINKS]
+§links
+@feature{Parser}
+  ->files[src/parser.ts, src/ast.ts]
+  ->tests[tests/parser.test.ts]
+  ->docs[docs/parser.md]
+  ->entryPoint{parser.ts:MbelParser:45}
+
+@task{RefactorLexer}
+  ->files[src/lexer.ts{TO-MODIFY}]
+  ->depends[Parser, Analyzer]
+  ->blueprint["1.Update tokens", "2.Add tests", "3.Refactor"]
+```
+
+**Arrow Clauses:**
+| Clause | Description |
+|--------|-------------|
+| `->files[...]` | Implementation files (supports glob: `src/**/*.ts`) |
+| `->tests[...]` | Test files |
+| `->docs[...]` | Documentation files |
+| `->entryPoint{file:symbol:line}` | Main entry point |
+| `->depends[...]` | Dependencies on other features |
+| `->related[...]` | Related features |
+| `->decisions[...]` | Architectural decisions |
+| `->blueprint[...]` | Implementation steps |
+
+**File Markers:**
+- `{TO-CREATE}` - File needs to be created
+- `{TO-MODIFY}` - File needs modification
+- `:10-50` - Line range (lines 10 to 50)
+
+#### SemanticAnchors (`§anchors` section)
+Semantic entry points marking important code locations:
+
+```mbel
+[ANCHORS]
+§anchors
+@entry::src/index.ts
+  ->descrizione::Main application entry point
+@hotspot::src/core/parser.ts
+  ->descrizione::Frequently modified, high change rate
+@boundary::src/api/external.ts
+  ->descrizione::System boundary for external API
+```
+
+**Anchor Types:**
+| Type | Description |
+|------|-------------|
+| `@entry::` | Application entry points |
+| `@hotspot::` | Frequently modified files (high churn) |
+| `@boundary::` | System boundaries (APIs, integrations) |
+
+### Basic Example
+
+```mbel
+§MBEL:6.0
 
 [FOCUS]
 @current::ImplementingFeature{priority:high}
@@ -144,9 +202,41 @@ mbel-lsp/
 [DEPENDENCIES]
 @deps::typescript^5.3.0,vitest^1.0.0
 
+[LINKS]
+§links
+@feature{Core}->files[src/index.ts]->tests[tests/index.test.ts]
+
+[ANCHORS]
+§anchors
+@entry::src/index.ts
+  ->descrizione::Main entry
+
 [NOTES]
 (This is a comment block that won't generate errors)
 ```
+
+## Diagnostics
+
+### CrossRefLinks Validation (MBEL-LINK-*)
+| Code | Severity | Description |
+|------|----------|-------------|
+| MBEL-LINK-001 | Error | Link without name |
+| MBEL-LINK-002 | Error | Invalid name characters |
+| MBEL-LINK-003 | Warning | Duplicate link names |
+| MBEL-LINK-010 | Error | Invalid glob pattern |
+| MBEL-LINK-011 | Error | Invalid line range format |
+| MBEL-LINK-020 | Warning | Reference to undefined decision |
+| MBEL-LINK-030 | Warning | Circular dependency |
+| MBEL-LINK-070 | Hint | Orphan link (no files or tests) |
+
+### SemanticAnchors Validation (MBEL-ANCHOR-*)
+| Code | Severity | Description |
+|------|----------|-------------|
+| MBEL-ANCHOR-001 | Error | Empty anchor path |
+| MBEL-ANCHOR-002 | Error | Path contains spaces |
+| MBEL-ANCHOR-003 | Warning | Duplicate anchor for same path |
+| MBEL-ANCHOR-010 | Warning | Empty description |
+| MBEL-ANCHOR-011 | Error | Invalid glob pattern (e.g., `***`) |
 
 ## Development
 
@@ -164,19 +254,24 @@ npm run btlt         # Build + Type-check + Lint + Test
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| mbel-core | 103 | 93% |
-| mbel-analyzer | 48 | 95% |
+| mbel-core | 177 | 92% |
+| mbel-analyzer | 90 | 96% |
 | mbel-lsp | 108 | 98% |
-| **Total** | **259** | **87%** |
+| **Total** | **375** | **91%** |
 
 ## Roadmap
 
-### Next Up
-- [ ] **Rename Symbol** - Rename sections/attributes across file
-- [ ] **Folding Ranges** - Collapse sections and code blocks
-- [ ] **Code Actions** - Quick fixes for common errors
+### MBEL v6 Phase 1 (In Progress)
+- [x] **TDDAB#9: CrossRefLinks** - Bidirectional feature-to-file linking
+- [x] **TDDAB#10: SemanticAnchors** - Semantic code entry points
+- [ ] **TDDAB#11: DecisionLog** - Architectural decision records
+- [ ] **TDDAB#12: BlueprintSteps** - Implementation step tracking
+- [ ] **TDDAB#13: ContextWindow** - Token budget management
+- [ ] **TDDAB#14: MetricsBlock** - Project metrics tracking
+- [ ] **TDDAB#15: DependencyGraph** - Visual dependency mapping
+- [ ] **TDDAB#16: ChangeHistory** - Temporal change tracking
 
-### Completed
+### Core Features (Completed)
 - [x] **OpenCode Integration** - Slash commands + Custom tools
 - [x] **LLM Query Methods** - Semantic queries for AI agents
 - [x] **Go to Definition** - Navigate to declarations
@@ -184,10 +279,12 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **Workspace Symbols** - Cross-file symbol search
 
 ### Future
+- [ ] **Rename Symbol** - Rename sections/attributes across file
+- [ ] **Folding Ranges** - Collapse sections and code blocks
+- [ ] **Code Actions** - Quick fixes for common errors
 - [ ] **Multi-file Support** - Cross-file references and diagnostics
 - [ ] **Formatting** - Auto-format MBEL documents
 - [ ] **Publish to Marketplace** - Official VSCode extension
-- [ ] **Other Editors** - Neovim, Sublime Text, JetBrains IDEs
 
 ## Tech Stack
 

@@ -27,7 +27,8 @@ export type Statement =
   | VersionStatement
   | SourceStatement
   | ExpressionStatement
-  | LinkDeclaration;
+  | LinkDeclaration
+  | AnchorDeclaration;  // TDDAB#10: SemanticAnchors
 
 // [SectionName] - Section declaration
 export interface SectionDeclaration extends AstNode {
@@ -242,4 +243,27 @@ export interface ArrowClause extends AstNode {
   readonly type: 'ArrowClause';
   readonly clauseType: ArrowClauseType;
   readonly content: string;
+}
+
+// =========================================
+// MBEL v6 SemanticAnchors AST Nodes (TDDAB#10)
+// =========================================
+
+/**
+ * Anchor type marker
+ * @entry:: for entry points, @hotspot:: for frequently modified, @boundary:: for system boundaries
+ */
+export type AnchorType = 'entry' | 'hotspot' | 'boundary';
+
+/**
+ * Anchor declaration - node for §anchors section
+ * e.g., @entry::src/index.ts
+ *         ->descrizione::Main entry point
+ */
+export interface AnchorDeclaration extends AstNode {
+  readonly type: 'AnchorDeclaration';
+  readonly anchorType: AnchorType;
+  readonly path: string;
+  readonly isGlob: boolean;
+  readonly description: string | null;
 }

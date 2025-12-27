@@ -15,6 +15,8 @@ import type {
   // MBEL v6 CrossRefLinks
   LinkDeclaration,
   FileRef,
+  // MBEL v6 SemanticAnchors (TDDAB#10)
+  AnchorDeclaration,
 } from '@mbel/core';
 import type { AnalysisResult, AnalyzerOptions, Diagnostic, DiagnosticCode, QuickFix, TextEdit, RelatedInformation } from './types.js';
 
@@ -353,6 +355,9 @@ export class MbelAnalyzer {
 
     // MBEL v6: Check link declarations
     diagnostics.push(...this.checkLinkDeclarations(document));
+
+    // MBEL v6: Check anchor declarations (TDDAB#10)
+    diagnostics.push(...this.checkAnchorDeclarations(document));
 
     return diagnostics;
   }
@@ -914,6 +919,92 @@ export class MbelAnalyzer {
           severity: 'warning',
           code: 'MBEL-LINK-030',
           message: `Circular dependency detected involving "${link.name}"`,
+          source: 'mbel',
+        });
+      }
+    }
+
+    return diagnostics;
+  }
+
+  // =========================================
+  // MBEL v6 SemanticAnchors Validation (TDDAB#10)
+  // =========================================
+
+  /**
+   * Check anchor declarations for validation issues
+   */
+  private checkAnchorDeclarations(document: Document): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Filter for AnchorDeclaration nodes
+    const anchors = document.statements.filter(
+      (stmt): stmt is AnchorDeclaration => stmt.type === 'AnchorDeclaration'
+    );
+
+    // Track anchor paths for duplicate detection
+    const anchorPaths = new Map<string, AnchorDeclaration>();
+
+    for (const anchor of anchors) {
+      // MBEL-ANCHOR-001: Empty anchor path
+      if (!anchor.path || anchor.path.trim() === '') {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: 'error',
+          code: 'MBEL-ANCHOR-001',
+          message: 'Anchor path cannot be empty',
+          source: 'mbel',
+        });
+        continue; // Skip further validation for invalid anchor
+      }
+
+      // MBEL-ANCHOR-002: Invalid path characters (spaces)
+      if (/\s/.test(anchor.path)) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: 'error',
+          code: 'MBEL-ANCHOR-002',
+          message: `Anchor path contains invalid characters (spaces): "${anchor.path}"`,
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-ANCHOR-003: Duplicate anchor for same path
+      const existingAnchor = anchorPaths.get(anchor.path);
+      if (existingAnchor) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: 'warning',
+          code: 'MBEL-ANCHOR-003',
+          message: `Duplicate anchor for path "${anchor.path}"`,
+          source: 'mbel',
+          relatedInfo: [{
+            location: { start: existingAnchor.start, end: existingAnchor.end },
+            message: 'First anchor declaration here',
+          }],
+        });
+      } else {
+        anchorPaths.set(anchor.path, anchor);
+      }
+
+      // MBEL-ANCHOR-010: Empty description (only if provided but empty)
+      if (anchor.description === '') {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: 'warning',
+          code: 'MBEL-ANCHOR-010',
+          message: 'Anchor description is empty',
+          source: 'mbel',
+        });
+      }
+
+      // MBEL-ANCHOR-011: Invalid glob pattern (like ***)
+      if (anchor.isGlob && /\*{3,}/.test(anchor.path)) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: 'error',
+          code: 'MBEL-ANCHOR-011',
+          message: `Invalid glob pattern in anchor path: "${anchor.path}"`,
           source: 'mbel',
         });
       }

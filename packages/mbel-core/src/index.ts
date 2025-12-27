@@ -60,4 +60,7 @@ export type {
   EntryPoint,
   ArrowClause,
   ArrowClauseType,
+  // MBEL v6 SemanticAnchors (TDDAB#10)
+  AnchorDeclaration,
+  AnchorType,
 } from './ast.js';

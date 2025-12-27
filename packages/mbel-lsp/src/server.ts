@@ -24,8 +24,18 @@ import {
 import { MbelAnalyzer } from '@mbel/analyzer';
 import { MbelParser } from '@mbel/core';
 import type { Diagnostic } from '@mbel/analyzer';
-import type { MbelServerOptions, DocumentState, SemanticItem, ProjectStatus } from './types.js';
+import type {
+  MbelServerOptions,
+  DocumentState,
+  SemanticItem,
+  ProjectStatus,
+  FeatureFiles,
+  FileFeatureInfo,
+  EntryPointInfo,
+  AnchorInfo,
+} from './types.js';
 import { createInitializeResult } from './types.js';
+import { QueryService } from './query-service.js';
 
 /**
  * Operator documentation for hover and completion
@@ -74,6 +84,7 @@ const OPERATOR_INFO: Record<string, { label: string; description: string; catego
 export class MbelServer {
   private readonly analyzer: MbelAnalyzer;
   private readonly parser = new MbelParser();
+  private readonly queryService = new QueryService();
   private readonly documents = new Map<string, DocumentState>();
   private readonly options: Required<MbelServerOptions>;
 
@@ -567,6 +578,73 @@ export class MbelServer {
     }
 
     return items;
+  }
+
+  // ============================================
+  // CrossRef Query Methods (TDDAB#17) - LLM Navigation API
+  // ============================================
+
+  /**
+   * Get files associated with a feature (forward lookup)
+   * @param uri - Document URI
+   * @param featureName - Name of the feature or task
+   */
+  getFeatureFiles(uri: string, featureName: string): FeatureFiles | null {
+    const doc = this.documents.get(uri);
+    if (!doc) return null;
+    return this.queryService.getFeatureFiles(doc.content, featureName);
+  }
+
+  /**
+   * Get features that contain a specific file (reverse lookup)
+   * @param uri - Document URI
+   * @param filePath - File path to search for
+   */
+  getFileFeatures(uri: string, filePath: string): FileFeatureInfo[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    return this.queryService.getFileFeatures(doc.content, filePath);
+  }
+
+  /**
+   * Get all entry points from the document
+   * @param uri - Document URI
+   */
+  getEntryPoints(uri: string): Map<string, EntryPointInfo> {
+    const doc = this.documents.get(uri);
+    if (!doc) return new Map();
+    return this.queryService.getEntryPoints(doc.content);
+  }
+
+  /**
+   * Get all semantic anchors from the document
+   * @param uri - Document URI
+   */
+  getAnchors(uri: string): AnchorInfo[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    return this.queryService.getAnchors(doc.content);
+  }
+
+  /**
+   * Get anchors filtered by type
+   * @param uri - Document URI
+   * @param type - Anchor type to filter by
+   */
+  getAnchorsByType(uri: string, type: 'entry' | 'hotspot' | 'boundary'): AnchorInfo[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    return this.queryService.getAnchorsByType(doc.content, type);
+  }
+
+  /**
+   * Get all features and tasks from the document
+   * @param uri - Document URI
+   */
+  getAllFeatures(uri: string): FeatureFiles[] {
+    const doc = this.documents.get(uri);
+    if (!doc) return [];
+    return this.queryService.getAllFeatures(doc.content);
   }
 
   /**

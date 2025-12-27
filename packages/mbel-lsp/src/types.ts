@@ -52,6 +52,60 @@ export interface ProjectStatus {
   readonly recentChanges: number;
 }
 
+// =========================================
+// MBEL v6 Query API Types (TDDAB#17)
+// =========================================
+
+/**
+ * Entry point information for a feature
+ */
+export interface EntryPointInfo {
+  readonly file: string;
+  readonly symbol: string;
+  readonly line: number | null;
+}
+
+/**
+ * Files associated with a feature (forward lookup result)
+ */
+export interface FeatureFiles {
+  readonly name: string;
+  readonly type: 'feature' | 'task';
+  readonly files: readonly string[];
+  readonly tests: readonly string[];
+  readonly docs: readonly string[];
+  readonly entryPoint: EntryPointInfo | null;
+}
+
+/**
+ * Feature info for reverse lookup (file → features)
+ */
+export interface FileFeatureInfo {
+  readonly name: string;
+  readonly type: 'feature' | 'task';
+  readonly relation: 'file' | 'test' | 'doc';
+}
+
+/**
+ * Anchor information for navigation
+ */
+export interface AnchorInfo {
+  readonly path: string;
+  readonly type: 'entry' | 'hotspot' | 'boundary';
+  readonly description: string | null;
+  readonly isGlob: boolean;
+}
+
+/**
+ * Query result wrapper for LLM-friendly output
+ */
+export interface QueryResult<T> {
+  readonly success: boolean;
+  readonly query: string;
+  readonly result: T;
+  readonly suggestion?: string;
+}
+
 /**
  * Server capabilities for MBEL LSP
  */

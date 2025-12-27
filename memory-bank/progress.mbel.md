@@ -95,12 +95,29 @@
    └─ Analyzer::17codes{MBEL-LINK-001→070,EMPTY→ORPHAN}
 
 [TDDAB#10]
-?SemanticAnchors{§anchors-section}
-├─ Status::Pending
-├─ Tests::~18{lexer,parser,analyzer}
-├─ Tokens::+5{->descrizione,@entry::,@hotspot::,@boundary::}
-├─ Priority::2{Quick-Win}
-└─ Files::anchors-rules.ts
+✓SemanticAnchors{§anchors-section}
+├─ Status::Complete✓
+├─ RED::37tests{lexer:15,parser:12,analyzer:10}✓
+├─ GREEN::Implementation{4tokens,5codes,diagnostics-refined}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{375/375}+Coverage✓{90.85%}
+├─ Commit::Pending
+└─ Features::
+   ├─ Lexer::4tokens{ARROW_DESCRIZIONE,ANCHOR_ENTRY,ANCHOR_HOTSPOT,ANCHOR_BOUNDARY}
+   ├─ AST::AnchorDeclaration{anchorType,path,isGlob,description}
+   └─ Analyzer::5codes{MBEL-ANCHOR-001→011}
+
+[TDDAB#17]
+✓QueryService{API-methods-for-LLM-navigation}
+├─ Status::Complete✓
+├─ RED::23tests{query-service.test.ts}✓
+├─ GREEN::Implementation{6methods,5types,typed-export}✓
+├─ VERIFY::Build✓+Lint✓+Tests✓{398/398}+Coverage✓{91.27%}
+├─ QueryService::95.05%{excellent}
+├─ Commit::Ready
+└─ Features::
+   ├─ Methods::getFeatureFiles{forward-lookup},getFileFeatures{reverse-lookup},getEntryPoints{all-entries},getAnchors{all-anchors},getAnchorsByType{filtered},getAllFeatures{list-all}
+   ├─ Types::FeatureFiles,FileFeatureInfo,EntryPointInfo,AnchorInfo,QueryResult
+   └─ Export::index.ts{QueryService-public-API}
 
 [TDDAB#11]
 ?DecisionLog{§decisions-extended}
@@ -154,12 +171,13 @@
 @metrics::
 - TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
 - TotalTests-V6-Phase1::#79{links:25,parser:22,analyzer:32}
-- TotalTests-Running::#338{V5:259+Phase1:79}
-- TotalTests-V6::+68{anchors:18,decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
-- TotalTests-Projected::406{V5:259+V6:147}
+- TotalTests-Running::#398{V5:259+Phase1:79+QueryService:23}
+- TotalTests-V6::+45{decisions:20,heat:18,intents:16,api:25,query:15,integration:10}
+- TotalTests-Projected::429{V5:259+V6:170}
 - Coverage-V5::%87{overall}
 - Coverage-TDDAB#9::%90.32{overall},95.92%{analyzer}
-- Coverage-Target::%90{v6}
+- Coverage-TDDAB#17::%91.27{overall},95.05%{query-service}
+- Coverage-Target::%90{exceeded}
 - NewTokens::~40{sections:5,operators:25,prefixes:7,markers:3}
 - NewASTNodes::~8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,QueryNode,...}
 

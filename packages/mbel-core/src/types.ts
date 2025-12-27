@@ -26,7 +26,7 @@ export type LogicOperator = '&' | '||' | '¬';
 // Meta operators [2]
 export type MetaOperator = '©' | '§';
 
-// MBEL v6 Arrow operators for CrossRefLinks [10]
+// MBEL v6 Arrow operators for CrossRefLinks [10] + SemanticAnchors [1]
 export type ArrowOperator =
   | '->files'
   | '->tests'
@@ -37,7 +37,14 @@ export type ArrowOperator =
   | '->blueprint'
   | '->depends'
   | '->features'
-  | '->why';
+  | '->why'
+  | '->descrizione';  // TDDAB#10: SemanticAnchors
+
+// MBEL v6 Anchor prefixes for SemanticAnchors [3]
+export type AnchorPrefix =
+  | '@entry::'
+  | '@hotspot::'
+  | '@boundary::';
 
 export type MbelOperator =
   | TemporalOperator
@@ -47,7 +54,8 @@ export type MbelOperator =
   | QuantificationOperator
   | LogicOperator
   | MetaOperator
-  | ArrowOperator;
+  | ArrowOperator
+  | AnchorPrefix;
 
 export type TokenType =
   // Operators
@@ -89,9 +97,14 @@ export type TokenType =
   | 'ARROW_DEPENDS'        // ->depends
   | 'ARROW_FEATURES'       // ->features
   | 'ARROW_WHY'            // ->why
+  | 'ARROW_DESCRIZIONE'    // ->descrizione (TDDAB#10)
   // MBEL v6 Link Type Markers
   | 'LINK_FEATURE'         // @feature
   | 'LINK_TASK'            // @task
+  // MBEL v6 Anchor Prefixes (TDDAB#10)
+  | 'ANCHOR_ENTRY'         // @entry::
+  | 'ANCHOR_HOTSPOT'       // @hotspot::
+  | 'ANCHOR_BOUNDARY'      // @boundary::
   // MBEL v6 Structure
   | 'STRUCT_LIST'          // [...] for lists (different from STRUCT_SECTION)
   // Literals and identifiers

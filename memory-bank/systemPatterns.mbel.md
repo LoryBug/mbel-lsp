@@ -17,6 +17,60 @@ mbel-lsp/
 └── package.json{npm-workspaces}
 )
 
+[LINKS]
+§links
+@feature{Lexer}
+  ->files[packages/mbel-core/src/lexer.ts, packages/mbel-core/src/types.ts]
+  ->tests[packages/mbel-core/tests/lexer.test.ts, packages/mbel-core/tests/lexer-links.test.ts, packages/mbel-core/tests/lexer-anchors.test.ts]
+  ->entryPoint{lexer.ts:MbelLexer:50}
+  ->related[Parser, Analyzer]
+
+@feature{Parser}
+  ->files[packages/mbel-core/src/parser.ts, packages/mbel-core/src/ast.ts]
+  ->tests[packages/mbel-core/tests/parser.test.ts, packages/mbel-core/tests/parser-links.test.ts, packages/mbel-core/tests/parser-anchors.test.ts]
+  ->entryPoint{parser.ts:MbelParser:45}
+  ->depends[Lexer]
+  ->related[Analyzer]
+
+@feature{Analyzer}
+  ->files[packages/mbel-analyzer/src/analyzer.ts, packages/mbel-analyzer/src/types.ts]
+  ->tests[packages/mbel-analyzer/tests/analyzer.test.ts, packages/mbel-analyzer/tests/links-validation.test.ts, packages/mbel-analyzer/tests/anchors-validation.test.ts]
+  ->entryPoint{analyzer.ts:MbelAnalyzer:30}
+  ->depends[Parser]
+
+@feature{LSPServer}
+  ->files[packages/mbel-lsp/src/server.ts, packages/mbel-lsp/src/types.ts, packages/mbel-lsp/src/bin.ts]
+  ->tests[packages/mbel-lsp/tests/server.test.ts, packages/mbel-lsp/tests/features.test.ts]
+  ->entryPoint{server.ts:MbelServer:74}
+  ->depends[Parser, Analyzer]
+
+@feature{QueryService}
+  ->files[packages/mbel-lsp/src/query-service.ts]
+  ->tests[packages/mbel-lsp/tests/query-service.test.ts]
+  ->entryPoint{query-service.ts:QueryService:25}
+  ->depends[Parser]
+  ->related[LSPServer]
+
+@feature{VSCodeExtension}
+  ->files[packages/vscode-extension/src/extension.ts]
+  ->docs[packages/vscode-extension/README.md]
+  ->depends[LSPServer]
+
+[ANCHORS]
+§anchors
+@entry::packages/mbel-core/src/index.ts
+  ->descrizione::Core package entry point (exports Lexer, Parser, AST types)
+@entry::packages/mbel-lsp/src/index.ts
+  ->descrizione::LSP package entry point (exports Server, QueryService)
+@entry::packages/mbel-lsp/src/bin.ts
+  ->descrizione::CLI entry point for LSP server
+@hotspot::packages/mbel-core/src/parser.ts
+  ->descrizione::Frequently modified when adding new syntax
+@hotspot::packages/mbel-analyzer/src/analyzer.ts
+  ->descrizione::Frequently modified when adding validation rules
+@boundary::packages/mbel-lsp/src/server.ts
+  ->descrizione::LSP protocol boundary
+
 [TDDAB_PLAN_V5]
 @methodology::TDDAB{TestFirst,Atomic,Verified}
 @status::Complete✓{259tests,coverage%87}
@@ -46,10 +100,16 @@ mbel-lsp/
   ↳test-files::{lexer-links.test.ts,parser-links.test.ts,links-validation.test.ts}
   ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
   ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
-?TDDAB#10::SemanticAnchors{scope:§anchors,tokens:~5,tests:18,priority:2}
-  ↳new-operators::{->descrizione}
-  ↳new-tokens::{@entry::,@hotspot::,@boundary::}
-  ↳files-to-create::{anchors-rules.ts}
+
+✓TDDAB#10::SemanticAnchors{scope:§anchors,tokens:4,tests:37,coverage:90.85%,priority:2}
+  ↳new-tokens::{ARROW_DESCRIZIONE,ANCHOR_ENTRY,ANCHOR_HOTSPOT,ANCHOR_BOUNDARY}
+  ↳ast-nodes::{AnchorDeclaration{anchorType,path,isGlob,description}}
+  ↳analyzer-codes::5{MBEL-ANCHOR-001→011}
+  ↳patterns::{AnchorPrefixMap:similar-to-ARROW_OPERATORS,PositionWhitespaceDetection:for-path-validation,TypeFilteredStatementCheck:anchor-specific}
+  ↳test-files::{lexer-anchors.test.ts,parser-anchors.test.ts,anchors-validation.test.ts}
+  ↳modified-files::{types.ts,lexer.ts,ast.ts,parser.ts,analyzer.ts,index.ts}
+  ↳status::Complete✓{build✓,lint✓,tests✓,coverage✓}
+
 ?TDDAB#11::DecisionLog{scope:§decisions-extended,tokens:~8,tests:20,priority:4}
   ↳new-operators::{->alternatives,->reason,->tradeoff,->context,->status,->revisit,->supersededBy}
   ↳new-tokens::{@date::}

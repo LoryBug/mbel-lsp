@@ -24,7 +24,7 @@ describe('MbelAnalyzer: CrossRefLinks Validation (TDDAB#9)', () => {
   });
 
   // Helper to get diagnostics
-  const getDiagnostics = (input: string): Diagnostic[] => {
+  const getDiagnostics = (input: string): readonly Diagnostic[] => {
     const result = analyzer.analyzeText(input);
     return result.diagnostics;
   };

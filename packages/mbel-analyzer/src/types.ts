@@ -55,7 +55,13 @@ export type DiagnosticCode =
   | 'MBEL-LINK-050'           // Invalid entryPoint format
   | 'MBEL-LINK-051'           // Non-numeric line number in entryPoint
   | 'MBEL-LINK-060'           // Unknown file marker
-  | 'MBEL-LINK-070';          // Orphan link (no files or tests)
+  | 'MBEL-LINK-070'           // Orphan link (no files or tests)
+  // MBEL v6 SemanticAnchors validation (TDDAB#10)
+  | 'MBEL-ANCHOR-001'         // Empty anchor path
+  | 'MBEL-ANCHOR-002'         // Invalid path characters (spaces)
+  | 'MBEL-ANCHOR-003'         // Duplicate anchor for same path
+  | 'MBEL-ANCHOR-010'         // Empty description
+  | 'MBEL-ANCHOR-011';        // Invalid glob pattern (like ***)
 
 /**
  * Range in source document

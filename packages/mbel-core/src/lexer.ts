@@ -26,6 +26,14 @@ export class MbelLexer {
     ['depends', 'ARROW_DEPENDS'],
     ['features', 'ARROW_FEATURES'],
     ['why', 'ARROW_WHY'],
+    ['descrizione', 'ARROW_DESCRIZIONE'],  // TDDAB#10: SemanticAnchors
+  ]);
+
+  // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
+  private static readonly ANCHOR_PREFIXES: ReadonlyMap<string, TokenType> = new Map([
+    ['entry', 'ANCHOR_ENTRY'],
+    ['hotspot', 'ANCHOR_HOTSPOT'],
+    ['boundary', 'ANCHOR_BOUNDARY'],
   ]);
 
   // Track if last token was an arrow operator (for STRUCT_LIST detection)
@@ -395,8 +403,8 @@ export class MbelLexer {
   }
 
   /**
-   * MBEL v6: Scan link markers (@feature, @task)
-   * Returns true if a link marker was matched, false otherwise.
+   * MBEL v6: Scan link markers (@feature, @task) and anchor prefixes (@entry::, @hotspot::, @boundary::)
+   * Returns true if a link marker or anchor prefix was matched, false otherwise.
    */
   private scanLinkMarker(start: Position): boolean {
     // We already know we're at '@'
@@ -410,7 +418,22 @@ export class MbelLexer {
       offset++;
     }
 
-    // Check for @feature or @task
+    // TDDAB#10: Check for anchor prefixes (@keyword::) FIRST
+    // Anchor prefixes require '::' after the keyword
+    if (this.peekAt(offset) === ':' && this.peekAt(offset + 1) === ':') {
+      const anchorType = MbelLexer.ANCHOR_PREFIXES.get(keyword);
+      if (anchorType) {
+        const value = '@' + keyword + '::';
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken(anchorType, value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
+    }
+
+    // Check for @feature or @task (link markers without ::)
     if (keyword === 'feature') {
       const value = '@feature';
       for (let i = 0; i < value.length; i++) {
@@ -431,7 +454,7 @@ export class MbelLexer {
       return true;
     }
 
-    // Not a recognized link marker
+    // Not a recognized link marker or anchor prefix
     return false;
   }
 

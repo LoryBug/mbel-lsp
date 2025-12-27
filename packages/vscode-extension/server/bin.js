@@ -9148,7 +9148,15 @@ var MbelLexer = class _MbelLexer {
     ["blueprint", "ARROW_BLUEPRINT"],
     ["depends", "ARROW_DEPENDS"],
     ["features", "ARROW_FEATURES"],
-    ["why", "ARROW_WHY"]
+    ["why", "ARROW_WHY"],
+    ["descrizione", "ARROW_DESCRIZIONE"]
+    // TDDAB#10: SemanticAnchors
+  ]);
+  // MBEL v6 Anchor prefix mapping (@keyword::) - TDDAB#10
+  static ANCHOR_PREFIXES = /* @__PURE__ */ new Map([
+    ["entry", "ANCHOR_ENTRY"],
+    ["hotspot", "ANCHOR_HOTSPOT"],
+    ["boundary", "ANCHOR_BOUNDARY"]
   ]);
   // Track if last token was an arrow operator (for STRUCT_LIST detection)
   lastTokenWasArrow = false;
@@ -9447,8 +9455,8 @@ var MbelLexer = class _MbelLexer {
     return false;
   }
   /**
-   * MBEL v6: Scan link markers (@feature, @task)
-   * Returns true if a link marker was matched, false otherwise.
+   * MBEL v6: Scan link markers (@feature, @task) and anchor prefixes (@entry::, @hotspot::, @boundary::)
+   * Returns true if a link marker or anchor prefix was matched, false otherwise.
    */
   scanLinkMarker(start) {
     let keyword = "";
@@ -9456,6 +9464,18 @@ var MbelLexer = class _MbelLexer {
     while (this.isIdentifierPart(this.peekAt(offset))) {
       keyword += this.peekAt(offset);
       offset++;
+    }
+    if (this.peekAt(offset) === ":" && this.peekAt(offset + 1) === ":") {
+      const anchorType = _MbelLexer.ANCHOR_PREFIXES.get(keyword);
+      if (anchorType) {
+        const value = "@" + keyword + "::";
+        for (let i = 0; i < value.length; i++) {
+          this.advance();
+        }
+        this.addToken(anchorType, value, start);
+        this.lastTokenWasArrow = false;
+        return true;
+      }
     }
     if (keyword === "feature") {
       const value = "@feature";
@@ -9581,6 +9601,9 @@ var MbelParser = class {
     }
     if (token.type === "LINK_FEATURE" || token.type === "LINK_TASK") {
       return this.parseLinkDeclaration();
+    }
+    if (this.isAnchorToken(token.type)) {
+      return this.parseAnchorDeclaration();
     }
     if (token.type === "IDENTIFIER" || token.type === "NUMBER") {
       return this.parseExpressionStatement();
@@ -10175,6 +10198,79 @@ var MbelParser = class {
       "ARROW_WHY"
     ].includes(type);
   }
+  // =========================================
+  // MBEL v6 SemanticAnchors Parsing (TDDAB#10)
+  // =========================================
+  /**
+   * Check if token is an anchor prefix (@entry::, @hotspot::, @boundary::)
+   */
+  isAnchorToken(type) {
+    return ["ANCHOR_ENTRY", "ANCHOR_HOTSPOT", "ANCHOR_BOUNDARY"].includes(type);
+  }
+  /**
+   * Get anchor type from token type
+   */
+  getAnchorType(type) {
+    switch (type) {
+      case "ANCHOR_ENTRY":
+        return "entry";
+      case "ANCHOR_HOTSPOT":
+        return "hotspot";
+      case "ANCHOR_BOUNDARY":
+        return "boundary";
+      default:
+        return "entry";
+    }
+  }
+  /**
+   * Parse anchor declaration
+   * e.g., @entry::src/index.ts
+   *         ->descrizione::Main entry point
+   */
+  parseAnchorDeclaration() {
+    const start = this.peek().start;
+    const anchorToken = this.advance();
+    const anchorType = this.getAnchorType(anchorToken.type);
+    let path = "";
+    let lastEnd = null;
+    while (!this.isAtEnd() && !this.check("NEWLINE") && !this.check("ARROW_DESCRIZIONE")) {
+      const token = this.advance();
+      if (lastEnd !== null && token.start.offset > lastEnd.offset) {
+        path += " ";
+      }
+      path += token.value;
+      lastEnd = token.end;
+    }
+    path = path.trim();
+    const isGlob = /[*?]/.test(path);
+    let description = null;
+    let end = this.previous()?.end ?? start;
+    while (this.check("NEWLINE")) {
+      this.advance();
+    }
+    if (this.check("ARROW_DESCRIZIONE")) {
+      this.advance();
+      if (this.check("RELATION_DEFINES")) {
+        this.advance();
+        const descTokens = [];
+        while (!this.isAtEnd() && !this.check("NEWLINE")) {
+          const token = this.advance();
+          descTokens.push(token.value);
+        }
+        description = descTokens.join(" ").trim();
+        end = this.previous()?.end ?? end;
+      }
+    }
+    return {
+      type: "AnchorDeclaration",
+      anchorType,
+      path,
+      isGlob,
+      description,
+      start,
+      end
+    };
+  }
   // Helper methods
   isTemporalOperator(type) {
     return ["TEMPORAL_PRESENT", "TEMPORAL_PAST", "TEMPORAL_FUTURE", "TEMPORAL_APPROX"].includes(type);
@@ -10522,6 +10618,7 @@ var MbelAnalyzer = class {
     diagnostics.push(...this.checkDuplicateSections(document));
     diagnostics.push(...this.checkDuplicateAttributes(document));
     diagnostics.push(...this.checkLinkDeclarations(document));
+    diagnostics.push(...this.checkAnchorDeclarations(document));
     return diagnostics;
   }
   checkMissingVersion(document) {
@@ -10983,6 +11080,73 @@ var MbelAnalyzer = class {
     }
     return diagnostics;
   }
+  // =========================================
+  // MBEL v6 SemanticAnchors Validation (TDDAB#10)
+  // =========================================
+  /**
+   * Check anchor declarations for validation issues
+   */
+  checkAnchorDeclarations(document) {
+    const diagnostics = [];
+    const anchors = document.statements.filter((stmt) => stmt.type === "AnchorDeclaration");
+    const anchorPaths = /* @__PURE__ */ new Map();
+    for (const anchor of anchors) {
+      if (!anchor.path || anchor.path.trim() === "") {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: "error",
+          code: "MBEL-ANCHOR-001",
+          message: "Anchor path cannot be empty",
+          source: "mbel"
+        });
+        continue;
+      }
+      if (/\s/.test(anchor.path)) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: "error",
+          code: "MBEL-ANCHOR-002",
+          message: `Anchor path contains invalid characters (spaces): "${anchor.path}"`,
+          source: "mbel"
+        });
+      }
+      const existingAnchor = anchorPaths.get(anchor.path);
+      if (existingAnchor) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: "warning",
+          code: "MBEL-ANCHOR-003",
+          message: `Duplicate anchor for path "${anchor.path}"`,
+          source: "mbel",
+          relatedInfo: [{
+            location: { start: existingAnchor.start, end: existingAnchor.end },
+            message: "First anchor declaration here"
+          }]
+        });
+      } else {
+        anchorPaths.set(anchor.path, anchor);
+      }
+      if (anchor.description === "") {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: "warning",
+          code: "MBEL-ANCHOR-010",
+          message: "Anchor description is empty",
+          source: "mbel"
+        });
+      }
+      if (anchor.isGlob && /\*{3,}/.test(anchor.path)) {
+        diagnostics.push({
+          range: { start: anchor.start, end: anchor.end },
+          severity: "error",
+          code: "MBEL-ANCHOR-011",
+          message: `Invalid glob pattern in anchor path: "${anchor.path}"`,
+          source: "mbel"
+        });
+      }
+    }
+    return diagnostics;
+  }
   // --- Quick Fix Generators ---
   createArticleRemovalFix(diagnostic) {
     const edit = {
@@ -11060,6 +11224,210 @@ function createInitializeResult() {
   };
 }
 
+// ../mbel-lsp/src/query-service.ts
+var QueryService = class {
+  parser;
+  constructor() {
+    this.parser = new MbelParser();
+  }
+  /**
+   * Forward lookup: Get files associated with a feature/task
+   * @param content - MBEL document content
+   * @param featureName - Name of the feature or task
+   * @returns FeatureFiles or null if not found
+   */
+  getFeatureFiles(content, featureName) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return null;
+    const links = this.getLinks(document);
+    const link = links.find((l) => l.name === featureName);
+    if (!link)
+      return null;
+    return {
+      name: link.name,
+      type: link.linkType,
+      files: link.files?.map((f) => this.formatFilePath(f.path, f.marker)) ?? [],
+      tests: link.tests?.map((f) => f.path) ?? [],
+      docs: link.docs?.map((f) => f.path) ?? [],
+      entryPoint: link.entryPoint ? {
+        file: link.entryPoint.file,
+        symbol: link.entryPoint.symbol,
+        line: link.entryPoint.line
+      } : null
+    };
+  }
+  /**
+   * Reverse lookup: Get features that contain a specific file
+   * @param content - MBEL document content
+   * @param filePath - File path to search for
+   * @returns Array of features containing the file
+   */
+  getFileFeatures(content, filePath) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return [];
+    const links = this.getLinks(document);
+    const result = [];
+    for (const link of links) {
+      if (this.pathMatches(link.files?.map((f) => f.path) ?? [], filePath)) {
+        result.push({
+          name: link.name,
+          type: link.linkType,
+          relation: "file"
+        });
+        continue;
+      }
+      if (this.pathMatches(link.tests?.map((f) => f.path) ?? [], filePath)) {
+        result.push({
+          name: link.name,
+          type: link.linkType,
+          relation: "test"
+        });
+        continue;
+      }
+      if (this.pathMatches(link.docs?.map((f) => f.path) ?? [], filePath)) {
+        result.push({
+          name: link.name,
+          type: link.linkType,
+          relation: "doc"
+        });
+      }
+    }
+    return result;
+  }
+  /**
+   * Get all entry points from the document
+   * @param content - MBEL document content
+   * @returns Map of feature name to entry point
+   */
+  getEntryPoints(content) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return /* @__PURE__ */ new Map();
+    const links = this.getLinks(document);
+    const result = /* @__PURE__ */ new Map();
+    for (const link of links) {
+      if (link.entryPoint) {
+        result.set(link.name, {
+          file: link.entryPoint.file,
+          symbol: link.entryPoint.symbol,
+          line: link.entryPoint.line
+        });
+      }
+    }
+    return result;
+  }
+  /**
+   * Get all semantic anchors from the document
+   * @param content - MBEL document content
+   * @returns Array of anchor information
+   */
+  getAnchors(content) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return [];
+    const anchors = this.getAnchorDeclarations(document);
+    return anchors.map((anchor) => ({
+      path: anchor.path,
+      type: anchor.anchorType,
+      description: anchor.description,
+      isGlob: anchor.isGlob
+    }));
+  }
+  /**
+   * Get anchors filtered by type
+   * @param content - MBEL document content
+   * @param type - Anchor type to filter by
+   * @returns Array of anchors matching the type
+   */
+  getAnchorsByType(content, type) {
+    const anchors = this.getAnchors(content);
+    return anchors.filter((a) => a.type === type);
+  }
+  /**
+   * Get all features and tasks from the document
+   * @param content - MBEL document content
+   * @returns Array of feature/task info
+   */
+  getAllFeatures(content) {
+    const document = this.parseDocument(content);
+    if (!document)
+      return [];
+    const links = this.getLinks(document);
+    return links.map((link) => ({
+      name: link.name,
+      type: link.linkType,
+      files: link.files?.map((f) => this.formatFilePath(f.path, f.marker)) ?? [],
+      tests: link.tests?.map((f) => f.path) ?? [],
+      docs: link.docs?.map((f) => f.path) ?? [],
+      entryPoint: link.entryPoint ? {
+        file: link.entryPoint.file,
+        symbol: link.entryPoint.symbol,
+        line: link.entryPoint.line
+      } : null
+    }));
+  }
+  // =========================================
+  // Private Helper Methods
+  // =========================================
+  /**
+   * Parse document content safely
+   */
+  parseDocument(content) {
+    if (!content || content.trim() === "")
+      return null;
+    try {
+      const result = this.parser.parse(content);
+      return result.document;
+    } catch {
+      return null;
+    }
+  }
+  /**
+   * Extract LinkDeclaration nodes from document
+   */
+  getLinks(document) {
+    return document.statements.filter(
+      (stmt) => stmt.type === "LinkDeclaration"
+    );
+  }
+  /**
+   * Extract AnchorDeclaration nodes from document
+   */
+  getAnchorDeclarations(document) {
+    return document.statements.filter(
+      (stmt) => stmt.type === "AnchorDeclaration"
+    );
+  }
+  /**
+   * Check if any path in the array matches the search path
+   * Supports partial matching (e.g., "parser.ts" matches "src/parser.ts")
+   */
+  pathMatches(paths, searchPath) {
+    const normalizedSearch = this.normalizePath(searchPath);
+    return paths.some((path) => {
+      const normalizedPath = this.normalizePath(path);
+      return normalizedPath === normalizedSearch || normalizedPath.endsWith("/" + normalizedSearch) || normalizedPath.endsWith("\\" + normalizedSearch);
+    });
+  }
+  /**
+   * Normalize path separators
+   */
+  normalizePath(path) {
+    return path.replace(/\{[^}]+\}/g, "").trim();
+  }
+  /**
+   * Format file path with optional marker
+   */
+  formatFilePath(path, marker) {
+    if (marker) {
+      return `${path}{${marker}}`;
+    }
+    return path;
+  }
+};
+
 // ../mbel-lsp/src/server.ts
 var OPERATOR_INFO = {
   // Temporal
@@ -11101,6 +11469,7 @@ var OPERATOR_INFO = {
 var MbelServer = class {
   analyzer;
   parser = new MbelParser();
+  queryService = new QueryService();
   documents = /* @__PURE__ */ new Map();
   options;
   constructor(options = {}) {
@@ -11511,6 +11880,72 @@ ${info.description}`
       }
     }
     return items;
+  }
+  // ============================================
+  // CrossRef Query Methods (TDDAB#17) - LLM Navigation API
+  // ============================================
+  /**
+   * Get files associated with a feature (forward lookup)
+   * @param uri - Document URI
+   * @param featureName - Name of the feature or task
+   */
+  getFeatureFiles(uri, featureName) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return null;
+    return this.queryService.getFeatureFiles(doc.content, featureName);
+  }
+  /**
+   * Get features that contain a specific file (reverse lookup)
+   * @param uri - Document URI
+   * @param filePath - File path to search for
+   */
+  getFileFeatures(uri, filePath) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return [];
+    return this.queryService.getFileFeatures(doc.content, filePath);
+  }
+  /**
+   * Get all entry points from the document
+   * @param uri - Document URI
+   */
+  getEntryPoints(uri) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return /* @__PURE__ */ new Map();
+    return this.queryService.getEntryPoints(doc.content);
+  }
+  /**
+   * Get all semantic anchors from the document
+   * @param uri - Document URI
+   */
+  getAnchors(uri) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return [];
+    return this.queryService.getAnchors(doc.content);
+  }
+  /**
+   * Get anchors filtered by type
+   * @param uri - Document URI
+   * @param type - Anchor type to filter by
+   */
+  getAnchorsByType(uri, type) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return [];
+    return this.queryService.getAnchorsByType(doc.content, type);
+  }
+  /**
+   * Get all features and tasks from the document
+   * @param uri - Document URI
+   */
+  getAllFeatures(uri) {
+    const doc = this.documents.get(uri);
+    if (!doc)
+      return [];
+    return this.queryService.getAllFeatures(doc.content);
   }
   /**
    * Get the word (identifier) at a given position

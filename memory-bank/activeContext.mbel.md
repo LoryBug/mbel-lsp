@@ -6,6 +6,8 @@
 >completed::OpenCodeIntegration{SlashCommands+CustomTool}✓
 >completed::MBEL6.0-Planning{Design-complete}✓
 >completed::TDDAB#9::CrossRefLinks{14tokens,79tests,90.32%coverage}✓
+>completed::TDDAB#10::SemanticAnchors{4tokens,37tests,90.85%coverage}✓
+>completed::TDDAB#17::QueryService{23tests,398total,91.27%coverage}✓
 
 [DONE_V5]
 ✓ProjectSetup::MonorepoStructure{npmWorkspaces}
@@ -44,12 +46,22 @@
   ↳files-created::lexer-links.test.ts,parser-links.test.ts,links-validation.test.ts
   ↳all-checks::build✓,lint✓,tests✓,coverage✓
 
+✓TDDAB#10::SemanticAnchors{4tokens,37tests,90.85%coverage}
+  ↳lexer::4tokens{ARROW_DESCRIZIONE,ANCHOR_ENTRY,ANCHOR_HOTSPOT,ANCHOR_BOUNDARY}
+  ↳ast::AnchorDeclaration{anchorType,path,isGlob,description}
+  ↳analyzer::5codes{MBEL-ANCHOR-001→011}
+  ↳tests::15lexer+12parser+10analyzer{375total}
+  ↳patterns::AnchorPrefixMap{likeARROW_OPERATORS},PositionWhitespaceDetection{pathvalidation},TypeFilteredStatementCheck
+  ↳all-checks::build✓,lint✓,tests✓,coverage✓
+
 [RECENT]
->completed::MBEL6.0-Planning{Design-complete,ready-for-implementation}
->updated::systemPatterns.mbel.md{Version5→6,AddedTDDAB#9-#16}
->updated::progress.mbel.md{AddedPending-TDDAB#9-#16,metrics}
->completed::TDDAB#9{CrossRefLinks-implementation}
->updated::activeContext.mbel.md{Focus-to-Phase1,added-DONE_V6_PHASE1}
+>created::query-service.ts{QueryService-class,6methods,typed-API}
+>created::query-service.test.ts{23tests,95.05%coverage}
+>updated::types.ts{FeatureFiles,FileFeatureInfo,EntryPointInfo,AnchorInfo,QueryResult}
+>updated::index.ts{QueryService-export}
+>completed::TDDAB#17{QueryService-implementation,398tests-total}
+>updated::activeContext.mbel.md{FOCUS,RECENT,NEXT}
+>updated::progress.mbel.md{TDDAB#17-to-complete,398tests,91.27%coverage}
 
 [DECISIONS_V5]
 §decision::TypeScriptOnly{noAny,strict}
@@ -80,31 +92,40 @@
 §decision::LLMAPIStandalone
   ↳methods::7{getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext}
   ↳design::RequestResponse{typed-inputs,rich-outputs}
+§decision::LLM-Active-Navigation{2024-12-27}
+  ↳rationale::MBEL-data-needs-queryable-API{not-just-readable-files}
+  ↳requirements::getFeatureFiles,getFileFeatures,getEntryPoints,analyzeImpact,getOrphans
+  ↳success-metrics::50%reduction-in-file-reads,zero-forgotten-files
+  ↳design-doc::docs/LLM-NAVIGATION-IMPROVEMENTS.md
 
 [NEXT]
-?TDDAB#10::SemanticAnchors{priority:2,estimated-duration:2-3days}
-  ↳depends::TDDAB#9✓
-  ↳enables::TDDAB#14,#15
-?TDDAB#14::LLMAPILayer{priority:3,estimated-duration:3-4days}
-  ↳depends::TDDAB#9✓,#10,#15
-  ↳enables::TDDAB#16
-?TDDAB#15::QueryEngine{priority:3.5,estimated-duration:2-3days}
-  ↳depends::TDDAB#9✓,#10,#11
-  ↳enables::TDDAB#14
+!PRIORITY::LLM-Query-API{highest,enables-active-navigation}
+✓TDDAB#17::QueryService{priority:P0,23tests,95.05%coverage}
+  ↳methods::getFeatureFiles,getFileFeatures,getEntryPoints,getAnchors,getAnchorsByType,getAllFeatures
+  ↳depends::TDDAB#9✓,#10✓
+  ↳enables::LLM-active-codebase-navigation
+?TDDAB#18::QueryAPI-Anchors{priority:P1,estimated-duration:1-2days}
+  ↳methods::getAnchorsByType,analyzeImpact,getOrphanFiles
+  ↳depends::TDDAB#17✓
+?TDDAB#19::QueryAPI-Dependencies{priority:P2,estimated-duration:2days}
+  ↳methods::getFeatureDependencies,getBlueprintProgress
+  ↳depends::TDDAB#17✓,#18
 ?TDDAB#11::DecisionLog{priority:4,estimated-duration:2-3days}
+  ↳depends::TDDAB#9✓,#10✓
 ?TDDAB#12::HeatMap{priority:5,estimated-duration:2-3days}
-?TDDAB#13::IntentMarkers{priority:6,estimated-duration:2-3days}
-?TDDAB#16::ToolIntegrations{priority:last,estimated-duration:2-3days}
+?TDDAB#20::GitIntegration{priority:P3,estimated-duration:3days}
+  ↳methods::calculateHotspots,suggestAnchorUpdates
+?TDDAB#21::NaturalLanguageQuery{priority:P3,estimated-duration:XL}
 
 [BLOCKERS]
 !OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
 
 [NOTES]
 @note::TotalTests-V5::#259{lexer:61,parser:42,analyzer:48,server:34,features:74}
-@note::TotalTests-V6-So-Far::#338{V5:259+TDDAB#9:79}
-@note::TotalTests-Projected::#406{V5:259+V6:147}
-@note::Coverage-Current::%90.32{TDDAB#9-analyzer:95.92%}
-@note::Coverage-Target-V6::%90{met}
+@note::TotalTests-V6-So-Far::#398{V5:259+TDDAB#9:79+TDDAB#10:37+TDDAB#17:23}
+@note::TotalTests-Projected::#429{V5:259+V6:170}
+@note::Coverage-Current::%91.27{TDDAB#17-full}
+@note::Coverage-Target-V6::%90{exceeded}
 @note::NewTokens::#40{sections:5,operators:25,prefixes:7,markers:3}
 @note::NewASTNodes::#8{LinkNode,AnchorNode,DecisionNode,HeatNode,IntentNode,...}
 @note::Phases::{Phase1:Lang-Ext,Phase2:Infra,Phase3:API,Phase4:Integration}

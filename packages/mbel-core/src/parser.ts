@@ -27,6 +27,9 @@ import type {
   FileMarker,
   EntryPoint,
   LineRange,
+  // MBEL v6 SemanticAnchors (TDDAB#10)
+  AnchorDeclaration,
+  AnchorType,
 } from './ast.js';
 
 /**
@@ -120,6 +123,11 @@ export class MbelParser {
     // MBEL v6: Link declarations (@feature, @task)
     if (token.type === 'LINK_FEATURE' || token.type === 'LINK_TASK') {
       return this.parseLinkDeclaration();
+    }
+
+    // MBEL v6: Anchor declarations (@entry::, @hotspot::, @boundary::) - TDDAB#10
+    if (this.isAnchorToken(token.type)) {
+      return this.parseAnchorDeclaration();
     }
 
     // Other expressions
@@ -855,6 +863,96 @@ export class MbelParser {
       'ARROW_FEATURES',
       'ARROW_WHY',
     ].includes(type);
+  }
+
+  // =========================================
+  // MBEL v6 SemanticAnchors Parsing (TDDAB#10)
+  // =========================================
+
+  /**
+   * Check if token is an anchor prefix (@entry::, @hotspot::, @boundary::)
+   */
+  private isAnchorToken(type: TokenType): boolean {
+    return ['ANCHOR_ENTRY', 'ANCHOR_HOTSPOT', 'ANCHOR_BOUNDARY'].includes(type);
+  }
+
+  /**
+   * Get anchor type from token type
+   */
+  private getAnchorType(type: TokenType): AnchorType {
+    switch (type) {
+      case 'ANCHOR_ENTRY': return 'entry';
+      case 'ANCHOR_HOTSPOT': return 'hotspot';
+      case 'ANCHOR_BOUNDARY': return 'boundary';
+      default: return 'entry';
+    }
+  }
+
+  /**
+   * Parse anchor declaration
+   * e.g., @entry::src/index.ts
+   *         ->descrizione::Main entry point
+   */
+  private parseAnchorDeclaration(): AnchorDeclaration {
+    const start = this.peek().start;
+    const anchorToken = this.advance(); // ANCHOR_ENTRY | ANCHOR_HOTSPOT | ANCHOR_BOUNDARY
+    const anchorType = this.getAnchorType(anchorToken.type);
+
+    // Parse path (everything until newline, ->descrizione, or end)
+    // Preserve original spacing by checking token positions
+    let path = '';
+    let lastEnd: Position | null = null;
+    while (!this.isAtEnd() && !this.check('NEWLINE') && !this.check('ARROW_DESCRIZIONE')) {
+      const token = this.advance();
+      // Check if there was whitespace between tokens (offset gap)
+      if (lastEnd !== null && token.start.offset > lastEnd.offset) {
+        path += ' '; // There was actual whitespace in original
+      }
+      path += token.value;
+      lastEnd = token.end;
+    }
+    path = path.trim();
+
+    // Check if path is a glob pattern
+    const isGlob = /[*?]/.test(path);
+
+    // Optional: parse ->descrizione clause
+    let description: string | null = null;
+    let end = this.previous()?.end ?? start;
+
+    // Skip newlines and check for ->descrizione
+    while (this.check('NEWLINE')) {
+      this.advance();
+    }
+
+    if (this.check('ARROW_DESCRIZIONE')) {
+      this.advance(); // consume ->descrizione
+
+      // Expect :: after ->descrizione
+      if (this.check('RELATION_DEFINES')) {
+        this.advance(); // consume ::
+
+        // Collect description text until newline or end
+        // Use spaces between tokens to preserve whitespace
+        const descTokens: string[] = [];
+        while (!this.isAtEnd() && !this.check('NEWLINE')) {
+          const token = this.advance();
+          descTokens.push(token.value);
+        }
+        description = descTokens.join(' ').trim();
+        end = this.previous()?.end ?? end;
+      }
+    }
+
+    return {
+      type: 'AnchorDeclaration',
+      anchorType,
+      path,
+      isGlob,
+      description,
+      start,
+      end,
+    };
   }
 
   // Helper methods
