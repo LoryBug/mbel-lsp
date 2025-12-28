@@ -25,5 +25,5 @@
 [SUCCESS_CRITERIA]
 ✓LSPCompliant::FullProtocolSupport
 ✓FeatureComplete::Diagnostics+Hover+Completion+Symbols+GoTo+References
-✓WellTested::#398tests
-?VScodeExtension::MarketplacePublish
+✓WellTested::#733tests{94.71%coverage}
+?VSCodeExtension::MarketplacePublish
