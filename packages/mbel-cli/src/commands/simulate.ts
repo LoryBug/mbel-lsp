@@ -177,12 +177,19 @@ export async function simulateCommand(
 
   // Read and parse MB file
   const content = fs.readFileSync(mbPath, 'utf-8');
-  const parser = new MbelParser();
-  const parseResult = parser.parse(content);
+  // Parser not strictly needed here as QueryService handles it, but kept if validation needed later
+  // const parser = new MbelParser();
+  // const parseResult = parser.parse(content);
 
   // Create QueryService
-  const queryService = new QueryService(parseResult.document);
-  const allFeatures = queryService.getAllFeatures();
+  const queryService = new QueryService();
+  const rawFeatures = queryService.getAllFeatures(content);
+
+  // Convert FeatureFiles[] to the structure expected by simulate (mutable arrays)
+  const allFeatures = rawFeatures.map(f => ({
+    name: f.name,
+    depends: f.depends ? [...f.depends] : []
+  }));
 
   // Build virtual graph
   const graph = buildDependencyGraph(allFeatures);

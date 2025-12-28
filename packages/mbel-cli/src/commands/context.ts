@@ -77,10 +77,10 @@ export async function contextCommand(
   const parseResult = parser.parse(content);
 
   // Create QueryService
-  const queryService = new QueryService(parseResult.document);
+  const queryService = new QueryService();
 
   // Get feature info
-  const featureInfo = queryService.getFeatureFiles(featureName);
+  const featureInfo = queryService.getFeatureFiles(content, featureName);
 
   if (!featureInfo) {
     return {
@@ -99,16 +99,21 @@ export async function contextCommand(
   };
 
   // Summary mode: basic feature info
-  result.files = featureInfo.files;
-  result.tests = featureInfo.tests ?? [];
-  result.entryPoint = featureInfo.entryPoint;
-  result.dependencies = featureInfo.depends ?? [];
+  result.files = [...featureInfo.files];
+  result.tests = featureInfo.tests ? [...featureInfo.tests] : [];
+  if (featureInfo.entryPoint) {
+    result.entryPoint = {
+        file: featureInfo.entryPoint.file,
+        symbol: featureInfo.entryPoint.symbol
+    };
+  }
+  result.dependencies = featureInfo.depends ? [...featureInfo.depends] : [];
 
   // Full mode: add transitive dependencies
   if (mode === 'full') {
-    const deps = queryService.getFeatureDependencies(featureName);
+    const deps = queryService.getFeatureDependencies(content, featureName);
     if (deps) {
-      result.transitiveDependencies = deps.transitive;
+      result.transitiveDependencies = [...deps.transitiveDependencies];
       result.dependencyDepth = deps.depth;
     }
   }

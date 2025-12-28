@@ -76,7 +76,7 @@
 ?DOC#9::ProgressiveOnboarding
 
 [TDDAB_V6_PHASE5_AGENT_CLI]
-@status::InProgress{4of6-complete,69tests}
+@status::Complete✓{7of7-complete,122tests}
 @proposal::docs/MBEL-AGENT-ENHANCEMENT-PROPOSAL.md
 @goal::AgentOperatingSystem{democratize-LSP-capabilities}
 

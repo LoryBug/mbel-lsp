@@ -119,13 +119,15 @@ export function createCli(): Command {
       mb: string;
     }) => {
       const parentOpts = program.opts<{ json: boolean; quiet: boolean }>();
-      const result = await simulateCommand(options.mb, {
+      const simOptions: any = {
         action: options.action as SimulateAction,
-        from: options.from,
-        to: options.to,
-        feature: options.feature,
         dependsOn: options.dependsOn?.split(',').map(s => s.trim()),
-      });
+      };
+      if (options.from) simOptions.from = options.from;
+      if (options.to) simOptions.to = options.to;
+      if (options.feature) simOptions.feature = options.feature;
+
+      const result = await simulateCommand(options.mb, simOptions);
       const output = JSON.stringify(result, null, parentOpts.quiet ? 0 : 2);
       process.stdout.write(output + '\n');
       process.exit(result.success ? 0 : 1);
@@ -207,6 +209,10 @@ export async function runCli(argv: string[]): Promise<CliResult> {
     };
   }
 
+  // Execute commander program
+  // Note: Actions will call process.exit(), so this promise might not resolve
+  await program.parseAsync(argv);
+
   return {
     success: true,
     output: '',
@@ -231,3 +237,9 @@ export async function main(): Promise<void> {
 
   process.exit(result.exitCode ?? (result.success ? 0 : 1));
 }
+
+// Execute CLI
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
