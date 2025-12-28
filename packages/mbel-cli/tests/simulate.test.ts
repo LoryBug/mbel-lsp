@@ -11,25 +11,25 @@ import {
   SimulateOptions,
 } from '../src/commands/simulate.js';
 
-// Mock QueryService for dependency graph
+// Mock QueryService for dependency graph - stateless API: methods take content as first arg
 vi.mock('@mbel/lsp', () => ({
   QueryService: vi.fn().mockImplementation(() => ({
-    getFeatureDependencies: vi.fn().mockImplementation((name: string) => {
-      const deps: Record<string, { direct: string[]; transitive: string[]; depth: number }> = {
-        Lexer: { direct: [], transitive: [], depth: 0 },
-        Parser: { direct: ['Lexer'], transitive: ['Lexer'], depth: 1 },
-        Analyzer: { direct: ['Parser'], transitive: ['Parser', 'Lexer'], depth: 2 },
-        LSPServer: { direct: ['Parser', 'Analyzer'], transitive: ['Parser', 'Analyzer', 'Lexer'], depth: 2 },
+    getFeatureDependencies: vi.fn().mockImplementation((_content: string, name: string) => {
+      const deps: Record<string, { directDependencies: string[]; transitiveDependencies: string[]; depth: number }> = {
+        Lexer: { directDependencies: [], transitiveDependencies: [], depth: 0 },
+        Parser: { directDependencies: ['Lexer'], transitiveDependencies: ['Lexer'], depth: 1 },
+        Analyzer: { directDependencies: ['Parser'], transitiveDependencies: ['Parser', 'Lexer'], depth: 2 },
+        LSPServer: { directDependencies: ['Parser', 'Analyzer'], transitiveDependencies: ['Parser', 'Analyzer', 'Lexer'], depth: 2 },
       };
       return deps[name] ?? null;
     }),
-    getAllFeatures: vi.fn().mockReturnValue([
+    getAllFeatures: vi.fn().mockImplementation((_content: string) => [
       { name: 'Lexer', files: ['lexer.ts'], depends: [] },
       { name: 'Parser', files: ['parser.ts'], depends: ['Lexer'] },
       { name: 'Analyzer', files: ['analyzer.ts'], depends: ['Parser'] },
       { name: 'LSPServer', files: ['server.ts'], depends: ['Parser', 'Analyzer'] },
     ]),
-    getFeatureFiles: vi.fn().mockImplementation((name: string) => {
+    getFeatureFiles: vi.fn().mockImplementation((_content: string, name: string) => {
       const features: Record<string, { name: string; files: string[]; depends: string[] }> = {
         Lexer: { name: 'Lexer', files: ['lexer.ts'], depends: [] },
         Parser: { name: 'Parser', files: ['parser.ts'], depends: ['Lexer'] },

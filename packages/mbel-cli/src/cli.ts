@@ -238,8 +238,11 @@ export async function main(): Promise<void> {
   process.exit(result.exitCode ?? (result.success ? 0 : 1));
 }
 
-// Execute CLI
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+// Execute CLI only when run directly (not imported for tests)
+const isMainModule = import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, '/') ?? '');
+if (isMainModule || process.argv[1]?.includes('cli.js')) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

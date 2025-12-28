@@ -6,10 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { contextCommand, ContextResult, ContextMode } from '../src/commands/context.js';
 
-// Mock QueryService
+// Mock QueryService - stateless API: methods take content as first arg
 vi.mock('@mbel/lsp', () => ({
   QueryService: vi.fn().mockImplementation(() => ({
-    getFeatureFiles: vi.fn().mockImplementation((name: string) => {
+    getFeatureFiles: vi.fn().mockImplementation((_content: string, name: string) => {
       if (name === 'UnknownFeature') {
         return null;
       }
@@ -22,8 +22,8 @@ vi.mock('@mbel/lsp', () => ({
       };
     }),
     getFeatureDependencies: vi.fn().mockReturnValue({
-      direct: ['Lexer'],
-      transitive: ['Lexer'],
+      directDependencies: ['Lexer'],
+      transitiveDependencies: ['Lexer'],
       depth: 1,
     }),
     getAllFeatures: vi.fn().mockReturnValue([
