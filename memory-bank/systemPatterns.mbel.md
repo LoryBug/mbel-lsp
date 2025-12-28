@@ -97,12 +97,13 @@ mbel-lsp/
   ->depends[Parser]
   ->scope::Atomic-MB-updates{TDDAB#29✓}
 
-?feature{OrchestratorHelpers}
-  ->files[packages/mbel-cli/src/orchestrator/context-builder.ts,delta-aggregator.ts]
-  ->tests[packages/mbel-cli/tests/orchestrator/orchestrator.test.ts]
-  ->exports[buildTaskContext,aggregateDeltas,validateDelta]
+✓feature{OrchestratorHelpers}
+  ->files[packages/mbel-cli/src/orchestrator/context-builder.ts,delta-aggregator.ts,index.ts]
+  ->tests[packages/mbel-cli/tests/orchestrator/orchestrator.test.ts{24tests,100%lines}]
+  ->exports[buildTaskContext,compressContext,aggregateDeltas,validateDelta,orderDeltasBySection]
+  ->types[TaskContext,ContextMode,AggregationResult,DeltaValidationResult]
   ->depends[TaskSchema,ResultSchema,MbelMerge]
-  ->scope::Orchestrator-subagent-workflow{TDDAB#30}
+  ->scope::Orchestrator-subagent-workflow{TDDAB#30✓}
 
 [ANCHORS]
 §anchors
