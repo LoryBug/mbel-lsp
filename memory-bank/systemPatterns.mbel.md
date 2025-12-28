@@ -75,11 +75,12 @@ mbel-lsp/
   ]
   ->scope::Agent-Operating-System{democratize-LSP-capabilities}
 
-?feature{TaskSchema}
+✓feature{TaskSchema}
   ->files[packages/mbel-cli/src/schemas/task-schema.ts]
-  ->tests[packages/mbel-cli/tests/schemas/task-schema.test.ts]
-  ->exports[TaskAssignment,TaskContext,TaskConstraints,TaskType]
-  ->scope::Multi-Agent-task-assignment-format{TDDAB#27}
+  ->tests[packages/mbel-cli/tests/schemas/task-schema.test.ts{43tests,100%coverage}]
+  ->exports[TaskAssignment,TaskContext,TaskConstraints,TaskType,TASK_TYPES]
+  ->exports[createTaskAssignment,validateTaskAssignment,serializeTask,deserializeTask]
+  ->scope::Multi-Agent-task-assignment-format{TDDAB#27✓}
 
 ?feature{ResultSchema}
   ->files[packages/mbel-cli/src/schemas/result-schema.ts]
