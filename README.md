@@ -28,6 +28,44 @@ Specialized methods for AI agents to query project status efficiently:
 | `getRecentChanges()` | `>` | Get all recent changes |
 | `getProjectStatus()` | - | Get aggregated counts |
 
+### Agent CLI (`@mbel/cli`)
+
+Command-line interface designed for AI agents with JSON output:
+
+```bash
+# Validate MBEL file (pre-commit hook)
+mbel check memory-bank/progress.mbel.md --format=json
+
+# Analyze impact of modifying a file
+mbel impact src/parser.ts --mb memory-bank
+
+# Get token-optimized feature summary
+mbel context Parser --mode=summary
+
+# Show MBEL grammar reference
+mbel grammar --format=bnf
+mbel grammar --format=examples
+
+# Simulate architecture changes (dry-run)
+mbel simulate --action=add-dep --from=Analyzer --to=Lexer
+mbel simulate --action=remove-feature --feature=OldModule
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `check <file>` | Pre-commit validation with suggested fixes |
+| `impact <file>` | Risk analysis and affected features |
+| `context <feature>` | Token-optimized feature summary |
+| `grammar` | On-demand syntax reference (BNF/examples) |
+| `simulate` | Predictive architecture simulation |
+
+**Intent-Aware Diagnostics:**
+- Detects Unicode arrows (→) and suggests ASCII (`->`)
+- Fixes curly quotes ("") to straight quotes (`""`)
+- Converts ellipsis (…) to three dots (`...`)
+- Provides `suggestedFix` with find/replace for auto-correction
+
 ### Claude Code Skill (`mbel-navigator`)
 
 Built-in skill for Claude Code that enables LLM navigation of Memory Bank:
@@ -465,10 +503,10 @@ npm run btlt         # Build + Type-check + Lint + Test
 | Package | Tests | Coverage |
 |---------|-------|----------|
 | mbel-core | 350+ | 92% |
-| mbel-analyzer | 200+ | 96% |
+| mbel-analyzer | 220+ | 96% |
 | mbel-lsp | 180+ | 89% |
-| mbel-cli | 69 | 93% |
-| **Total** | **806** | **93%** |
+| mbel-cli | 122 | 93% |
+| **Total** | **859** | **93%** |
 
 ## Roadmap
 
@@ -485,14 +523,14 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **TDDAB#14: LLMAPILayer** - LSP semantic methods for external tools
 - [x] **TDDAB#15: QueryEngine** - Cross-file semantic navigation
 
-### MBEL v6 Phase 5: Agent CLI (In Progress - 4 of 6 Complete)
+### MBEL v6 Phase 5: Agent CLI (Complete)
 - [x] **TDDAB#20: CLIScaffolding** - Base CLI framework with Commander.js (21 tests)
 - [x] **TDDAB#21: MbelCheck** - Pre-commit validation command (15 tests)
 - [x] **TDDAB#22: MbelImpact** - Risk analysis command (15 tests)
 - [x] **TDDAB#23: IntentAwareDiagnostics** - Self-healing error messages (18 tests)
-- [ ] **TDDAB#24: MbelContext** - Token-optimized feature summary (~20 tests)
-- [ ] **TDDAB#25: MbelGrammar** - On-demand syntax refresher (~12 tests)
-- [ ] **TDDAB#26: MbelSimulate** - Predictive architecture simulation (~25 tests)
+- [x] **TDDAB#24: MbelContext** - Token-optimized feature summary (19 tests)
+- [x] **TDDAB#25: MbelGrammar** - On-demand syntax refresher (13 tests)
+- [x] **TDDAB#26: MbelSimulate** - Predictive architecture simulation (21 tests)
 
 ### Core Features (Completed)
 - [x] **OpenCode Integration** - Slash commands + Custom tools
@@ -501,6 +539,7 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **Find References** - Find all usages
 - [x] **Workspace Symbols** - Cross-file symbol search
 - [x] **Claude Code Skill** - mbel-navigator for MB navigation
+- [x] **Agent CLI** - 5 commands (check, impact, context, grammar, simulate)
 
 ### Future
 - [ ] **Rename Symbol** - Rename sections/attributes across file
