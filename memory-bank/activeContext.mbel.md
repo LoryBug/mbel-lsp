@@ -3,7 +3,7 @@
 [FOCUS]
 @focus::MBEL6.0-Phase6{Multi-Agent-Architecture}
 >status::Phase5Complete✓{#20-#26}
->tests::1096{~93%coverage,+44-TDDAB#28}
+>tests::1126{~93%coverage,+30-TDDAB#29}
 >next::TDDAB#27-#30{TaskSchema,ResultSchema,MbelMerge,OrchestratorHelpers}
 
 [STATUS_SUMMARY]
@@ -125,12 +125,15 @@
   ->coverage{100%}
   ->completed{2024-12-28}
 
-?TDDAB#29::MbelMerge{~18tests,Medium-effort}
+✓TDDAB#29::MbelMerge{30tests,Medium-effort}
   ->files[src/commands/merge.ts]
   ->tests[tests/commands/merge.test.ts]
   ->usage{mbel merge <file> --delta "..." [--dry-run] [--format=json]}
-  ->depends[@mbel/core,@mbel/analyzer]
-  ->features[atomic-write,section-aware,conflict-detection]
+  ->depends[@mbel/core]
+  ->exports[mergeCommand,parseDelta,findInsertionPoint,atomicWrite]
+  ->features[atomic-write,section-aware,duplicate-detection,dry-run]
+  ->coverage{100%lines,95.71%branches}
+  ->completed{2024-12-28}
 
 ?TDDAB#30::OrchestratorHelpers{~15tests,Medium-effort}
   ->files[src/orchestrator/context-builder.ts,delta-aggregator.ts]

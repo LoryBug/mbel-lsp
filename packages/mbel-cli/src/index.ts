@@ -22,3 +22,6 @@ export type { CheckOptions, CheckResult, CheckError, CheckWarning } from './comm
 
 export { impactCommand } from './commands/impact.js';
 export type { ImpactOptions, ImpactResult } from './commands/impact.js';
+
+export { mergeCommand, parseDelta, findInsertionPoint, atomicWrite } from './commands/merge.js';
+export type { MergeOptions, MergeResult, ParseResult, InsertionPoint } from './commands/merge.js';

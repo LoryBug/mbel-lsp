@@ -89,12 +89,13 @@ mbel-lsp/
   ->exports[createTaskResult,validateTaskResult,serializeResult,deserializeResult,aggregateTestSummaries]
   ->scope::Multi-Agent-result-format{TDDAB#28✓}
 
-?feature{MbelMerge}
+✓feature{MbelMerge}
   ->files[packages/mbel-cli/src/commands/merge.ts]
-  ->tests[packages/mbel-cli/tests/commands/merge.test.ts]
+  ->tests[packages/mbel-cli/tests/commands/merge.test.ts{30tests,100%lines}]
   ->entryPoint{merge.ts:mergeCommand}
-  ->depends[Parser,Analyzer]
-  ->scope::Atomic-MB-updates{TDDAB#29}
+  ->exports[mergeCommand,parseDelta,findInsertionPoint,atomicWrite]
+  ->depends[Parser]
+  ->scope::Atomic-MB-updates{TDDAB#29✓}
 
 ?feature{OrchestratorHelpers}
   ->files[packages/mbel-cli/src/orchestrator/context-builder.ts,delta-aggregator.ts]
