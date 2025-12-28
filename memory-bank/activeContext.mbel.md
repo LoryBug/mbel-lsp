@@ -1,10 +1,10 @@
 §MBEL:6.0
 
 [FOCUS]
-@focus::MBEL6.0-Phase5{Agent-CLI}
+@focus::MBEL6.0-Phase6{Multi-Agent-Architecture}
 >status::Phase5Complete✓{#20-#26}
 >tests::1009{~93%coverage,+150-TASK5}
->next::Phase6{Production-Ready}
+>next::TDDAB#27-#30{TaskSchema,ResultSchema,MbelMerge,OrchestratorHelpers}
 
 [STATUS_SUMMARY]
 ✓CoreLanguage::Lexer+Parser+Analyzer+LSP{v5}
@@ -12,6 +12,7 @@
 ✓QueryInfrastructure::QueryService+QueryEngine
 ✓LLMIntegration::LLM-API+ToolIntegrations
 ✓OpenCodeIntegration::SlashCommands+CustomTools
+?MultiAgentSupport::TaskSchema+ResultSchema+MbelMerge{Phase6}
 
 [DECISIONS]
 §decision::TypeScriptOnly{noAny,strict}
@@ -25,6 +26,9 @@
 §decision::MBEL6.0-LLM-Native{IncrementalPhases,SemanticStorage}
 §decision::QueryEngineArchitecture{DependencyGraph+SemanticIndex}
 §decision::LLMAPIStandalone{7methods,RequestResponse}
+§decision::MultiAgentArchitecture{Orchestrator+Subagents,MB-as-StateStore}
+§decision::SingleWriterMB{Orchestrator-only-writes,Subagents-return-deltas}
+§decision::AtomicMerge{temp-file+rename,no-corruption}
 
 [HEAT]
 @critical::packages/mbel-core/src/lexer.ts
@@ -100,3 +104,35 @@
 ✓MBEL-LSP-VERIFICATION.md::UPDATED{semantic-implementation-spec}
 @operators-classified::66{15-essential,51-advanced}
 @test-growth::859→1009{+150-tests}
+
+[PHASE6_PLAN]
+§phase::MultiAgentArchitecture{2024-12-28}
+@goal::Enable-Orchestrator+Subagent-pattern{MB-as-shared-state}
+
+?TDDAB#27::TaskSchema{~15tests,Low-effort}
+  ->files[src/schemas/task-schema.ts]
+  ->tests[tests/schemas/task-schema.test.ts]
+  ->exports[TaskAssignment,TaskContext,TaskConstraints,TaskType]
+  ->depends[]
+
+?TDDAB#28::ResultSchema{~12tests,Low-effort}
+  ->files[src/schemas/result-schema.ts]
+  ->tests[tests/schemas/result-schema.test.ts]
+  ->exports[TaskResult,FileChange,TestSummary,ResultStatus]
+  ->depends[]
+
+?TDDAB#29::MbelMerge{~18tests,Medium-effort}
+  ->files[src/commands/merge.ts]
+  ->tests[tests/commands/merge.test.ts]
+  ->usage{mbel merge <file> --delta "..." [--dry-run] [--format=json]}
+  ->depends[@mbel/core,@mbel/analyzer]
+  ->features[atomic-write,section-aware,conflict-detection]
+
+?TDDAB#30::OrchestratorHelpers{~15tests,Medium-effort}
+  ->files[src/orchestrator/context-builder.ts,delta-aggregator.ts]
+  ->tests[tests/orchestrator/orchestrator.test.ts]
+  ->exports[buildTaskContext,aggregateDeltas,validateDelta]
+  ->depends[TDDAB#27,TDDAB#28,TDDAB#29]
+
+@estimated-tests::60{new}
+@implementation-order::#27→#28→#29→#30

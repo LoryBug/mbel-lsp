@@ -75,6 +75,32 @@ mbel-lsp/
   ]
   ->scope::Agent-Operating-System{democratize-LSP-capabilities}
 
+?feature{TaskSchema}
+  ->files[packages/mbel-cli/src/schemas/task-schema.ts]
+  ->tests[packages/mbel-cli/tests/schemas/task-schema.test.ts]
+  ->exports[TaskAssignment,TaskContext,TaskConstraints,TaskType]
+  ->scope::Multi-Agent-task-assignment-format{TDDAB#27}
+
+?feature{ResultSchema}
+  ->files[packages/mbel-cli/src/schemas/result-schema.ts]
+  ->tests[packages/mbel-cli/tests/schemas/result-schema.test.ts]
+  ->exports[TaskResult,FileChange,TestSummary,ResultStatus]
+  ->scope::Multi-Agent-result-format{TDDAB#28}
+
+?feature{MbelMerge}
+  ->files[packages/mbel-cli/src/commands/merge.ts]
+  ->tests[packages/mbel-cli/tests/commands/merge.test.ts]
+  ->entryPoint{merge.ts:mergeCommand}
+  ->depends[Parser,Analyzer]
+  ->scope::Atomic-MB-updates{TDDAB#29}
+
+?feature{OrchestratorHelpers}
+  ->files[packages/mbel-cli/src/orchestrator/context-builder.ts,delta-aggregator.ts]
+  ->tests[packages/mbel-cli/tests/orchestrator/orchestrator.test.ts]
+  ->exports[buildTaskContext,aggregateDeltas,validateDelta]
+  ->depends[TaskSchema,ResultSchema,MbelMerge]
+  ->scope::Orchestrator-subagent-workflow{TDDAB#30}
+
 [ANCHORS]
 §anchors
 @entry::packages/mbel-core/src/index.ts
@@ -107,3 +133,33 @@ Source{.mbel/.mbel.md}→Lexer{tokens}→Parser{AST}→Analyzer{diagnostics+sema
 - QueryEngine::DependencyGraph{BuildFromAST}
 - LLMAPILayer::RequestResponse{typed-inputs,rich-outputs}
 - OpenCode::SlashCommands+CustomTool{zod-schema}
+- MultiAgent::Orchestrator+Subagents{SingleWriter,DeltaMerge,AtomicOps}
+
+[MULTI_AGENT_ARCHITECTURE]
+@pattern::OrchestratorSubagent
+(
+┌─────────────────────────────────────────────────┐
+│ ORCHESTRATOR (Claude Opus)                      │
+│ - Reads MB summary (mbel context --mode=summary)│
+│ - Plans TDDAB blocks                            │
+│ - Spawns subagents with TaskAssignment          │
+│ - Receives TaskResult with mb_delta             │
+│ - Merges delta atomically (mbel merge)          │
+│ - SINGLE WRITER to MB                           │
+└─────────────────────────────────────────────────┘
+         │ TaskAssignment         ▲ TaskResult
+         ▼                        │
+┌─────────────────────────────────────────────────┐
+│ SUBAGENT (Claude Sonnet/Haiku)                  │
+│ - Receives: task + MBEL context                 │
+│ - Implements: 1 TDDAB block                     │
+│ - Validates: mbel check                         │
+│ - Returns: {status,files,tests,mb_delta}        │
+│ - READ-ONLY access to MB                        │
+└─────────────────────────────────────────────────┘
+)
+@benefits::
+- Context isolation (orchestrator stays lean)
+- No autocompact risk (subagents disposable)
+- Atomic MB updates (no conflicts)
+- Token efficiency (47% savings via MBEL)
