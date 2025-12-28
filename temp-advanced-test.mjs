@@ -35,9 +35,10 @@ const badCode = `
   →depends[Lexer]  <-- Error here, wrong arrow
 `;
 
-const diagnostics = analyzer.validate(badCode);
+const diagnosticsResult = analyzer.analyzeText(badCode);
 console.log("Input with error: '→depends[Lexer]'");
-console.log("Diagnostics found:", diagnostics.length);
-if (diagnostics.length > 0) {
-    console.log("First Error:", diagnostics[0].message);
+console.log("Diagnostics found:", diagnosticsResult.diagnostics.length);
+if (diagnosticsResult.diagnostics.length > 0) {
+    console.log("First Error:", diagnosticsResult.diagnostics[0].message);
+    console.log("Error Code:", diagnosticsResult.diagnostics[0].code);
 }

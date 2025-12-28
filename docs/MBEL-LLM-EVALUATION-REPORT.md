@@ -96,6 +96,23 @@ Beyond basic lookups, we tested complex reasoning tasks that typically exhaust A
 
 **Result:** LSP allows agents to "download" the architectural mental model instantly.
 
+#### Test 5: "Change Impact Analysis" (Modify 'lexer.ts')
+
+| Metric | Without LSP | With LSP (Semantic) | Impact |
+|--------|-------------|---------------------|--------|
+| Prediction | Guesswork based on names | **Exact dependency graph** | Safe Refactoring |
+| Risk Assessment| Unknown | **High (Calculated)** | Prioritization |
+| Suggestions | None | **Specific tests to run** | TDD Workflow |
+
+**Result:** LSP moves from "Editing Text" to "Engineering Systems".
+
+#### Test 6: "Safety Net" (Syntax Validation)
+
+| Metric | Without LSP | With LSP | Impact |
+|--------|-------------|----------|--------|
+| Bad Syntax (e.g. `→` vs `->`) | Ignored (Broken Build) | **Caught immediately** | Zero regression |
+| Feedback | None until runtime | **Real-time Diagnostics** | Fast loop |
+
 ### 2.3 Claude Opus Results (Text-Based)
 
 ### Test 1: "Find Parser files and dependencies"
