@@ -149,3 +149,8 @@
 
 @estimated-tests::60{new}
 @implementation-order::#27→#28→#29→#30
+
+[PROGRESS]
+✓TDDAB#32::OrchestratorDemo{completed}
+  ->files[README.md,sample-task.json,sample-result.json,demo.sh]
+  ->location{examples/orchestrator-demo/}
