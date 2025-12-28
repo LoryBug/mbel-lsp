@@ -13,6 +13,9 @@ import { impactCommand } from './commands/impact.js';
 import { contextCommand } from './commands/context.js';
 import { grammarCommand } from './commands/grammar.js';
 import { simulateCommand, SimulateAction } from './commands/simulate.js';
+import { mergeCommand } from './commands/merge.js';
+import { validateTaskAssignment, deserializeTask } from './schemas/task-schema.js';
+import { validateTaskResult, deserializeResult } from './schemas/result-schema.js';
 
 const VERSION = '0.1.0';
 const DESCRIPTION = 'MBEL CLI - Agent-First Command Line Interface';
@@ -133,6 +136,112 @@ export function createCli(): Command {
       process.exit(result.success ? 0 : 1);
     });
 
+  // Add merge command (multi-agent architecture)
+  program
+    .command('merge <file>')
+    .description('Merge MBEL delta into Memory Bank file (atomic)')
+    .option('--delta <mbel>', 'MBEL delta string to merge')
+    .option('--file <path>', 'Path to file containing delta')
+    .option('--dry-run', 'Preview merge without writing', false)
+    .option('--format <format>', 'Output format (json|text)', 'json')
+    .action(async (file: string, options: { delta?: string; file?: string; dryRun: boolean; format: string }) => {
+      const parentOpts = program.opts<{ json: boolean; quiet: boolean }>();
+      const mergeOpts: Parameters<typeof mergeCommand>[1] = {
+        dryRun: options.dryRun,
+        format: options.format === 'json' || parentOpts.json ? 'json' : 'text',
+      };
+      if (options.delta !== undefined) mergeOpts.delta = options.delta;
+      if (options.file !== undefined) mergeOpts.file = options.file;
+      const result = await mergeCommand(file, mergeOpts);
+      const output = JSON.stringify(result, null, parentOpts.quiet ? 0 : 2);
+      process.stdout.write(output + '\n');
+      process.exit(result.success ? 0 : 1);
+    });
+
+  // Add task validate command (multi-agent architecture)
+  program
+    .command('task-validate')
+    .description('Validate a TaskAssignment JSON (for orchestrator)')
+    .argument('<json>', 'TaskAssignment JSON string or @file path')
+    .action(async (jsonArg: string) => {
+      const parentOpts = program.opts<{ json: boolean; quiet: boolean }>();
+
+      // Handle @file syntax
+      let jsonInput = jsonArg;
+      if (jsonArg.startsWith('@')) {
+        const fs = await import('fs');
+        const filePath = jsonArg.slice(1);
+        if (!fs.existsSync(filePath)) {
+          const result = { valid: false, error: `File not found: ${filePath}` };
+          process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+          process.exit(1);
+        }
+        jsonInput = fs.readFileSync(filePath, 'utf-8');
+      }
+
+      const parseResult = deserializeTask(jsonInput);
+      if (!parseResult.success) {
+        const result = {
+          valid: false,
+          error: parseResult.error ?? 'Parse failed',
+          errors: parseResult.errors
+        };
+        process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+        process.exit(1);
+      }
+
+      const validation = validateTaskAssignment(parseResult.task!);
+      const result = {
+        valid: validation.valid,
+        errors: validation.errors,
+        warnings: validation.warnings,
+      };
+      process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+      process.exit(validation.valid ? 0 : 1);
+    });
+
+  // Add result validate command (multi-agent architecture)
+  program
+    .command('result-validate')
+    .description('Validate a TaskResult JSON (for orchestrator)')
+    .argument('<json>', 'TaskResult JSON string or @file path')
+    .action(async (jsonArg: string) => {
+      const parentOpts = program.opts<{ json: boolean; quiet: boolean }>();
+
+      // Handle @file syntax
+      let jsonInput = jsonArg;
+      if (jsonArg.startsWith('@')) {
+        const fs = await import('fs');
+        const filePath = jsonArg.slice(1);
+        if (!fs.existsSync(filePath)) {
+          const result = { valid: false, error: `File not found: ${filePath}` };
+          process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+          process.exit(1);
+        }
+        jsonInput = fs.readFileSync(filePath, 'utf-8');
+      }
+
+      const parseResult = deserializeResult(jsonInput);
+      if (!parseResult.success) {
+        const result = {
+          valid: false,
+          error: parseResult.error ?? 'Parse failed',
+          errors: parseResult.errors
+        };
+        process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+        process.exit(1);
+      }
+
+      const validation = validateTaskResult(parseResult.result!);
+      const result = {
+        valid: validation.valid,
+        errors: validation.errors,
+        warnings: validation.warnings,
+      };
+      process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+      process.exit(validation.valid ? 0 : 1);
+    });
+
   return program;
 }
 
@@ -175,7 +284,7 @@ export async function runCli(argv: string[]): Promise<CliResult> {
 
   // Check for unknown commands (skip file arguments for check command)
   const knownFlags = ['--version', '-V', '--help', '-h', '--json', '-j', '--quiet', '-q', '--format'];
-  const knownCommands = ['check', 'impact', 'context', 'grammar', 'simulate'];
+  const knownCommands = ['check', 'impact', 'context', 'grammar', 'simulate', 'merge', 'task-validate', 'result-validate'];
   const args = argv.slice(2).filter(arg => !arg.startsWith('-'));
 
   // If first arg is a known command, remaining args are its parameters

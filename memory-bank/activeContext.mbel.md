@@ -1,11 +1,12 @@
 §MBEL:6.0
 
 [FOCUS]
-@focus::MBEL6.0-Phase6{Multi-Agent-Architecture}
->status::Phase5Complete✓{#20-#26}
->tests::1150{~93%coverage,+24-TDDAB#30}
->phase6::COMPLETE✓{TDDAB#27-#30,+141tests}
->next::Integration-Testing{orchestrator+subagent-workflow}
+@focus::MBEL6.0-Phase6{Multi-Agent-Architecture-CLI-Integrated}
+>status::Phase6Complete✓{TDDAB#27-#30,CLI-wired}
+>tests::1150{~93%coverage}
+>cli::8-commands{check,impact,context,grammar,simulate,merge,task-validate,result-validate}
+>docs::MBEL-MULTIAGENT-GUIDE.md{orchestrator+subagent-workflow}
+>next::Real-world-testing{orchestrator-with-subagents}
 
 [STATUS_SUMMARY]
 ✓CoreLanguage::Lexer+Parser+Analyzer+LSP{v5}
@@ -14,6 +15,7 @@
 ✓LLMIntegration::LLM-API+ToolIntegrations
 ✓OpenCodeIntegration::SlashCommands+CustomTools
 ✓MultiAgentSupport::TaskSchema+ResultSchema+MbelMerge+OrchestratorHelpers{Phase6-Complete}
+✓CLIIntegration::merge+task-validate+result-validate{wired-to-cli.ts}
 
 [DECISIONS]
 §decision::TypeScriptOnly{noAny,strict}
@@ -30,6 +32,7 @@
 §decision::MultiAgentArchitecture{Orchestrator+Subagents,MB-as-StateStore}
 §decision::SingleWriterMB{Orchestrator-only-writes,Subagents-return-deltas}
 §decision::AtomicMerge{temp-file+rename,no-corruption}
+§decision::CLICommands{8-flat-commands,json-output,@file-syntax}
 
 [HEAT]
 @critical::packages/mbel-core/src/lexer.ts

@@ -67,6 +67,7 @@ export interface TaskAssignment {
 export interface TaskValidationResult {
   valid: boolean;
   errors: string[];
+  warnings: string[];
 }
 
 /**
@@ -160,9 +161,17 @@ export function validateTaskAssignment(task: TaskAssignment): TaskValidationResu
     errors.push('testCommand is required');
   }
 
+  const warnings: string[] = [];
+
+  // Warning: no acceptance criteria
+  if (task.acceptance.length === 0) {
+    warnings.push('no acceptance criteria defined');
+  }
+
   return {
     valid: errors.length === 0,
     errors,
+    warnings,
   };
 }
 
