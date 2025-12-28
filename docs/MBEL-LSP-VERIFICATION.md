@@ -280,3 +280,11 @@ Use the returned files, tests, and entry points.
 | 2 | Test both tools in parallel |
 | 3 | Remove `mbel-query.ts` after validation |
 | 4 | Update `.opencode/prompt.md` with new rules |
+
+### Test 4: Agent Tool Usage (mbel-semantic)
+**Command:** Subagent task "Analyze Lexer feature using MBEL Semantic Tool"
+
+**Result:** SUCCESS
+The subagent successfully utilized the  tool to perform the analysis, confirming that the tool definition is compatible with the agent's reasoning engine.
+- **Context Retrieval:** Correctly identified 'Lexer' core files and tests.
+- **Impact Analysis:** Correctly identified the 'High Risk' level and transitive dependencies up to the CLI.
