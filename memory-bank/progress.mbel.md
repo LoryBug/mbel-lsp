@@ -2,9 +2,10 @@
 
 [OVERALL_STATUS]
 @status::MBEL-LSP-v6-Complete✓
->tests::733{total}
->coverage::94.71%
+>tests::737{total}
+>coverage::93.91%
 >commits::19{TDDAB-driven}
+>phase::DocumentationImprovement{P1-tasks-pending}
 
 [TDDAB_V5]
 @status::Complete✓{259tests}
@@ -51,3 +52,29 @@
 @status::Complete✓{18tests}
 ✓#16::ToolIntegrations{18tests,94.71%,commit:e7d19de}
   ↳features::CodeLensProvider,ExtendedHover,getWorkContext
+
+[DOCUMENTATION_PHASE]
+@status::P1-Complete{3/9tasks,P2-P3-pending}
+@evaluation::2024-12-28{score:6.8/10}
+@report::docs/MBEL-LLM-EVALUATION-REPORT.md
+
+§P1-Critical{complete}
+✓DOC#1::FormalGrammar{docs/MBEL-GRAMMAR.md}
+✓DOC#2::QuickStartCheatsheet{docs/MBEL-CHEATSHEET.md}
+✓DOC#3::OperatorsGuide{docs/MBEL-OPERATORS-GUIDE.md}
+
+§P2-Important
+?DOC#4::NamingConsistency
+?DOC#5::OperatorTiers{essential-vs-advanced}
+?DOC#6::EscapeRules
+
+§P3-NiceToHave
+?DOC#7::StricterValidation
+?DOC#8::ErrorExamples
+?DOC#9::ProgressiveOnboarding
+
+[LLM_EVALUATION_METRICS]
+@tokenEfficiency::47%{savings-vs-prose}
+@effortReduction::3x{vs-direct-exploration}
+@noviceLLMComprehension::70-75%{without-docs}
+@operatorCount::57{too-many,target:15-essential}

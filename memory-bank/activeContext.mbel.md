@@ -3,7 +3,7 @@
 [FOCUS]
 @focus::MBEL6.0{v6-Complete}
 >status::AllTDDABComplete{#1-#19}✓
->tests::733{94.71%coverage}
+>tests::737{93.91%coverage}
 >next::ProductionReadiness{docs,marketplace}
 
 [STATUS_SUMMARY]
@@ -49,7 +49,38 @@
 [BLOCKERS]
 !OpenCodeLSP::AutoActivation{commands-work,lsp-not-auto-started}
 
+[PENDING_TASKS]
+§priority::P1-Critical{before-public-release}
+✓TASK#1::FormalGrammar{BNF/EBNF,docs/MBEL-GRAMMAR.md}
+  ->completed{2024-12-28}
+✓TASK#2::QuickStartCheatsheet{1-page,docs/MBEL-CHEATSHEET.md}
+  ->completed{2024-12-28}
+✓TASK#3::UnifyArrowOperators{docs/MBEL-OPERATORS-GUIDE.md}
+  ->completed{2024-12-28}
+
+§priority::P2-Important{next-version}
+?TASK#4::NamingConsistency{camelCase-or-lowercase}
+  ->reason{->depends-vs->entryPoint-inconsistent}
+  ->effort{medium}
+?TASK#5::OperatorTiers{15-essential+42-advanced}
+  ->reason{57-operators-too-many}
+  ->effort{low}
+  ->impact{high}
+?TASK#6::EscapeRules{special-chars-handling}
+  ->effort{low}
+
+§priority::P3-NiceToHave
+?TASK#7::StricterLSPValidation{clear-error-messages}
+?TASK#8::CommonErrorExamples{antipatterns-doc}
+?TASK#9::ProgressiveOnboarding{MBEL-lite->MBEL-full}
+
+[EVALUATION]
+@report::docs/MBEL-LLM-EVALUATION-REPORT.md
+@score::6.8/10{publishable-with-improvements}
+@tokenSavings::47%{vs-prose}
+@effortReduction::3x{vs-direct-exploration}
+
 [METRICS]
-@tests::733{total}
-@coverage::94.71%
+@tests::737{total}
+@coverage::93.91%
 @packages::4{core,analyzer,lsp,vscode-extension}

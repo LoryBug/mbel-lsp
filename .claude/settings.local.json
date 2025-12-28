@@ -31,7 +31,8 @@
       "Bash(npm run test:analyzer:*)",
       "Bash(npm run build:analyzer:*)",
       "Bash(npm run:*)",
-      "Skill(mbel-navigator)"
+      "Skill(mbel-navigator)",
+      "Bash(dir:*)"
     ]
   }
 }
