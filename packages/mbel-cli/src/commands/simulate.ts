@@ -6,7 +6,6 @@
  */
 
 import * as fs from 'fs';
-import { MbelParser } from '@mbel/core';
 import { QueryService } from '@mbel/lsp';
 
 /**

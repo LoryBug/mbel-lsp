@@ -12,7 +12,7 @@ import { checkCommand } from './commands/check.js';
 import { impactCommand } from './commands/impact.js';
 import { contextCommand } from './commands/context.js';
 import { grammarCommand } from './commands/grammar.js';
-import { simulateCommand, SimulateAction } from './commands/simulate.js';
+import { simulateCommand, SimulateAction, SimulateOptions } from './commands/simulate.js';
 import { mergeCommand } from './commands/merge.js';
 import { validateTaskAssignment, deserializeTask } from './schemas/task-schema.js';
 import { validateTaskResult, deserializeResult } from './schemas/result-schema.js';
@@ -122,13 +122,13 @@ export function createCli(): Command {
       mb: string;
     }) => {
       const parentOpts = program.opts<{ json: boolean; quiet: boolean }>();
-      const simOptions: any = {
+      const simOptions: SimulateOptions = {
         action: options.action as SimulateAction,
-        dependsOn: options.dependsOn?.split(',').map(s => s.trim()),
+        ...(options.dependsOn && { dependsOn: options.dependsOn.split(',').map(s => s.trim()) }),
+        ...(options.from && { from: options.from }),
+        ...(options.to && { to: options.to }),
+        ...(options.feature && { feature: options.feature }),
       };
-      if (options.from) simOptions.from = options.from;
-      if (options.to) simOptions.to = options.to;
-      if (options.feature) simOptions.feature = options.feature;
 
       const result = await simulateCommand(options.mb, simOptions);
       const output = JSON.stringify(result, null, parentOpts.quiet ? 0 : 2);
@@ -190,7 +190,15 @@ export function createCli(): Command {
         process.exit(1);
       }
 
-      const validation = validateTaskAssignment(parseResult.task!);
+      const task = parseResult.task;
+      if (!task) {
+        const result = { valid: false, error: 'Task parsing failed' };
+        process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+        process.exit(1);
+        return;
+      }
+
+      const validation = validateTaskAssignment(task);
       const result = {
         valid: validation.valid,
         errors: validation.errors,
@@ -232,7 +240,15 @@ export function createCli(): Command {
         process.exit(1);
       }
 
-      const validation = validateTaskResult(parseResult.result!);
+      const taskResult = parseResult.result;
+      if (!taskResult) {
+        const result = { valid: false, error: 'Result parsing failed' };
+        process.stdout.write(JSON.stringify(result, null, parentOpts.quiet ? 0 : 2) + '\n');
+        process.exit(1);
+        return;
+      }
+
+      const validation = validateTaskResult(taskResult);
       const result = {
         valid: validation.valid,
         errors: validation.errors,
@@ -350,8 +366,9 @@ export async function main(): Promise<void> {
 // Execute CLI only when run directly (not imported for tests)
 const isMainModule = import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, '/') ?? '');
 if (isMainModule || process.argv[1]?.includes('cli.js')) {
-  main().catch((error) => {
-    console.error(error);
+  main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: ${message}\n`);
     process.exit(1);
   });
 }

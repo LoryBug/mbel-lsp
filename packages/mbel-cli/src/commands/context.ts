@@ -74,7 +74,7 @@ export async function contextCommand(
   // Read and parse MB file
   const content = fs.readFileSync(mbPath, 'utf-8');
   const parser = new MbelParser();
-  const parseResult = parser.parse(content);
+  parser.parse(content); // Validate syntax
 
   // Create QueryService
   const queryService = new QueryService();
