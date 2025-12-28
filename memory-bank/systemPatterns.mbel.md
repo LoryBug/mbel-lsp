@@ -82,11 +82,12 @@ mbel-lsp/
   ->exports[createTaskAssignment,validateTaskAssignment,serializeTask,deserializeTask]
   ->scope::Multi-Agent-task-assignment-format{TDDAB#27✓}
 
-?feature{ResultSchema}
+✓feature{ResultSchema}
   ->files[packages/mbel-cli/src/schemas/result-schema.ts]
-  ->tests[packages/mbel-cli/tests/schemas/result-schema.test.ts]
-  ->exports[TaskResult,FileChange,TestSummary,ResultStatus]
-  ->scope::Multi-Agent-result-format{TDDAB#28}
+  ->tests[packages/mbel-cli/tests/schemas/result-schema.test.ts{44tests,100%coverage}]
+  ->exports[TaskResult,FileChange,TestSummary,ResultStatus,RESULT_STATUSES,FILE_ACTIONS]
+  ->exports[createTaskResult,validateTaskResult,serializeResult,deserializeResult,aggregateTestSummaries]
+  ->scope::Multi-Agent-result-format{TDDAB#28✓}
 
 ?feature{MbelMerge}
   ->files[packages/mbel-cli/src/commands/merge.ts]
