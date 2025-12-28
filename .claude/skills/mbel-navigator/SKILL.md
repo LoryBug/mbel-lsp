@@ -70,6 +70,61 @@ For context and status, read files directly:
 | "What's next to do?" | Read `activeContext.mbel.md` [NEXT] section |
 | "How is the project structured?" | Read `systemPatterns.mbel.md` |
 
+## Multi-Agent CLI Commands
+
+The MBEL CLI supports orchestrator/subagent workflows:
+
+```bash
+# Get context for subagent (token-optimized)
+mbel context <feature> --mode=summary
+
+# Validate task assignment before spawning subagent
+mbel task-validate '<json>'
+mbel task-validate @path/to/task.json
+
+# Validate result from subagent
+mbel result-validate '<json>'
+mbel result-validate @path/to/result.json
+
+# Merge delta into Memory Bank (atomic)
+mbel merge memory-bank/activeContext.mbel.md --delta "[SECTION]\n..." --dry-run
+mbel merge memory-bank/activeContext.mbel.md --delta "[SECTION]\n..."
+
+# Pre-commit validation
+mbel check memory-bank/activeContext.mbel.md
+```
+
+### Multi-Agent Workflow
+
+```
+┌─────────────────────────────────────────────┐
+│ ORCHESTRATOR                                │
+│ 1. mbel context <feature> --mode=summary    │
+│ 2. mbel task-validate '<task-json>'         │
+│ 3. Spawn subagent with TaskAssignment       │
+│ 4. mbel result-validate '<result-json>'     │
+│ 5. mbel merge <file> --delta "..." --dry-run│
+│ 6. mbel merge <file> --delta "..."          │
+└─────────────────────────────────────────────┘
+         │ TaskAssignment        ▲ TaskResult
+         ▼                       │
+┌─────────────────────────────────────────────┐
+│ SUBAGENT                                    │
+│ - Receives task + context                   │
+│ - Implements 1 TDDAB block                  │
+│ - Returns TaskResult with mb_delta          │
+└─────────────────────────────────────────────┘
+```
+
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/orchestrator` | Activate orchestrator mode |
+| `/mb` | Full Memory Bank status query |
+| `/mb-pending` | Show pending items |
+| `/mb-status` | Quick project status |
+
 ## Understanding Results
 
 ### Feature Query Result

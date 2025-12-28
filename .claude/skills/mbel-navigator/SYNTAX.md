@@ -151,3 +151,91 @@ Use `├─` for intermediate items, `└─` for last item.
 5. **Newline separation** - One statement per line
 6. **Latest state** - Show current state, not history
 7. **Left-to-right** - Read expressions left to right
+
+---
+
+## Multi-Agent Schemas
+
+### TaskAssignment (Orchestrator → Subagent)
+
+```json
+{
+  "id": "TDDAB#31",
+  "type": "implement",
+  "target": "FeatureName",
+  "description": "What to implement",
+  "context": {
+    "mbSnapshot": "[FOCUS]\n@focus::Feature{...}",
+    "files": ["src/feature.ts"],
+    "dependencies": ["Parser", "Lexer"]
+  },
+  "acceptance": [
+    "All tests pass",
+    "100% coverage"
+  ],
+  "constraints": {
+    "maxFiles": 5,
+    "testCommand": "npm test"
+  }
+}
+```
+
+**Task Types:** `implement`, `refactor`, `test`, `fix`, `document`
+
+### TaskResult (Subagent → Orchestrator)
+
+```json
+{
+  "taskId": "TDDAB#31",
+  "status": "completed",
+  "filesChanged": [
+    {"path": "src/feature.ts", "action": "created", "linesChanged": 150}
+  ],
+  "tests": {
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "newTests": 25
+  },
+  "mbDelta": "[PROGRESS]\n✓TDDAB#31::Feature{completed}",
+  "blockers": [],
+  "duration": 45000
+}
+```
+
+**Result Statuses:** `completed`, `blocked`, `failed`, `partial`
+
+**File Actions:** `created`, `modified`, `deleted`
+
+### mb_delta Format
+
+The `mbDelta` field in TaskResult must be valid MBEL:
+
+```mbel
+[PROGRESS]
+✓TDDAB#31::FeatureName{completed}
+  ->files[file1.ts,file2.ts]
+  ->tests{passed,coverage%}
+  ->completed{YYYY-MM-DD}
+```
+
+**Status Markers in Delta:**
+| Marker | Meaning |
+|--------|---------|
+| `✓` | Completed successfully |
+| `?` | Partial/pending |
+| `!` | Blocked/failed |
+
+### CLI Validation
+
+```bash
+# Validate before sending to subagent
+mbel task-validate '{"id":"TDDAB#31",...}'
+
+# Validate after receiving from subagent
+mbel result-validate '{"taskId":"TDDAB#31",...}'
+
+# Merge delta into MB (always dry-run first)
+mbel merge memory-bank/activeContext.mbel.md --delta "..." --dry-run
+mbel merge memory-bank/activeContext.mbel.md --delta "..."
+```

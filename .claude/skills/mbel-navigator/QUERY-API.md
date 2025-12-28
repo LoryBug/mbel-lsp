@@ -154,3 +154,140 @@ console.log('Hotspots:', hotspots.map(h => h.path));
 2. **Use partial paths** for file lookups (e.g., `'parser.ts'` not full path)
 3. **Check null returns** - `getFeatureFiles` returns null if not found
 4. **Combine with direct reads** - Use QueryService for navigation, Read for context
+
+---
+
+# Multi-Agent Schemas
+
+The CLI exports schemas for orchestrator/subagent communication.
+
+## Location
+
+```typescript
+import {
+  // Task Schema
+  createTaskAssignment,
+  validateTaskAssignment,
+  serializeTask,
+  deserializeTask,
+  TASK_TYPES,
+
+  // Result Schema
+  createTaskResult,
+  validateTaskResult,
+  serializeResult,
+  deserializeResult,
+  aggregateTestSummaries,
+  RESULT_STATUSES,
+  FILE_ACTIONS,
+
+  // Orchestrator Helpers
+  buildTaskContext,
+  compressContext,
+  aggregateDeltas,
+  validateDelta,
+  orderDeltasBySection,
+} from '@mbel/cli';
+```
+
+## TaskAssignment Schema
+
+```typescript
+interface TaskAssignment {
+  id: string;                    // e.g., "TDDAB#31"
+  type: TaskType;                // implement|refactor|test|fix|document
+  target: string;                // Feature name
+  description: string;           // What to do
+  context: {
+    mbSnapshot: string;          // Compressed MBEL context
+    files: string[];             // Relevant files
+    dependencies: string[];      // Feature dependencies
+  };
+  acceptance: string[];          // Acceptance criteria
+  constraints: {
+    maxFiles: number;            // Max files to modify
+    testCommand: string;         // e.g., "npm test"
+    maxTokens?: number;          // Optional token limit
+    timeout?: number;            // Optional timeout (ms)
+  };
+}
+
+type TaskType = 'implement' | 'refactor' | 'test' | 'fix' | 'document';
+```
+
+## TaskResult Schema
+
+```typescript
+interface TaskResult {
+  taskId: string;                // Matches TaskAssignment.id
+  status: ResultStatus;          // completed|blocked|failed|partial
+  filesChanged: FileChange[];    // What was modified
+  tests: TestSummary;            // Test execution results
+  mbDelta: string;               // MBEL fragment for MB update
+  blockers: string[];            // Blockers if status != completed
+  duration: number;              // Execution time (ms)
+}
+
+interface FileChange {
+  path: string;
+  action: 'created' | 'modified' | 'deleted';
+  linesChanged?: number;
+}
+
+interface TestSummary {
+  passed: number;
+  failed: number;
+  skipped: number;
+  newTests: number;
+}
+
+type ResultStatus = 'completed' | 'blocked' | 'failed' | 'partial';
+```
+
+## Orchestrator Helpers
+
+### buildTaskContext(mbContent, feature, mode)
+
+Build context for subagent from Memory Bank content.
+
+```typescript
+const context = buildTaskContext(
+  mbContent,           // Raw MB file content
+  'Parser',            // Feature name
+  'summary'            // Mode: summary|full|compact
+);
+// Returns: TaskContext { mbSnapshot, files, dependencies }
+```
+
+### aggregateDeltas(deltas)
+
+Combine multiple deltas from parallel subagents.
+
+```typescript
+const result = aggregateDeltas([delta1, delta2, delta3]);
+// Returns: { combined: string, sections: string[], duplicates: string[] }
+```
+
+### validateDelta(mbContent, delta)
+
+Check if delta is valid for merge into MB.
+
+```typescript
+const validation = validateDelta(mbContent, delta);
+// Returns: { valid: boolean, errors: string[], warnings: string[] }
+```
+
+## CLI Commands
+
+```bash
+# Validate TaskAssignment
+mbel task-validate '{"id":"TDDAB#1",...}'
+mbel task-validate @task.json
+
+# Validate TaskResult
+mbel result-validate '{"taskId":"TDDAB#1",...}'
+mbel result-validate @result.json
+
+# Merge delta atomically
+mbel merge <file> --delta "..." [--dry-run]
+```
