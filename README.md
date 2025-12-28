@@ -5,14 +5,15 @@ Language Server Protocol (LSP) implementation for **MBEL v6** (Memory Bank Expre
 ## Features
 
 ### Core LSP Features
-- **Syntax Highlighting** - Full support for all 35+ MBEL operators
-- **Diagnostics** - Real-time error detection and warnings
+- **Syntax Highlighting** - Full support for all 50+ MBEL operators
+- **Diagnostics** - Real-time error detection and warnings (35+ diagnostic codes)
 - **Hover Information** - Documentation for operators on hover
 - **Code Completion** - Operator suggestions with descriptions
 - **Document Symbols** - Outline view with sections and attributes
 - **Go to Definition** - Navigate to section/attribute declarations
 - **Find References** - Find all usages of a symbol
 - **Workspace Symbols** - Search symbols across all open files
+- **CodeLens** - Visual indicators for features, anchors, decisions, and heat
 
 ### LLM Query Methods (AI Agent API)
 Specialized methods for AI agents to query project status efficiently:
@@ -177,7 +178,7 @@ mbel-lsp/
 
 ## MBEL v6 Syntax
 
-### Core Operators (27+)
+### Core Operators (50+)
 
 | Category | Operators | Description |
 |----------|-----------|-------------|
@@ -188,6 +189,9 @@ mbel-lsp/
 | **Quantification** | `#` `%` `~` | Count, percentage, range |
 | **Logic** | `&` `\|\|` `¬` | AND, OR, NOT |
 | **Meta** | `§` `©` | Version, source/attribution |
+| **Anchors** | `@entry::` `@hotspot::` `@boundary::` | Semantic entry points |
+| **Heat** | `@critical::` `@hot::` `@stable::` `@volatile::` | File change tracking |
+| **Decisions** | `@YYYY-MM-DD::` | Date-indexed decisions |
 
 ### MBEL v6 Extensions
 
@@ -247,6 +251,111 @@ Semantic entry points marking important code locations:
 | `@hotspot::` | Frequently modified files (high churn) |
 | `@boundary::` | System boundaries (APIs, integrations) |
 
+#### DecisionLog (`§decisions` section)
+Architectural decision records with rationale tracking:
+
+```mbel
+[DECISIONS]
+§decisions
+@2024-12-27::UseTypeScript
+  ->reason{Type safety and better IDE support}
+  ->alternatives{JavaScript, Flow, ReScript}
+  ->tradeoff{Build step required, learning curve}
+  ->context{src/core, src/api}
+  ->status{ACTIVE}
+
+@2024-12-20::AdoptMonorepo
+  ->reason{Shared code between packages}
+  ->status{SUPERSEDED}
+  ->supersededBy{UseNxWorkspace}
+```
+
+**Decision Clauses:**
+| Clause | Description |
+|--------|-------------|
+| `->reason{...}` | Why this decision was made |
+| `->alternatives{...}` | Options that were considered |
+| `->tradeoff{...}` | Trade-offs of this decision |
+| `->context{...}` | Files/areas affected |
+| `->status{ACTIVE\|SUPERSEDED\|RECONSIDERING}` | Current status |
+| `->supersededBy{DecisionName}` | Link to replacement decision |
+| `->revisit{YYYY-MM-DD}` | When to reconsider |
+
+#### HeatMap (`§heatmap` section)
+File change frequency and risk assessment:
+
+```mbel
+[HEATMAP]
+§heatmap
+@critical::src/security/auth.ts
+  ->dependents[UserService, SessionManager]
+  ->changes{45}
+  ->coverage{98%}
+  ->confidence{high}
+  ->impact{high}
+  ->caution{security-sensitive}
+
+@hot::src/core/parser.ts
+  ->changes{23}
+  ->coverage{92%}
+
+@stable::src/utils/helpers.ts
+  ->changes{2}
+  ->coverage{100%}
+  ->confidence{high}
+
+@volatile::src/experimental/beta.ts
+  ->changes{67}
+  ->coverage{45%}
+  ->caution{breaking-changes-expected}
+```
+
+**Heat Levels:**
+| Level | Description |
+|-------|-------------|
+| `@critical::` | Security-sensitive, high-impact files |
+| `@hot::` | Frequently modified (high churn) |
+| `@stable::` | Rarely changed, well-tested |
+| `@volatile::` | Experimental, expect changes |
+
+**Heat Clauses:**
+| Clause | Description |
+|--------|-------------|
+| `->dependents[...]` | Files that depend on this |
+| `->changes{N}` | Number of changes (numeric) |
+| `->coverage{N%}` | Test coverage percentage |
+| `->confidence{high\|medium\|low}` | Confidence level |
+| `->impact{high\|medium\|low}` | Impact if broken |
+| `->caution{...}` | Warning message |
+
+#### IntentMarkers (`§intents` section)
+Document code intent and responsibility:
+
+```mbel
+[INTENTS]
+§intents
+@Parser::Lexer
+  ->does{Tokenizes MBEL source into token stream}
+  ->doesNot{Parse tokens into AST, validate semantics}
+  ->contract{Input: string, Output: Token[]}
+  ->singleResponsibility{Lexical analysis only}
+
+@Core::Analyzer
+  ->does{Validates AST and produces diagnostics}
+  ->extends{BaseValidator, DiagnosticProducer}
+  ->antiPattern{God object, circular dependencies}
+```
+
+**Intent Clauses:**
+| Clause | Description |
+|--------|-------------|
+| `->does{...}` | Primary responsibility |
+| `->doesNot{...}` | Boundary definition |
+| `->contract{...}` | API contract |
+| `->singleResponsibility{...}` | SOLID SRP tracking |
+| `->extends{...}` | Inheritance/composition |
+| `->antiPattern{...}` | Patterns to avoid |
+
 ### Basic Example
 
 ```mbel
@@ -296,6 +405,48 @@ Semantic entry points marking important code locations:
 | MBEL-ANCHOR-010 | Warning | Empty description |
 | MBEL-ANCHOR-011 | Error | Invalid glob pattern (e.g., `***`) |
 
+### DecisionLog Validation (MBEL-DECISION-*)
+| Code | Severity | Description |
+|------|----------|-------------|
+| MBEL-DECISION-001 | Error | Empty decision name |
+| MBEL-DECISION-002 | Warning | Duplicate decision names |
+| MBEL-DECISION-010 | Error | Invalid status value |
+| MBEL-DECISION-020 | Warning | SUPERSEDED without supersededBy |
+| MBEL-DECISION-021 | Warning | Reference to undefined decision |
+| MBEL-DECISION-030 | Hint | Decision without reason |
+| MBEL-DECISION-031 | Warning | Empty reason clause |
+| MBEL-DECISION-032 | Warning | Empty tradeoff clause |
+| MBEL-DECISION-040 | Error | Context path with spaces |
+
+### HeatMap Validation (MBEL-HEAT-*)
+| Code | Severity | Description |
+|------|----------|-------------|
+| MBEL-HEAT-001 | Error | Empty heat path |
+| MBEL-HEAT-002 | Error | Path with spaces |
+| MBEL-HEAT-003 | Warning | Duplicate heat for same path |
+| MBEL-HEAT-011 | Error | Invalid glob pattern (e.g., `***`) |
+| MBEL-HEAT-020 | Warning | Empty dependents list |
+| MBEL-HEAT-030 | Error | Non-numeric changes value |
+| MBEL-HEAT-040 | Warning | Empty coverage |
+| MBEL-HEAT-050 | Warning | Invalid confidence level |
+| MBEL-HEAT-051 | Warning | Empty confidence |
+| MBEL-HEAT-060 | Warning | Empty impact |
+| MBEL-HEAT-070 | Warning | Empty caution |
+
+### IntentMarkers Validation (MBEL-INTENT-*)
+| Code | Severity | Description |
+|------|----------|-------------|
+| MBEL-INTENT-001 | Error | Empty module name |
+| MBEL-INTENT-002 | Error | Empty component name |
+| MBEL-INTENT-003 | Warning | Duplicate intent (same module::component) |
+| MBEL-INTENT-010 | Warning | Empty ->does clause |
+| MBEL-INTENT-011 | Warning | Empty ->doesNot clause |
+| MBEL-INTENT-020 | Warning | Empty ->contract clause |
+| MBEL-INTENT-030 | Warning | Empty ->singleResponsibility clause |
+| MBEL-INTENT-040 | Warning | Empty ->antiPattern clause |
+| MBEL-INTENT-050 | Warning | Empty ->extends list |
+| MBEL-INTENT-051 | Warning | Invalid ->extends item |
+
 ## Development
 
 ### Commands
@@ -312,23 +463,25 @@ npm run btlt         # Build + Type-check + Lint + Test
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| mbel-core | 177 | 92% |
-| mbel-analyzer | 90 | 96% |
-| mbel-lsp | 131 | 89% |
-| **Total** | **398** | **91%** |
+| mbel-core | 350+ | 92% |
+| mbel-analyzer | 200+ | 96% |
+| mbel-lsp | 180+ | 89% |
+| **Total** | **739** | **91%** |
 
 ## Roadmap
 
-### MBEL v6 Phase 1 (In Progress)
+### MBEL v6 Phase 1 (Complete)
 - [x] **TDDAB#9: CrossRefLinks** - Bidirectional feature-to-file linking
 - [x] **TDDAB#10: SemanticAnchors** - Semantic code entry points
+- [x] **TDDAB#11: DecisionLog** - Architectural decision records
+- [x] **TDDAB#12: HeatMap** - File change frequency tracking
+- [x] **TDDAB#13: IntentMarkers** - Code intent documentation
+- [x] **TDDAB#16: ToolIntegrations** - CodeLens provider + OpenCode tools
 - [x] **TDDAB#17: QueryService** - Programmatic API for LLM navigation
-- [ ] **TDDAB#11: DecisionLog** - Architectural decision records
-- [ ] **TDDAB#12: HeatMap** - File change frequency tracking
-- [ ] **TDDAB#13: IntentMarkers** - Code intent documentation
-- [ ] **TDDAB#14: LLMAPILayer** - LSP semantic methods
-- [ ] **TDDAB#15: QueryEngine** - Semantic navigation infrastructure
-- [ ] **TDDAB#16: ToolIntegrations** - OpenCode + VSCode tools
+
+### MBEL v6 Phase 2 (Planned)
+- [ ] **TDDAB#14: LLMAPILayer** - LSP semantic methods for external tools
+- [ ] **TDDAB#15: QueryEngine** - Cross-file semantic navigation
 
 ### Core Features (Completed)
 - [x] **OpenCode Integration** - Slash commands + Custom tools
