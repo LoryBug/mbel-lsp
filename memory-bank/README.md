@@ -21,29 +21,22 @@
 - VERIFY::Coverage+Build+Lint+Commit
 
 [CURRENT_STATUS]
-@status::V5Complete+V6Phase1Active
+@status::V6Complete+Phase5InProgress
 
-§v5-complete{259tests,87%coverage}
-✓TDDAB#1::MbelLexer{61tests,100%}
-✓TDDAB#2::MbelParser{42tests,91%}
-✓TDDAB#3::MbelAnalyzer{48tests,95%}
-✓TDDAB#4::LspServer{34tests,99%}
-✓TDDAB#5::LspFeatures{29tests,98%}
-✓TDDAB#6::GoToDefinition{11tests}
-✓TDDAB#7::FindReferences+WorkspaceSymbols{23tests}
-✓TDDAB#8::LLMQueryMethods{11tests}
+§v5-complete{259tests}
+✓TDDAB#1-#8::Core{Lexer,Parser,Analyzer,LSP,Features}
 
-§v6-phase1{1of8-complete,79tests,90.32%coverage}
-✓TDDAB#9::CrossRefLinks{79tests,priority:1}
-?TDDAB#10::SemanticAnchors{~18tests,priority:2}
-?TDDAB#11::DecisionLog{~20tests,priority:4}
-?TDDAB#12::HeatMap{~18tests,priority:5}
-?TDDAB#13::IntentMarkers{~16tests,priority:6}
+§v6-complete{478tests}
+✓TDDAB#9-#19::V6Extensions{Links,Anchors,Decisions,Heat,Intents,QueryService,LLM-API,ToolIntegrations}
 
-§v6-phase2-3-4{pending}
-?TDDAB#14::LLMAPILayer{~25tests,priority:3}
-?TDDAB#15::QueryEngine{~15tests,priority:3.5}
-?TDDAB#16::ToolIntegrations{~10tests,priority:last}
+§v6-phase5-agent-cli{4of6,69tests}
+✓TDDAB#20::CLIScaffolding{21tests}
+✓TDDAB#21::MbelCheck{15tests}
+✓TDDAB#22::MbelImpact{15tests}
+✓TDDAB#23::IntentAwareDiagnostics{18tests}
+?TDDAB#24::MbelContext{~20tests}
+?TDDAB#25::MbelGrammar{~12tests}
+?TDDAB#26::MbelSimulate{~25tests}
 
 [MBEL_V6_SYNTAX]
 @version::6.0

@@ -94,7 +94,14 @@ export type DiagnosticCode =
   | 'MBEL-INTENT-030'         // Empty ->singleResponsibility clause
   | 'MBEL-INTENT-040'         // Empty ->antiPattern clause
   | 'MBEL-INTENT-050'         // Empty ->extends list
-  | 'MBEL-INTENT-051';        // Invalid ->extends item (empty)
+  | 'MBEL-INTENT-051'         // Invalid ->extends item (empty)
+  // MBEL v6 Intent-Aware Diagnostics (TDDAB#23) - Self-healing suggestions
+  | 'MBEL-TYPO-001'           // Unicode right arrow → (should be ->)
+  | 'MBEL-TYPO-002'           // Unicode left arrow ← (should be <-)
+  | 'MBEL-TYPO-003'           // Unicode bidirectional arrow ↔ (should be <->)
+  | 'MBEL-TYPO-010'           // Em-dash — (should be --)
+  | 'MBEL-TYPO-011'           // Curly quotes "" (should be "")
+  | 'MBEL-TYPO-012';          // Ellipsis … (should be ...)
 
 /**
  * Range in source document

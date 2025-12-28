@@ -1,10 +1,10 @@
 §MBEL:6.0
 
 [FOCUS]
-@focus::MBEL6.0{v6-Complete}
->status::AllTDDABComplete{#1-#19}✓
->tests::737{93.91%coverage}
->next::ProductionReadiness{docs,marketplace}
+@focus::MBEL6.0-Phase5{Agent-CLI}
+>status::Phase5Complete✓{#20-#26}
+>tests::859{~93%coverage,+53-new}
+>next::Phase6{Production-Ready}
 
 [STATUS_SUMMARY]
 ✓CoreLanguage::Lexer+Parser+Analyzer+LSP{v5}
@@ -81,6 +81,7 @@
 @effortReduction::3x{vs-direct-exploration}
 
 [METRICS]
-@tests::737{total}
-@coverage::93.91%
-@packages::4{core,analyzer,lsp,vscode-extension}
+@tests::859{total,+53-Phase5}
+  ->breakdown::context{19},grammar{13},simulate{21}
+@coverage::93%
+@packages::5{core,analyzer,lsp,cli,vscode-extension}

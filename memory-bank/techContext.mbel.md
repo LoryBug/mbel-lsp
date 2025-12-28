@@ -27,6 +27,7 @@ mbel-lsp/
 │   ├── mbel-core/{lexer,parser,ast,types}
 │   ├── mbel-analyzer/{analyzer,diagnostics}
 │   ├── mbel-lsp/{server,query-service,types,bin}
+│   ├── mbel-cli/{cli,commands/*}
 │   └── vscode-extension/{extension,syntaxes}
 ├── .opencode/{commands,tools}
 ├── memory-bank/{*.mbel.md}

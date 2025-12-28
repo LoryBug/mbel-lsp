@@ -164,6 +164,7 @@ mbel-lsp/
 │   ├── mbel-core/          # Lexer + Parser
 │   ├── mbel-analyzer/      # Semantic analysis + Diagnostics
 │   ├── mbel-lsp/           # LSP Server + QueryService
+│   ├── mbel-cli/           # Agent CLI (check, impact, context, grammar, simulate)
 │   └── vscode-extension/   # VSCode client
 ├── .claude/
 │   └── skills/
@@ -466,7 +467,8 @@ npm run btlt         # Build + Type-check + Lint + Test
 | mbel-core | 350+ | 92% |
 | mbel-analyzer | 200+ | 96% |
 | mbel-lsp | 180+ | 89% |
-| **Total** | **739** | **91%** |
+| mbel-cli | 69 | 93% |
+| **Total** | **806** | **93%** |
 
 ## Roadmap
 
@@ -479,9 +481,18 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **TDDAB#16: ToolIntegrations** - CodeLens provider + OpenCode tools
 - [x] **TDDAB#17: QueryService** - Programmatic API for LLM navigation
 
-### MBEL v6 Phase 2 (Planned)
-- [ ] **TDDAB#14: LLMAPILayer** - LSP semantic methods for external tools
-- [ ] **TDDAB#15: QueryEngine** - Cross-file semantic navigation
+### MBEL v6 Phase 2 (Complete)
+- [x] **TDDAB#14: LLMAPILayer** - LSP semantic methods for external tools
+- [x] **TDDAB#15: QueryEngine** - Cross-file semantic navigation
+
+### MBEL v6 Phase 5: Agent CLI (In Progress - 4 of 6 Complete)
+- [x] **TDDAB#20: CLIScaffolding** - Base CLI framework with Commander.js (21 tests)
+- [x] **TDDAB#21: MbelCheck** - Pre-commit validation command (15 tests)
+- [x] **TDDAB#22: MbelImpact** - Risk analysis command (15 tests)
+- [x] **TDDAB#23: IntentAwareDiagnostics** - Self-healing error messages (18 tests)
+- [ ] **TDDAB#24: MbelContext** - Token-optimized feature summary (~20 tests)
+- [ ] **TDDAB#25: MbelGrammar** - On-demand syntax refresher (~12 tests)
+- [ ] **TDDAB#26: MbelSimulate** - Predictive architecture simulation (~25 tests)
 
 ### Core Features (Completed)
 - [x] **OpenCode Integration** - Slash commands + Custom tools
@@ -493,7 +504,6 @@ npm run btlt         # Build + Type-check + Lint + Test
 
 ### Future
 - [ ] **Rename Symbol** - Rename sections/attributes across file
-- [ ] **Folding Ranges** - Collapse sections and code blocks
 - [ ] **Code Actions** - Quick fixes for common errors
 - [ ] **Multi-file Support** - Cross-file references and diagnostics
 - [ ] **Formatting** - Auto-format MBEL documents

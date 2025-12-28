@@ -8,6 +8,7 @@ mbel-lsp/
 │   ├── mbel-core/{Lexer+Parser}✓
 │   ├── mbel-analyzer/{Diagnostics+QueryEngine}✓
 │   ├── mbel-lsp/{Server+Features+LLM-API}✓
+│   ├── mbel-cli/{CLI+Commands}?
 │   └── vscode-extension/{Client}✓
 ├── .opencode/
 │   ├── command/{mb.md,mb-pending.md,mb-recent.md}✓
@@ -51,6 +52,20 @@ mbel-lsp/
 @feature{VSCodeExtension}
   ->files[packages/vscode-extension/src/extension.ts]
   ->depends[LSPServer]
+
+@feature{CLI}
+  ->files[packages/mbel-cli/src/cli.ts,index.ts,commands/*.ts]
+  ->tests[packages/mbel-cli/tests/*.test.ts,122tests-Phase5✓]
+  ->entryPoint{cli.ts:main}
+  ->depends[Parser,Analyzer,QueryService]
+  ->commands[
+    check{pre-commit-validation,15tests},
+    impact{risk-analysis,15tests},
+    context{token-optimized-summary,19tests},
+    grammar{syntax-reference,13tests},
+    simulate{predictive-architecture,21tests}
+  ]
+  ->scope::Agent-Operating-System{democratize-LSP-capabilities}
 
 [ANCHORS]
 §anchors

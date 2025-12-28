@@ -10902,6 +10902,9 @@ var MbelAnalyzer = class {
       this.checkInvalidDecisionStatus(diagnostics);
       this.checkInvalidHeatChanges(diagnostics);
     }
+    const typoResult = this.checkTypos(source);
+    diagnostics.push(...typoResult.diagnostics);
+    quickFixes.push(...typoResult.quickFixes);
     return { diagnostics, quickFixes };
   }
   /**
@@ -12066,6 +12069,76 @@ var MbelAnalyzer = class {
       edits: [edit],
       isPreferred: true
     };
+  }
+  // ============================================================
+  // TDDAB#23: Intent-Aware Diagnostics
+  // ============================================================
+  /**
+   * Check for common typos and unicode characters that should be ASCII
+   */
+  checkTypos(source) {
+    const diagnostics = [];
+    const quickFixes = [];
+    const typoPatterns = [
+      // Unicode arrows
+      { pattern: /[→⇒]/g, replacement: "->", code: "MBEL-TYPO-001", description: "Unicode right arrow" },
+      { pattern: /[←⇐]/g, replacement: "<-", code: "MBEL-TYPO-002", description: "Unicode left arrow" },
+      { pattern: /[↔⇔]/g, replacement: "<->", code: "MBEL-TYPO-003", description: "Unicode bidirectional arrow" },
+      // Common typography
+      { pattern: /[—–]/g, replacement: "--", code: "MBEL-TYPO-010", description: "Em-dash or en-dash" },
+      { pattern: /[""„]/g, replacement: '"', code: "MBEL-TYPO-011", description: "Curly quotes" },
+      { pattern: /…/g, replacement: "...", code: "MBEL-TYPO-012", description: "Ellipsis character" }
+    ];
+    const lines = source.split("\n");
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+      const line = lines[lineIndex];
+      if (line === void 0)
+        continue;
+      for (const { pattern, replacement, code, description } of typoPatterns) {
+        pattern.lastIndex = 0;
+        let match;
+        while ((match = pattern.exec(line)) !== null) {
+          const column = match.index + 1;
+          const char = match[0];
+          const diagnostic = {
+            range: {
+              start: { line: lineIndex + 1, column, offset: this.getOffset(source, lineIndex + 1, column) },
+              end: { line: lineIndex + 1, column: column + 1, offset: this.getOffset(source, lineIndex + 1, column + 1) }
+            },
+            severity: "error",
+            code,
+            message: `${description} '${char}' detected. Did you mean '${replacement}'?`,
+            source: "mbel"
+          };
+          diagnostics.push(diagnostic);
+          const quickFix = {
+            title: `Replace '${char}' with '${replacement}'`,
+            diagnostic,
+            edits: [{
+              range: diagnostic.range,
+              newText: replacement
+            }],
+            isPreferred: true
+          };
+          quickFixes.push(quickFix);
+        }
+      }
+    }
+    return { diagnostics, quickFixes };
+  }
+  /**
+   * Calculate offset from line and column
+   */
+  getOffset(source, line, column) {
+    const lines = source.split("\n");
+    let offset = 0;
+    for (let i = 0; i < line - 1 && i < lines.length; i++) {
+      const currentLine = lines[i];
+      if (currentLine !== void 0) {
+        offset += currentLine.length + 1;
+      }
+    }
+    return offset + column - 1;
   }
 };
 

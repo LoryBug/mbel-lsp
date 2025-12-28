@@ -1,11 +1,11 @@
 §MBEL:6.0
 
 [OVERALL_STATUS]
-@status::MBEL-LSP-v6-Complete✓
->tests::737{total}
->coverage::93.91%
->commits::19{TDDAB-driven}
->phase::DocumentationImprovement{P1-tasks-pending}
+@status::MBEL-LSP-v6-Phase5-Complete✓
+>tests::859{total,+53}
+>coverage::~93%
+>commits::23{TDDAB-driven}
+>phase::AgentCLI{6of6-complete,122tests}
 
 [TDDAB_V5]
 @status::Complete✓{259tests}
@@ -57,11 +57,13 @@
 @status::P1-Complete{3/9tasks,P2-P3-pending}
 @evaluation::2024-12-28{score:6.8/10}
 @report::docs/MBEL-LLM-EVALUATION-REPORT.md
+@proposal::docs/MBEL-AGENT-ENHANCEMENT-PROPOSAL.md
 
 §P1-Critical{complete}
 ✓DOC#1::FormalGrammar{docs/MBEL-GRAMMAR.md}
 ✓DOC#2::QuickStartCheatsheet{docs/MBEL-CHEATSHEET.md}
 ✓DOC#3::OperatorsGuide{docs/MBEL-OPERATORS-GUIDE.md}
+✓DOC#10::AgentEnhancementProposal{docs/MBEL-AGENT-ENHANCEMENT-PROPOSAL.md}
 
 §P2-Important
 ?DOC#4::NamingConsistency
@@ -72,6 +74,60 @@
 ?DOC#7::StricterValidation
 ?DOC#8::ErrorExamples
 ?DOC#9::ProgressiveOnboarding
+
+[TDDAB_V6_PHASE5_AGENT_CLI]
+@status::InProgress{4of6-complete,69tests}
+@proposal::docs/MBEL-AGENT-ENHANCEMENT-PROPOSAL.md
+@goal::AgentOperatingSystem{democratize-LSP-capabilities}
+
+✓#20::CLIScaffolding{21tests,priority:P0}
+  ↳scope::Base CLI framework (Commander.js)
+  ↳files::[packages/mbel-cli/src/cli.ts,index.ts,types.ts]
+  ↳output::JSON{machine-readable}
+  ↳commands::[check,impact,context,grammar,simulate]
+  ↳completed::{2024-12-28}
+
+✓#21::MbelCheck{15tests,priority:P1}
+  ↳scope::Pre-commit validation
+  ↳usage::mbel check <file> --format=json
+  ↳reuses::MbelAnalyzer{diagnostics}
+  ↳commands::check{validate-syntax}
+  ↳completed::{2024-12-28}
+
+✓#22::MbelImpact{15tests,priority:P1}
+  ↳scope::Risk analysis + affected features
+  ↳usage::mbel impact <file> --mb <path>
+  ↳reuses::QueryService{analyzeImpact}
+  ↳commands::impact{show-dependencies}
+  ↳completed::{2024-12-28}
+
+✓#23::IntentAwareDiagnostics{18tests,priority:P2}
+  ↳scope::Self-healing error messages
+  ↳feature::DidYouMean{→vs->,unicode-arrows,curly-quotes,ellipsis}
+  ↳output::suggestedFix{find,replace}
+  ↳codes::MBEL-TYPO-001..012
+  ↳commands::check{includes-suggestions}
+  ↳completed::{2024-12-28}
+
+✓#24::MbelContext{19tests,priority:P3}
+  ↳scope::Token-optimized feature summary
+  ↳usage::mbel context <feature> --mode=summary
+  ↳commands::context{feature-details}
+  ↳reuses::QueryService{getFeatureFiles}
+  ↳completed::{2024-12-28}
+
+✓#25::MbelGrammar{13tests,priority:P3}
+  ↳scope::On-demand syntax refresher
+  ↳usage::mbel grammar --format=bnf|examples
+  ↳commands::grammar{syntax-help}
+  ↳completed::{2024-12-28}
+
+✓#26::MbelSimulate{21tests,priority:P4}
+  ↳scope::Predictive architecture simulation
+  ↳usage::mbel simulate --action="add-dep" --from=A --to=B
+  ↳commands::simulate{dry-run}
+  ↳complexity::High{virtual-graph-mutations}
+  ↳completed::{2024-12-28}
 
 [LLM_EVALUATION_METRICS]
 @tokenEfficiency::47%{savings-vs-prose}

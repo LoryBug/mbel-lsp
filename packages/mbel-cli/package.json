@@ -1,0 +1,30 @@
+{
+  "name": "@mbel/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MBEL CLI - Agent-First Command Line Interface",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mbel": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@mbel/core": "*",
+    "@mbel/analyzer": "*",
+    "@mbel/lsp": "*",
+    "commander": "^12.0.0"
+  },
+  "files": ["dist"],
+  "keywords": ["mbel", "cli", "agent", "llm", "validation"]
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../mbel-core" },
+    { "path": "../mbel-analyzer" },
+    { "path": "../mbel-lsp" }
+  ]
+}
