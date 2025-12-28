@@ -49,6 +49,11 @@ mbel grammar --format=examples
 # Simulate architecture changes (dry-run)
 mbel simulate --action=add-dep --from=Analyzer --to=Lexer
 mbel simulate --action=remove-feature --feature=OldModule
+
+# Multi-agent architecture commands
+mbel merge memory-bank/activeContext.mbel.md --delta "[PROGRESS]\n✓Task::Done" --dry-run
+mbel task-validate '{"id":"TDDAB#1","type":"implement",...}'
+mbel result-validate '{"taskId":"TDDAB#1","status":"completed",...}'
 ```
 
 **Commands:**
@@ -59,6 +64,9 @@ mbel simulate --action=remove-feature --feature=OldModule
 | `context <feature>` | Token-optimized feature summary |
 | `grammar` | On-demand syntax reference (BNF/examples) |
 | `simulate` | Predictive architecture simulation |
+| `merge <file>` | Atomic merge of MBEL delta into Memory Bank |
+| `task-validate <json>` | Validate TaskAssignment for orchestrator |
+| `result-validate <json>` | Validate TaskResult from subagent |
 
 **Intent-Aware Diagnostics:**
 - Detects Unicode arrows (→) and suggests ASCII (`->`)
@@ -152,6 +160,64 @@ mbel-semantic(query: "all")      # Full project overview
 }
 ```
 
+### Multi-Agent Architecture
+
+MBEL supports orchestrator + subagent patterns for AI coding assistants:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ORCHESTRATOR (Claude Opus/Sonnet)                           │
+│ - Reads MB: mbel context <feature> --mode=summary           │
+│ - Plans TDDAB blocks                                        │
+│ - Spawns subagents with TaskAssignment JSON                 │
+│ - Merges deltas: mbel merge <file> --delta "..."            │
+│ - SINGLE WRITER to Memory Bank                              │
+└─────────────────────────────────────────────────────────────┘
+         │ TaskAssignment                    ▲ TaskResult
+         ▼                                   │
+┌─────────────────────────────────────────────────────────────┐
+│ SUBAGENT (Claude Sonnet/Haiku)                              │
+│ - Receives task + MBEL context                              │
+│ - Implements 1 TDDAB block                                  │
+│ - Returns TaskResult with mb_delta                          │
+│ - READ-ONLY access to MB                                    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key Benefits:**
+- **Context Isolation** - Orchestrator stays lean, subagents disposable
+- **No Autocompact Risk** - Subagents can be terminated without state loss
+- **Atomic MB Updates** - Single-writer pattern prevents conflicts
+- **Token Efficiency** - 47% savings via MBEL compression
+
+**TaskAssignment Schema:**
+```json
+{
+  "id": "TDDAB#31",
+  "type": "implement|refactor|test|fix|document",
+  "target": "FeatureName",
+  "description": "What to implement",
+  "context": { "mbSnapshot": "...", "files": [...], "dependencies": [...] },
+  "acceptance": ["Tests pass", "100% coverage"],
+  "constraints": { "maxFiles": 5, "testCommand": "npm test" }
+}
+```
+
+**TaskResult Schema:**
+```json
+{
+  "taskId": "TDDAB#31",
+  "status": "completed|blocked|failed|partial",
+  "filesChanged": [{"path": "...", "action": "created|modified|deleted"}],
+  "tests": {"passed": 25, "failed": 0, "skipped": 0, "newTests": 25},
+  "mbDelta": "[PROGRESS]\n✓TDDAB#31::Feature{completed}",
+  "blockers": [],
+  "duration": 45000
+}
+```
+
+**Documentation:** See `docs/MBEL-MULTIAGENT-GUIDE.md` for full workflow details.
+
 ## File Extensions
 
 The LSP supports two file extensions:
@@ -199,17 +265,26 @@ npx @vscode/vsce package --allow-missing-repository
 ```
 mbel-lsp/
 ├── packages/
-│   ├── mbel-core/          # Lexer + Parser
+│   ├── mbel-core/          # Lexer + Parser + Operator Tiers
 │   ├── mbel-analyzer/      # Semantic analysis + Diagnostics
-│   ├── mbel-lsp/           # LSP Server + QueryService
-│   ├── mbel-cli/           # Agent CLI (check, impact, context, grammar, simulate)
+│   ├── mbel-lsp/           # LSP Server + QueryService + LLM API
+│   ├── mbel-cli/           # Agent CLI (8 commands + multi-agent schemas)
+│   │   ├── commands/       # check, impact, context, grammar, simulate, merge
+│   │   ├── schemas/        # TaskAssignment, TaskResult
+│   │   └── orchestrator/   # Context builder, Delta aggregator
 │   └── vscode-extension/   # VSCode client
 ├── .claude/
+│   ├── commands/           # Slash commands (/orchestrator, /mb, etc.)
 │   └── skills/
 │       └── mbel-navigator/ # Claude Code skill for MB navigation
 ├── .opencode/
 │   ├── command/            # Slash commands (/mb, /mb-pending, /mb-recent)
 │   └── tool/               # Custom tools (mbel-semantic)
+├── docs/                   # Documentation
+│   ├── MBEL-GRAMMAR.md
+│   ├── MBEL-CHEATSHEET.md
+│   ├── MBEL-OPERATORS-GUIDE.md
+│   └── MBEL-MULTIAGENT-GUIDE.md
 ├── memory-bank/            # MBEL Memory Bank files
 ├── opencode.json           # OpenCode LSP config
 └── package.json            # npm workspaces
@@ -505,8 +580,8 @@ npm run btlt         # Build + Type-check + Lint + Test
 | mbel-core | 500+ | 94% |
 | mbel-analyzer | 220+ | 97% |
 | mbel-lsp | 180+ | 97% |
-| mbel-cli | 122 | 93% |
-| **Total** | **1009** | **~93%** |
+| mbel-cli | 263 | 95% |
+| **Total** | **1150** | **~93%** |
 
 ## Roadmap
 
@@ -539,14 +614,23 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **Find References** - Find all usages
 - [x] **Workspace Symbols** - Cross-file symbol search
 - [x] **Claude Code Skill** - mbel-navigator for MB navigation
-- [x] **Agent CLI** - 5 commands (check, impact, context, grammar, simulate)
+- [x] **Agent CLI** - 8 commands (check, impact, context, grammar, simulate, merge, task-validate, result-validate)
 - [x] **Operator Tiers** - 66 operators classified (15 essential + 51 advanced) with tier-aware completions
 
-### MBEL v6 Phase 6: Production-Ready (Next)
+### MBEL v6 Phase 6: Multi-Agent Architecture (Complete)
+- [x] **TDDAB#27: TaskSchema** - Task assignment format for orchestrator→subagent (43 tests)
+- [x] **TDDAB#28: ResultSchema** - Result format for subagent→orchestrator (44 tests)
+- [x] **TDDAB#29: MbelMerge** - Atomic delta merge into Memory Bank (30 tests)
+- [x] **TDDAB#30: OrchestratorHelpers** - Context builder + delta aggregator (24 tests)
+- [x] **CLI Integration** - merge, task-validate, result-validate commands
+- [x] **Documentation** - MBEL-MULTIAGENT-GUIDE.md + Claude Code commands
+
+### MBEL v6 Phase 7: Production Polish (Next)
 - [ ] **Naming Consistency** - Standardize camelCase/lowercase conventions
 - [ ] **Escape Rules** - Special character handling
 - [ ] **Stricter LSP Validation** - Clear error messages
 - [ ] **OpenCode LSP Auto-Activation** - Fix auto-start issue
+- [ ] **Real-world Testing** - Orchestrator + subagent workflow validation
 
 ### Future
 - [ ] **Rename Symbol** - Rename sections/attributes across file
