@@ -3,7 +3,7 @@
 [FOCUS]
 @focus::MBEL6.0-Phase5{Agent-CLI}
 >status::Phase5Complete✓{#20-#26}
->tests::859{~93%coverage,+53-new}
+>tests::1009{~93%coverage,+150-TASK5}
 >next::Phase6{Production-Ready}
 
 [STATUS_SUMMARY]
@@ -62,10 +62,10 @@
 ?TASK#4::NamingConsistency{camelCase-or-lowercase}
   ->reason{->depends-vs->entryPoint-inconsistent}
   ->effort{medium}
-?TASK#5::OperatorTiers{15-essential+42-advanced}
-  ->reason{57-operators-too-many}
-  ->effort{low}
-  ->impact{high}
+✓TASK#5::OperatorTiers{15-essential+51-advanced=66}
+  ->completed{2024-12-28}
+  ->files[operator-tiers.ts,server.ts]
+  ->tests{+150}
 ?TASK#6::EscapeRules{special-chars-handling}
   ->effort{low}
 
@@ -81,7 +81,7 @@
 @effortReduction::3x{vs-direct-exploration}
 
 [METRICS]
-@tests::859{total,+53-Phase5}
-  ->breakdown::context{19},grammar{13},simulate{21}
+@tests::1009{total,+150-TASK5}
+  ->breakdown::operator-tiers{95},completions-tiers{55}
 @coverage::93%
 @packages::5{core,analyzer,lsp,cli,vscode-extension}

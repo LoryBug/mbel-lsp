@@ -30,6 +30,18 @@ export type {
   IntentPrefix,  // TDDAB#13: IntentMarkers
 } from './types.js';
 
+// Operator Tiers (TDDAB: Operator Tiers)
+export { OperatorTier } from './types.js';
+export type { OperatorTier as OperatorTierType } from './types.js';
+export {
+  getOperatorTier,
+  getOperatorsByTier,
+  isEssentialOperator,
+  ESSENTIAL_OPERATORS,
+  OPERATOR_TIER_MAP,
+  ALL_OPERATORS,
+} from './operator-tiers.js';
+
 // AST Types
 export type {
   AstNode,

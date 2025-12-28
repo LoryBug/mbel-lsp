@@ -10827,6 +10827,104 @@ var MbelParser = class {
   }
 };
 
+// ../mbel-core/dist/types.js
+var OperatorTier = {
+  ESSENTIAL: "ESSENTIAL",
+  ADVANCED: "ADVANCED"
+};
+
+// ../mbel-core/dist/operator-tiers.js
+var OPERATOR_TIER_MAP = /* @__PURE__ */ new Map([
+  // ========== ESSENTIAL (15) ==========
+  // Temporal
+  ["@", OperatorTier.ESSENTIAL],
+  [">", OperatorTier.ESSENTIAL],
+  ["?", OperatorTier.ESSENTIAL],
+  // Relation
+  ["::", OperatorTier.ESSENTIAL],
+  ["+", OperatorTier.ESSENTIAL],
+  ["-", OperatorTier.ESSENTIAL],
+  // Structure
+  ["{}", OperatorTier.ESSENTIAL],
+  ["[]", OperatorTier.ESSENTIAL],
+  ["()", OperatorTier.ESSENTIAL],
+  // State
+  ["\u2713", OperatorTier.ESSENTIAL],
+  ["!", OperatorTier.ESSENTIAL],
+  // Quantification
+  ["#", OperatorTier.ESSENTIAL],
+  ["%", OperatorTier.ESSENTIAL],
+  ["~", OperatorTier.ESSENTIAL],
+  // Meta
+  ["\xA7", OperatorTier.ESSENTIAL],
+  // ========== ADVANCED (52) ==========
+  // Temporal (1)
+  ["\u2248", OperatorTier.ADVANCED],
+  // State (2)
+  ["\u2717", OperatorTier.ADVANCED],
+  ["\u26A1", OperatorTier.ADVANCED],
+  // Relation (3)
+  ["\u2192", OperatorTier.ADVANCED],
+  ["\u2190", OperatorTier.ADVANCED],
+  ["\u2194", OperatorTier.ADVANCED],
+  // Structure (2)
+  ["|", OperatorTier.ADVANCED],
+  ["<>", OperatorTier.ADVANCED],
+  // Logic (3)
+  ["&", OperatorTier.ADVANCED],
+  ["||", OperatorTier.ADVANCED],
+  ["\xAC", OperatorTier.ADVANCED],
+  // Meta (1)
+  ["\xA9", OperatorTier.ADVANCED],
+  // Arrow Operators - Links (10)
+  ["->files", OperatorTier.ADVANCED],
+  ["->tests", OperatorTier.ADVANCED],
+  ["->docs", OperatorTier.ADVANCED],
+  ["->decisions", OperatorTier.ADVANCED],
+  ["->related", OperatorTier.ADVANCED],
+  ["->entryPoint", OperatorTier.ADVANCED],
+  ["->blueprint", OperatorTier.ADVANCED],
+  ["->depends", OperatorTier.ADVANCED],
+  ["->features", OperatorTier.ADVANCED],
+  ["->why", OperatorTier.ADVANCED],
+  // Arrow Operators - Anchors (2)
+  ["->descrizione", OperatorTier.ADVANCED],
+  ["->description", OperatorTier.ADVANCED],
+  // Arrow Operators - Decisions (7)
+  ["->alternatives", OperatorTier.ADVANCED],
+  ["->reason", OperatorTier.ADVANCED],
+  ["->tradeoff", OperatorTier.ADVANCED],
+  ["->context", OperatorTier.ADVANCED],
+  ["->status", OperatorTier.ADVANCED],
+  ["->revisit", OperatorTier.ADVANCED],
+  ["->supersededBy", OperatorTier.ADVANCED],
+  // Arrow Operators - Heat (7)
+  ["->dependents", OperatorTier.ADVANCED],
+  ["->untouched", OperatorTier.ADVANCED],
+  ["->changes", OperatorTier.ADVANCED],
+  ["->coverage", OperatorTier.ADVANCED],
+  ["->confidence", OperatorTier.ADVANCED],
+  ["->impact", OperatorTier.ADVANCED],
+  ["->caution", OperatorTier.ADVANCED],
+  // Arrow Operators - Intents (6)
+  ["->does", OperatorTier.ADVANCED],
+  ["->doesNot", OperatorTier.ADVANCED],
+  ["->contract", OperatorTier.ADVANCED],
+  ["->singleResponsibility", OperatorTier.ADVANCED],
+  ["->antiPattern", OperatorTier.ADVANCED],
+  ["->extends", OperatorTier.ADVANCED],
+  // Anchor Prefixes (3)
+  ["@entry::", OperatorTier.ADVANCED],
+  ["@hotspot::", OperatorTier.ADVANCED],
+  ["@boundary::", OperatorTier.ADVANCED],
+  // Heat Prefixes (4)
+  ["@critical::", OperatorTier.ADVANCED],
+  ["@stable::", OperatorTier.ADVANCED],
+  ["@volatile::", OperatorTier.ADVANCED],
+  ["@hot::", OperatorTier.ADVANCED]
+]);
+var ALL_OPERATORS = Array.from(OPERATOR_TIER_MAP.keys());
+
 // ../mbel-analyzer/dist/analyzer.js
 var MbelAnalyzer = class {
   options;
@@ -13671,41 +13769,89 @@ var LlmApi = class {
 
 // ../mbel-lsp/src/server.ts
 var OPERATOR_INFO = {
-  // Temporal
-  "@": { label: "@", description: "Present/current state marker", category: "Temporal" },
-  ">": { label: ">", description: "Past/completed state marker", category: "Temporal" },
-  "?": { label: "?", description: "Future/planned state marker", category: "Temporal" },
-  "\u2248": { label: "\u2248", description: "Approximate/estimated state marker", category: "Temporal" },
-  // State
-  "\u2713": { label: "\u2713", description: "Complete/done state", category: "State" },
-  "\u2717": { label: "\u2717", description: "Failed/cancelled state", category: "State" },
-  "!": { label: "!", description: "Critical/important marker", category: "State" },
-  "\u26A1": { label: "\u26A1", description: "Active/in-progress state", category: "State" },
-  // Relation
-  "::": { label: "::", description: "Defines/binds relation", category: "Relation" },
-  ":": { label: ":", description: "Simple binding (version)", category: "Relation" },
-  "\u2192": { label: "\u2192", description: "Leads to/causes relation", category: "Relation" },
-  "\u2190": { label: "\u2190", description: "Comes from/caused by relation", category: "Relation" },
-  "\u2194": { label: "\u2194", description: "Mutual/bidirectional relation", category: "Relation" },
-  "+": { label: "+", description: "Addition/combination", category: "Relation" },
-  "-": { label: "-", description: "Removal/subtraction", category: "Relation" },
-  // Structure
-  "[": { label: "[...]", description: "Section declaration", category: "Structure" },
-  "{": { label: "{...}", description: "Metadata block", category: "Structure" },
-  "(": { label: "(...)", description: "Note/comment block", category: "Structure" },
-  "<": { label: "<...>", description: "Variant/template block", category: "Structure" },
-  "|": { label: "|", description: "Alternative/or separator", category: "Structure" },
-  // Quantification
-  "#": { label: "#", description: "Count/number quantifier", category: "Quantification" },
-  "%": { label: "%", description: "Percentage quantifier", category: "Quantification" },
-  "~": { label: "~", description: "Range/approximate quantifier", category: "Quantification" },
-  // Logic
-  "&": { label: "&", description: "Logical AND", category: "Logic" },
-  "||": { label: "||", description: "Logical OR", category: "Logic" },
-  "\xAC": { label: "\xAC", description: "Logical NOT", category: "Logic" },
-  // Meta
-  "\xA7": { label: "\xA7", description: "Version declaration", category: "Meta" },
-  "\xA9": { label: "\xA9", description: "Source/attribution", category: "Meta" }
+  // Temporal - ESSENTIAL: @, >, ? | ADVANCED: ≈
+  "@": { label: "@", description: "Present/current state marker", category: "Temporal", tier: OperatorTier.ESSENTIAL },
+  ">": { label: ">", description: "Past/completed state marker", category: "Temporal", tier: OperatorTier.ESSENTIAL },
+  "?": { label: "?", description: "Future/planned state marker", category: "Temporal", tier: OperatorTier.ESSENTIAL },
+  "\u2248": { label: "\u2248", description: "Approximate/estimated state marker", category: "Temporal", tier: OperatorTier.ADVANCED },
+  // State - ESSENTIAL: ✓, ! | ADVANCED: ✗, ⚡
+  "\u2713": { label: "\u2713", description: "Complete/done state", category: "State", tier: OperatorTier.ESSENTIAL },
+  "\u2717": { label: "\u2717", description: "Failed/cancelled state", category: "State", tier: OperatorTier.ADVANCED },
+  "!": { label: "!", description: "Critical/important marker", category: "State", tier: OperatorTier.ESSENTIAL },
+  "\u26A1": { label: "\u26A1", description: "Active/in-progress state", category: "State", tier: OperatorTier.ADVANCED },
+  // Relation - ESSENTIAL: ::, +, - | ADVANCED: →, ←, ↔
+  "::": { label: "::", description: "Defines/binds relation", category: "Relation", tier: OperatorTier.ESSENTIAL },
+  ":": { label: ":", description: "Simple binding (version)", category: "Relation", tier: OperatorTier.ADVANCED },
+  "\u2192": { label: "\u2192", description: "Leads to/causes relation", category: "Relation", tier: OperatorTier.ADVANCED },
+  "\u2190": { label: "\u2190", description: "Comes from/caused by relation", category: "Relation", tier: OperatorTier.ADVANCED },
+  "\u2194": { label: "\u2194", description: "Mutual/bidirectional relation", category: "Relation", tier: OperatorTier.ADVANCED },
+  "+": { label: "+", description: "Addition/combination", category: "Relation", tier: OperatorTier.ESSENTIAL },
+  "-": { label: "-", description: "Removal/subtraction", category: "Relation", tier: OperatorTier.ESSENTIAL },
+  // Structure - ESSENTIAL: [, {, ( | ADVANCED: <, |
+  "[": { label: "[...]", description: "Section declaration", category: "Structure", tier: OperatorTier.ESSENTIAL },
+  "{": { label: "{...}", description: "Metadata block", category: "Structure", tier: OperatorTier.ESSENTIAL },
+  "(": { label: "(...)", description: "Note/comment block", category: "Structure", tier: OperatorTier.ESSENTIAL },
+  "<": { label: "<...>", description: "Variant/template block", category: "Structure", tier: OperatorTier.ADVANCED },
+  "|": { label: "|", description: "Alternative/or separator", category: "Structure", tier: OperatorTier.ADVANCED },
+  // Quantification - ALL ESSENTIAL: #, %, ~
+  "#": { label: "#", description: "Count/number quantifier", category: "Quantification", tier: OperatorTier.ESSENTIAL },
+  "%": { label: "%", description: "Percentage quantifier", category: "Quantification", tier: OperatorTier.ESSENTIAL },
+  "~": { label: "~", description: "Range/approximate quantifier", category: "Quantification", tier: OperatorTier.ESSENTIAL },
+  // Logic - ALL ADVANCED: &, ||, ¬
+  "&": { label: "&", description: "Logical AND", category: "Logic", tier: OperatorTier.ADVANCED },
+  "||": { label: "||", description: "Logical OR", category: "Logic", tier: OperatorTier.ADVANCED },
+  "\xAC": { label: "\xAC", description: "Logical NOT", category: "Logic", tier: OperatorTier.ADVANCED },
+  // Meta - ESSENTIAL: § | ADVANCED: ©
+  "\xA7": { label: "\xA7", description: "Version declaration", category: "Meta", tier: OperatorTier.ESSENTIAL },
+  "\xA9": { label: "\xA9", description: "Source/attribution", category: "Meta", tier: OperatorTier.ADVANCED },
+  // ========== ARROW OPERATORS (ALL ADVANCED) ==========
+  // Links group
+  "->files": { label: "->files", description: "Reference source files", category: "Links", tier: OperatorTier.ADVANCED },
+  "->tests": { label: "->tests", description: "Reference test files", category: "Links", tier: OperatorTier.ADVANCED },
+  "->docs": { label: "->docs", description: "Reference documentation", category: "Links", tier: OperatorTier.ADVANCED },
+  "->decisions": { label: "->decisions", description: "Reference decisions", category: "Links", tier: OperatorTier.ADVANCED },
+  "->related": { label: "->related", description: "Related features", category: "Links", tier: OperatorTier.ADVANCED },
+  "->entryPoint": { label: "->entryPoint", description: "Mark entry point", category: "Links", tier: OperatorTier.ADVANCED },
+  "->blueprint": { label: "->blueprint", description: "Blueprint/plan reference", category: "Links", tier: OperatorTier.ADVANCED },
+  "->depends": { label: "->depends", description: "Declare dependencies", category: "Links", tier: OperatorTier.ADVANCED },
+  "->features": { label: "->features", description: "Associated features", category: "Links", tier: OperatorTier.ADVANCED },
+  "->why": { label: "->why", description: "Rationale/explanation", category: "Links", tier: OperatorTier.ADVANCED },
+  // Anchors group
+  "->descrizione": { label: "->descrizione", description: "Anchor description (IT)", category: "Anchors", tier: OperatorTier.ADVANCED },
+  "->description": { label: "->description", description: "Anchor description (EN)", category: "Anchors", tier: OperatorTier.ADVANCED },
+  // Decisions group
+  "->alternatives": { label: "->alternatives", description: "Decision alternatives", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->reason": { label: "->reason", description: "Decision rationale", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->tradeoff": { label: "->tradeoff", description: "Trade-offs involved", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->context": { label: "->context", description: "Decision context", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->status": { label: "->status", description: "Decision status", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->revisit": { label: "->revisit", description: "Revisit date/condition", category: "Decisions", tier: OperatorTier.ADVANCED },
+  "->supersededBy": { label: "->supersededBy", description: "Superseded by another decision", category: "Decisions", tier: OperatorTier.ADVANCED },
+  // Heat group
+  "->dependents": { label: "->dependents", description: "Dependent modules", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->untouched": { label: "->untouched", description: "Duration since last change", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->changes": { label: "->changes", description: "Number of changes in period", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->coverage": { label: "->coverage", description: "Test coverage percentage", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->confidence": { label: "->confidence", description: "Confidence level", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->impact": { label: "->impact", description: "Impact if changed", category: "Heat", tier: OperatorTier.ADVANCED },
+  "->caution": { label: "->caution", description: "Warning/caution notes", category: "Heat", tier: OperatorTier.ADVANCED },
+  // Intents group
+  "->does": { label: "->does", description: "What component does", category: "Intents", tier: OperatorTier.ADVANCED },
+  "->doesNot": { label: "->doesNot", description: "What component does NOT do", category: "Intents", tier: OperatorTier.ADVANCED },
+  "->contract": { label: "->contract", description: "Component contract", category: "Intents", tier: OperatorTier.ADVANCED },
+  "->singleResponsibility": { label: "->singleResponsibility", description: "Single responsibility", category: "Intents", tier: OperatorTier.ADVANCED },
+  "->antiPattern": { label: "->antiPattern", description: "Anti-patterns to avoid", category: "Intents", tier: OperatorTier.ADVANCED },
+  "->extends": { label: "->extends", description: "Extended contracts", category: "Intents", tier: OperatorTier.ADVANCED },
+  // ========== PREFIX OPERATORS (ALL ADVANCED) ==========
+  // Anchor prefixes
+  "@entry::": { label: "@entry::", description: "Entry point anchor", category: "Anchors", tier: OperatorTier.ADVANCED },
+  "@hotspot::": { label: "@hotspot::", description: "Frequently modified area", category: "Anchors", tier: OperatorTier.ADVANCED },
+  "@boundary::": { label: "@boundary::", description: "System boundary", category: "Anchors", tier: OperatorTier.ADVANCED },
+  // Heat prefixes
+  "@critical::": { label: "@critical::", description: "Critical stability path", category: "Heat", tier: OperatorTier.ADVANCED },
+  "@stable::": { label: "@stable::", description: "Rarely modified", category: "Heat", tier: OperatorTier.ADVANCED },
+  "@volatile::": { label: "@volatile::", description: "Frequently changed", category: "Heat", tier: OperatorTier.ADVANCED },
+  "@hot::": { label: "@hot::", description: "Recent high-activity area", category: "Heat", tier: OperatorTier.ADVANCED }
 };
 var MbelServer = class {
   analyzer;
@@ -13927,6 +14073,7 @@ ${info.description}`
   }
   /**
    * Get completions at position
+   * Completions are sorted by tier: ESSENTIAL (0-) first, ADVANCED (1-) second
    */
   getCompletions(uri, position) {
     const doc = this.documents.get(uri);
@@ -13935,16 +14082,22 @@ ${info.description}`
     }
     const completions = [];
     for (const [op, info] of Object.entries(OPERATOR_INFO)) {
+      const tierLabel = info.tier === OperatorTier.ESSENTIAL ? "Essential" : "Advanced";
+      const sortPrefix = info.tier === OperatorTier.ESSENTIAL ? "0" : "1";
       completions.push({
         label: op,
         kind: import_node.CompletionItemKind.Operator,
+        sortText: `${sortPrefix}-${op}`,
         documentation: {
           kind: import_node.MarkupKind.Markdown,
-          value: `**${info.category}**: ${info.description}`
+          value: `**${info.category}** (${tierLabel})
+
+${info.description}`
         },
-        detail: info.category
+        detail: `${info.category} (${tierLabel})`
       });
     }
+    completions.sort((a, b) => (a.sortText ?? "").localeCompare(b.sortText ?? ""));
     return completions;
   }
   /**

@@ -23,7 +23,7 @@ import {
 } from 'vscode-languageserver/node.js';
 
 import { MbelAnalyzer } from '@mbel/analyzer';
-import { MbelParser } from '@mbel/core';
+import { MbelParser, OperatorTier } from '@mbel/core';
 import type { Diagnostic } from '@mbel/analyzer';
 import type {
   MbelServerOptions,
@@ -42,43 +42,101 @@ import { LlmApi } from './llm-api/index.js';
 
 /**
  * Operator documentation for hover and completion
+ * Includes tier classification: ESSENTIAL (15) or ADVANCED
  */
-const OPERATOR_INFO: Record<string, { label: string; description: string; category: string }> = {
-  // Temporal
-  '@': { label: '@', description: 'Present/current state marker', category: 'Temporal' },
-  '>': { label: '>', description: 'Past/completed state marker', category: 'Temporal' },
-  '?': { label: '?', description: 'Future/planned state marker', category: 'Temporal' },
-  '≈': { label: '≈', description: 'Approximate/estimated state marker', category: 'Temporal' },
-  // State
-  '✓': { label: '✓', description: 'Complete/done state', category: 'State' },
-  '✗': { label: '✗', description: 'Failed/cancelled state', category: 'State' },
-  '!': { label: '!', description: 'Critical/important marker', category: 'State' },
-  '⚡': { label: '⚡', description: 'Active/in-progress state', category: 'State' },
-  // Relation
-  '::': { label: '::', description: 'Defines/binds relation', category: 'Relation' },
-  ':': { label: ':', description: 'Simple binding (version)', category: 'Relation' },
-  '→': { label: '→', description: 'Leads to/causes relation', category: 'Relation' },
-  '←': { label: '←', description: 'Comes from/caused by relation', category: 'Relation' },
-  '↔': { label: '↔', description: 'Mutual/bidirectional relation', category: 'Relation' },
-  '+': { label: '+', description: 'Addition/combination', category: 'Relation' },
-  '-': { label: '-', description: 'Removal/subtraction', category: 'Relation' },
-  // Structure
-  '[': { label: '[...]', description: 'Section declaration', category: 'Structure' },
-  '{': { label: '{...}', description: 'Metadata block', category: 'Structure' },
-  '(': { label: '(...)', description: 'Note/comment block', category: 'Structure' },
-  '<': { label: '<...>', description: 'Variant/template block', category: 'Structure' },
-  '|': { label: '|', description: 'Alternative/or separator', category: 'Structure' },
-  // Quantification
-  '#': { label: '#', description: 'Count/number quantifier', category: 'Quantification' },
-  '%': { label: '%', description: 'Percentage quantifier', category: 'Quantification' },
-  '~': { label: '~', description: 'Range/approximate quantifier', category: 'Quantification' },
-  // Logic
-  '&': { label: '&', description: 'Logical AND', category: 'Logic' },
-  '||': { label: '||', description: 'Logical OR', category: 'Logic' },
-  '¬': { label: '¬', description: 'Logical NOT', category: 'Logic' },
-  // Meta
-  '§': { label: '§', description: 'Version declaration', category: 'Meta' },
-  '©': { label: '©', description: 'Source/attribution', category: 'Meta' },
+interface OperatorInfoEntry {
+  readonly label: string;
+  readonly description: string;
+  readonly category: string;
+  readonly tier: typeof OperatorTier.ESSENTIAL | typeof OperatorTier.ADVANCED;
+}
+
+const OPERATOR_INFO: Record<string, OperatorInfoEntry> = {
+  // Temporal - ESSENTIAL: @, >, ? | ADVANCED: ≈
+  '@': { label: '@', description: 'Present/current state marker', category: 'Temporal', tier: OperatorTier.ESSENTIAL },
+  '>': { label: '>', description: 'Past/completed state marker', category: 'Temporal', tier: OperatorTier.ESSENTIAL },
+  '?': { label: '?', description: 'Future/planned state marker', category: 'Temporal', tier: OperatorTier.ESSENTIAL },
+  '≈': { label: '≈', description: 'Approximate/estimated state marker', category: 'Temporal', tier: OperatorTier.ADVANCED },
+  // State - ESSENTIAL: ✓, ! | ADVANCED: ✗, ⚡
+  '✓': { label: '✓', description: 'Complete/done state', category: 'State', tier: OperatorTier.ESSENTIAL },
+  '✗': { label: '✗', description: 'Failed/cancelled state', category: 'State', tier: OperatorTier.ADVANCED },
+  '!': { label: '!', description: 'Critical/important marker', category: 'State', tier: OperatorTier.ESSENTIAL },
+  '⚡': { label: '⚡', description: 'Active/in-progress state', category: 'State', tier: OperatorTier.ADVANCED },
+  // Relation - ESSENTIAL: ::, +, - | ADVANCED: →, ←, ↔
+  '::': { label: '::', description: 'Defines/binds relation', category: 'Relation', tier: OperatorTier.ESSENTIAL },
+  ':': { label: ':', description: 'Simple binding (version)', category: 'Relation', tier: OperatorTier.ADVANCED },
+  '→': { label: '→', description: 'Leads to/causes relation', category: 'Relation', tier: OperatorTier.ADVANCED },
+  '←': { label: '←', description: 'Comes from/caused by relation', category: 'Relation', tier: OperatorTier.ADVANCED },
+  '↔': { label: '↔', description: 'Mutual/bidirectional relation', category: 'Relation', tier: OperatorTier.ADVANCED },
+  '+': { label: '+', description: 'Addition/combination', category: 'Relation', tier: OperatorTier.ESSENTIAL },
+  '-': { label: '-', description: 'Removal/subtraction', category: 'Relation', tier: OperatorTier.ESSENTIAL },
+  // Structure - ESSENTIAL: [, {, ( | ADVANCED: <, |
+  '[': { label: '[...]', description: 'Section declaration', category: 'Structure', tier: OperatorTier.ESSENTIAL },
+  '{': { label: '{...}', description: 'Metadata block', category: 'Structure', tier: OperatorTier.ESSENTIAL },
+  '(': { label: '(...)', description: 'Note/comment block', category: 'Structure', tier: OperatorTier.ESSENTIAL },
+  '<': { label: '<...>', description: 'Variant/template block', category: 'Structure', tier: OperatorTier.ADVANCED },
+  '|': { label: '|', description: 'Alternative/or separator', category: 'Structure', tier: OperatorTier.ADVANCED },
+  // Quantification - ALL ESSENTIAL: #, %, ~
+  '#': { label: '#', description: 'Count/number quantifier', category: 'Quantification', tier: OperatorTier.ESSENTIAL },
+  '%': { label: '%', description: 'Percentage quantifier', category: 'Quantification', tier: OperatorTier.ESSENTIAL },
+  '~': { label: '~', description: 'Range/approximate quantifier', category: 'Quantification', tier: OperatorTier.ESSENTIAL },
+  // Logic - ALL ADVANCED: &, ||, ¬
+  '&': { label: '&', description: 'Logical AND', category: 'Logic', tier: OperatorTier.ADVANCED },
+  '||': { label: '||', description: 'Logical OR', category: 'Logic', tier: OperatorTier.ADVANCED },
+  '¬': { label: '¬', description: 'Logical NOT', category: 'Logic', tier: OperatorTier.ADVANCED },
+  // Meta - ESSENTIAL: § | ADVANCED: ©
+  '§': { label: '§', description: 'Version declaration', category: 'Meta', tier: OperatorTier.ESSENTIAL },
+  '©': { label: '©', description: 'Source/attribution', category: 'Meta', tier: OperatorTier.ADVANCED },
+
+  // ========== ARROW OPERATORS (ALL ADVANCED) ==========
+  // Links group
+  '->files': { label: '->files', description: 'Reference source files', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->tests': { label: '->tests', description: 'Reference test files', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->docs': { label: '->docs', description: 'Reference documentation', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->decisions': { label: '->decisions', description: 'Reference decisions', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->related': { label: '->related', description: 'Related features', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->entryPoint': { label: '->entryPoint', description: 'Mark entry point', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->blueprint': { label: '->blueprint', description: 'Blueprint/plan reference', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->depends': { label: '->depends', description: 'Declare dependencies', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->features': { label: '->features', description: 'Associated features', category: 'Links', tier: OperatorTier.ADVANCED },
+  '->why': { label: '->why', description: 'Rationale/explanation', category: 'Links', tier: OperatorTier.ADVANCED },
+  // Anchors group
+  '->descrizione': { label: '->descrizione', description: 'Anchor description (IT)', category: 'Anchors', tier: OperatorTier.ADVANCED },
+  '->description': { label: '->description', description: 'Anchor description (EN)', category: 'Anchors', tier: OperatorTier.ADVANCED },
+  // Decisions group
+  '->alternatives': { label: '->alternatives', description: 'Decision alternatives', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->reason': { label: '->reason', description: 'Decision rationale', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->tradeoff': { label: '->tradeoff', description: 'Trade-offs involved', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->context': { label: '->context', description: 'Decision context', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->status': { label: '->status', description: 'Decision status', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->revisit': { label: '->revisit', description: 'Revisit date/condition', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  '->supersededBy': { label: '->supersededBy', description: 'Superseded by another decision', category: 'Decisions', tier: OperatorTier.ADVANCED },
+  // Heat group
+  '->dependents': { label: '->dependents', description: 'Dependent modules', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->untouched': { label: '->untouched', description: 'Duration since last change', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->changes': { label: '->changes', description: 'Number of changes in period', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->coverage': { label: '->coverage', description: 'Test coverage percentage', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->confidence': { label: '->confidence', description: 'Confidence level', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->impact': { label: '->impact', description: 'Impact if changed', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '->caution': { label: '->caution', description: 'Warning/caution notes', category: 'Heat', tier: OperatorTier.ADVANCED },
+  // Intents group
+  '->does': { label: '->does', description: 'What component does', category: 'Intents', tier: OperatorTier.ADVANCED },
+  '->doesNot': { label: '->doesNot', description: 'What component does NOT do', category: 'Intents', tier: OperatorTier.ADVANCED },
+  '->contract': { label: '->contract', description: 'Component contract', category: 'Intents', tier: OperatorTier.ADVANCED },
+  '->singleResponsibility': { label: '->singleResponsibility', description: 'Single responsibility', category: 'Intents', tier: OperatorTier.ADVANCED },
+  '->antiPattern': { label: '->antiPattern', description: 'Anti-patterns to avoid', category: 'Intents', tier: OperatorTier.ADVANCED },
+  '->extends': { label: '->extends', description: 'Extended contracts', category: 'Intents', tier: OperatorTier.ADVANCED },
+
+  // ========== PREFIX OPERATORS (ALL ADVANCED) ==========
+  // Anchor prefixes
+  '@entry::': { label: '@entry::', description: 'Entry point anchor', category: 'Anchors', tier: OperatorTier.ADVANCED },
+  '@hotspot::': { label: '@hotspot::', description: 'Frequently modified area', category: 'Anchors', tier: OperatorTier.ADVANCED },
+  '@boundary::': { label: '@boundary::', description: 'System boundary', category: 'Anchors', tier: OperatorTier.ADVANCED },
+  // Heat prefixes
+  '@critical::': { label: '@critical::', description: 'Critical stability path', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '@stable::': { label: '@stable::', description: 'Rarely modified', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '@volatile::': { label: '@volatile::', description: 'Frequently changed', category: 'Heat', tier: OperatorTier.ADVANCED },
+  '@hot::': { label: '@hot::', description: 'Recent high-activity area', category: 'Heat', tier: OperatorTier.ADVANCED },
 };
 
 /**
@@ -330,6 +388,7 @@ export class MbelServer {
 
   /**
    * Get completions at position
+   * Completions are sorted by tier: ESSENTIAL (0-) first, ADVANCED (1-) second
    */
   getCompletions(uri: string, position: Position): CompletionItem[] {
     const doc = this.documents.get(uri);
@@ -340,20 +399,27 @@ export class MbelServer {
     // Position can be used for context-aware completions in the future
     void position;
 
-    // Return all operators as completions
+    // Return all operators as completions, sorted by tier
     const completions: CompletionItem[] = [];
 
     for (const [op, info] of Object.entries(OPERATOR_INFO)) {
+      const tierLabel = info.tier === OperatorTier.ESSENTIAL ? 'Essential' : 'Advanced';
+      const sortPrefix = info.tier === OperatorTier.ESSENTIAL ? '0' : '1';
+
       completions.push({
         label: op,
         kind: CompletionItemKind.Operator,
+        sortText: `${sortPrefix}-${op}`,
         documentation: {
           kind: MarkupKind.Markdown,
-          value: `**${info.category}**: ${info.description}`,
+          value: `**${info.category}** (${tierLabel})\n\n${info.description}`,
         },
-        detail: info.category,
+        detail: `${info.category} (${tierLabel})`,
       });
     }
+
+    // Sort by sortText to ensure ESSENTIAL operators appear first
+    completions.sort((a, b) => (a.sortText ?? '').localeCompare(b.sortText ?? ''));
 
     return completions;
   }

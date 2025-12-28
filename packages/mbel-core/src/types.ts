@@ -214,3 +214,16 @@ export interface LexerResult {
   readonly tokens: readonly Token[];
   readonly errors: readonly LexerError[];
 }
+
+/**
+ * Operator Tier Classification
+ *
+ * ESSENTIAL: 15 core operators - learn first
+ * ADVANCED: 52 extended operators - learn when needed
+ */
+export const OperatorTier = {
+  ESSENTIAL: 'ESSENTIAL',
+  ADVANCED: 'ADVANCED',
+} as const;
+
+export type OperatorTier = (typeof OperatorTier)[keyof typeof OperatorTier];
