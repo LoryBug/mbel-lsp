@@ -12,7 +12,7 @@ mbel-lsp/
 │   └── vscode-extension/{Client}✓
 ├── .opencode/
 │   ├── command/{mb.md,mb-pending.md,mb-recent.md}✓
-│   └── tool/{mbel-query.ts,mbel-workcontext.ts}
+│   └── tool/{mbel-semantic.ts✓,mbel-query.ts.deprecated,mbel-workcontext.ts}
 ├── memory-bank/{*.mbel.md}
 ├── opencode.json{lsp-config}
 └── package.json{npm-workspaces}
@@ -37,11 +37,19 @@ mbel-lsp/
   ->entryPoint{analyzer.ts:MbelAnalyzer}
   ->depends[Parser]
 
+@feature{OperatorTiers}
+  ->files[packages/mbel-core/src/operator-tiers.ts]
+  ->tests[packages/mbel-core/tests/operator-tiers.test.ts,completions-tiers.test.ts]
+  ->entryPoint{operator-tiers.ts:classifyOperator}
+  ->depends[types.ts]
+  ->scope{Essential-vs-Advanced operator classification}
+
 @feature{LSPServer}
   ->files[packages/mbel-lsp/src/server.ts,types.ts,bin.ts]
-  ->tests[packages/mbel-lsp/tests/server.test.ts,features.test.ts]
+  ->tests[packages/mbel-lsp/tests/server.test.ts,features.test.ts,completions-tiers.test.ts]
   ->entryPoint{server.ts:MbelServer}
-  ->depends[Parser,Analyzer]
+  ->depends[Parser,Analyzer,OperatorTiers]
+  ->enhancements{+39-arrow-prefix-operators,tier-aware-completions}
 
 @feature{QueryService}
   ->files[packages/mbel-lsp/src/query-service.ts]

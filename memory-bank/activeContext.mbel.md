@@ -85,3 +85,18 @@
   ->breakdown::operator-tiers{95},completions-tiers{55}
 @coverage::93%
 @packages::5{core,analyzer,lsp,cli,vscode-extension}
+
+[TASK#5_SESSION]
+@session::OperatorTiersImplementation{2024-12-28}
+✓operator-tiers.ts::NEW{packages/mbel-core/src}
+  ->exports::OperatorTier,classifyOperator,getTierOps,getEssentialOps
+✓types.ts::MODIFIED{+OperatorTier-type}
+✓index.ts::MODIFIED{+tier-exports}
+✓server.ts::MODIFIED{+tier-completions,+39-arrow-prefix-operators}
+✓operator-tiers.test.ts::NEW{95-tests}
+✓completions-tiers.test.ts::NEW{55-tests}
+✓mbel-semantic.ts::NEW{.opencode/tool}
+  ->replaces::mbel-query.ts{deprecated}
+✓MBEL-LSP-VERIFICATION.md::UPDATED{semantic-implementation-spec}
+@operators-classified::66{15-essential,51-advanced}
+@test-growth::859→1009{+150-tests}

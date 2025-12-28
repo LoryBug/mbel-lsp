@@ -2,10 +2,11 @@
 
 [OVERALL_STATUS]
 @status::MBEL-LSP-v6-Phase5-Complete✓
->tests::859{total,+53}
+>tests::1009{total,+150-from-TASK5}
 >coverage::~93%
 >commits::23{TDDAB-driven}
 >phase::AgentCLI{6of6-complete,122tests}
+@session-update::2024-12-28{TASK5-OperatorTiers-complete}
 
 [TDDAB_V5]
 @status::Complete✓{259tests}
@@ -67,7 +68,7 @@
 
 §P2-Important
 ?DOC#4::NamingConsistency
-?DOC#5::OperatorTiers{essential-vs-advanced}
+✓DOC#5::OperatorTiers{essential-vs-advanced}
 ?DOC#6::EscapeRules
 
 §P3-NiceToHave
