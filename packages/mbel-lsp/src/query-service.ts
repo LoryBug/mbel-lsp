@@ -138,6 +138,25 @@ export class QueryService {
   }
 
   /**
+   * Find a symbol by name in entry points
+   * @param content - MBEL document content
+   * @param symbolName - Symbol name to find (e.g., 'MbelParser')
+   * @returns Feature and file info, or null if not found
+   */
+  findSymbol(
+    content: string,
+    symbolName: string
+  ): { feature: string; file: string } | null {
+    const entries = this.getEntryPoints(content);
+    for (const [featureName, ep] of entries) {
+      if (ep.symbol === symbolName) {
+        return { feature: featureName, file: ep.file };
+      }
+    }
+    return null;
+  }
+
+  /**
    * Get all semantic anchors from the document
    * @param content - MBEL document content
    * @returns Array of anchor information

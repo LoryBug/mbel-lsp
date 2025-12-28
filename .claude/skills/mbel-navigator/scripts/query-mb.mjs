@@ -12,6 +12,7 @@
  *   anchors               List all anchors
  *   anchors-type <type>   Filter anchors by type (entry/hotspot/boundary)
  *   deps <name>           Show dependency tree
+ *   symbol <name>         Find where a symbol is defined
  */
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
@@ -52,7 +53,7 @@ function printFeature(f) {
   if (f.depends.length) console.log(`  depends: ${f.depends.join(', ')}`);
   if (f.related.length) console.log(`  related: ${f.related.join(', ')}`);
   if (f.entryPoint) {
-    console.log(`  entryPoint: ${f.entryPoint.file}::${f.entryPoint.symbol || ''}${f.entryPoint.line ? ':' + f.entryPoint.line : ''}`);
+    console.log(`  entryPoint: ${f.entryPoint.file}:${f.entryPoint.symbol || ''}`);
   }
 }
 
@@ -127,7 +128,7 @@ switch (command) {
     const entries = qs.getEntryPoints(content);
     console.log(`Found ${entries.size} entry points:\n`);
     for (const [name, ep] of entries) {
-      console.log(`  ${name}: ${ep.file}::${ep.symbol || ''}${ep.line ? ':' + ep.line : ''}`);
+      console.log(`  ${name}: ${ep.file}:${ep.symbol || ''}`);
     }
     break;
   }
@@ -168,6 +169,28 @@ switch (command) {
     break;
   }
 
+  case 'symbol': {
+    const name = args[0];
+    if (!name) {
+      console.error('Usage: query-mb.mjs symbol <name>');
+      process.exit(1);
+    }
+    const result = qs.findSymbol(content, name);
+    if (result) {
+      console.log(`Symbol "${name}" found:`);
+      console.log(`  Feature: ${result.feature}`);
+      console.log(`  File: ${result.file}`);
+    } else {
+      console.error(`Symbol "${name}" not found in entry points`);
+      const entries = qs.getEntryPoints(content);
+      if (entries.size > 0) {
+        console.log('Available symbols:', [...entries.values()].map(e => e.symbol).filter(Boolean).join(', '));
+      }
+      process.exit(1);
+    }
+    break;
+  }
+
   default: {
     console.log(`MBEL Memory Bank Query Tool
 
@@ -181,6 +204,7 @@ Commands:
   anchors               List all semantic anchors
   anchors-type <type>   Filter anchors (entry/hotspot/boundary)
   deps <name>           Show dependency tree for a feature
+  symbol <name>         Find where a symbol is defined
 
 Examples:
   node query-mb.mjs features
@@ -188,6 +212,7 @@ Examples:
   node query-mb.mjs file lexer.ts
   node query-mb.mjs anchors-type hotspot
   node query-mb.mjs deps LSPServer
+  node query-mb.mjs symbol MbelParser
 `);
     break;
   }

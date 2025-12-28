@@ -160,6 +160,46 @@ describe('QueryService (TDDAB#17)', () => {
     });
   });
 
+  describe('findSymbol - Symbol Lookup', () => {
+    const content = `
+§MBEL:6.0
+
+[LINKS]
+§links
+@feature{Parser}->files[src/parser.ts]->entryPoint{parser.ts:MbelParser}
+@feature{Lexer}->files[src/lexer.ts]->entryPoint{lexer.ts:MbelLexer}
+@feature{Analyzer}->files[src/analyzer.ts]
+`;
+
+    it('should find symbol by name', () => {
+      const result = queryService.findSymbol(content, 'MbelParser');
+
+      expect(result).not.toBeNull();
+      expect(result!.feature).toBe('Parser');
+      expect(result!.file).toBe('parser.ts');
+    });
+
+    it('should find another symbol', () => {
+      const result = queryService.findSymbol(content, 'MbelLexer');
+
+      expect(result).not.toBeNull();
+      expect(result!.feature).toBe('Lexer');
+      expect(result!.file).toBe('lexer.ts');
+    });
+
+    it('should return null for unknown symbol', () => {
+      const result = queryService.findSymbol(content, 'Unknown');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for empty content', () => {
+      const result = queryService.findSymbol('', 'MbelParser');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('getAnchors - Semantic Anchors', () => {
     const anchorContent = `
 §MBEL:6.0

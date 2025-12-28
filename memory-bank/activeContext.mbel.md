@@ -150,9 +150,6 @@
   ↳methods::getAnchor,getCrossRefs,getEditRisk,getImpactAnalysis,getDecisions,getIntent,getWorkContext,getAllFeatures,getAllAnchors,getAllDecisions,getIntentsByModule
   ↳commit::bf63179
   ↳depends::TDDAB#15✓
-?TDDAB#20::GitIntegration{priority:P4,estimated-duration:3days}
-  ↳methods::calculateHotspots,suggestAnchorUpdates
-?TDDAB#21::NaturalLanguageQuery{priority:P5,estimated-duration:XL}
 
 [HEAT]
 @critical::packages/mbel-core/src/lexer.ts

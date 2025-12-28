@@ -22,32 +22,32 @@ mbel-lsp/
 @feature{Lexer}
   ->files[packages/mbel-core/src/lexer.ts, packages/mbel-core/src/types.ts]
   ->tests[packages/mbel-core/tests/lexer.test.ts, packages/mbel-core/tests/lexer-links.test.ts, packages/mbel-core/tests/lexer-anchors.test.ts]
-  ->entryPoint{lexer.ts:MbelLexer:50}
+  ->entryPoint{lexer.ts:MbelLexer}
   ->related[Parser, Analyzer]
 
 @feature{Parser}
   ->files[packages/mbel-core/src/parser.ts, packages/mbel-core/src/ast.ts]
   ->tests[packages/mbel-core/tests/parser.test.ts, packages/mbel-core/tests/parser-links.test.ts, packages/mbel-core/tests/parser-anchors.test.ts]
-  ->entryPoint{parser.ts:MbelParser:45}
+  ->entryPoint{parser.ts:MbelParser}
   ->depends[Lexer]
   ->related[Analyzer]
 
 @feature{Analyzer}
   ->files[packages/mbel-analyzer/src/analyzer.ts, packages/mbel-analyzer/src/types.ts]
   ->tests[packages/mbel-analyzer/tests/analyzer.test.ts, packages/mbel-analyzer/tests/links-validation.test.ts, packages/mbel-analyzer/tests/anchors-validation.test.ts]
-  ->entryPoint{analyzer.ts:MbelAnalyzer:30}
+  ->entryPoint{analyzer.ts:MbelAnalyzer}
   ->depends[Parser]
 
 @feature{LSPServer}
   ->files[packages/mbel-lsp/src/server.ts, packages/mbel-lsp/src/types.ts, packages/mbel-lsp/src/bin.ts]
   ->tests[packages/mbel-lsp/tests/server.test.ts, packages/mbel-lsp/tests/features.test.ts]
-  ->entryPoint{server.ts:MbelServer:74}
+  ->entryPoint{server.ts:MbelServer}
   ->depends[Parser, Analyzer]
 
 @feature{QueryService}
   ->files[packages/mbel-lsp/src/query-service.ts]
   ->tests[packages/mbel-lsp/tests/query-service.test.ts]
-  ->entryPoint{query-service.ts:QueryService:25}
+  ->entryPoint{query-service.ts:QueryService}
   ->depends[Parser]
   ->related[LSPServer]
 
