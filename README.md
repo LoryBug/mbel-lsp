@@ -28,6 +28,57 @@ Specialized methods for AI agents to query project status efficiently:
 | `getRecentChanges()` | `>` | Get all recent changes |
 | `getProjectStatus()` | - | Get aggregated counts |
 
+### LlmApi Class (Programmatic LLM Interface)
+
+The `LlmApi` class provides a unified API for LLM clients to query MBEL documents with typed request/response interfaces:
+
+```typescript
+import { LlmApi } from '@mbel/lsp';
+
+const api = new LlmApi();
+api.loadDocument(mbelContent);
+
+// Feature navigation
+const features = api.getAllFeatures();           // Get all feature names
+const refs = api.getCrossRefs('Parser');         // Get feature cross-references
+
+// Semantic queries
+const anchor = api.getAnchor({ type: 'entry' }); // Find anchor by type/path
+const anchors = api.getAllAnchors();             // Get all semantic anchors
+
+// Risk and impact analysis
+const risk = api.getEditRisk({ file: 'src/parser.ts' });
+const impact = api.getImpactAnalysis({ files: ['src/lexer.ts'] });
+
+// Decision tracking
+const decisions = api.getDecisions({ status: 'ACTIVE' });
+const allDecisions = api.getAllDecisions();
+
+// Intent and contract queries
+const intent = api.getIntent({ module: 'Parser', component: 'Lexer' });
+const moduleIntents = api.getIntentsByModule('Parser');
+
+// Complete work context for a feature
+const context = api.getWorkContext('Parser');
+```
+
+**LlmApi Methods:**
+| Method | Description |
+|--------|-------------|
+| `loadDocument(content)` | Load MBEL document for querying |
+| `isLoaded()` | Check if document is loaded |
+| `getAllFeatures()` | Get all feature names |
+| `getCrossRefs(featureName)` | Get cross-references for a feature |
+| `getAnchor(request)` | Find anchor by path or type |
+| `getAllAnchors()` | Get all semantic anchors |
+| `getEditRisk(request)` | Get edit risk assessment for a file |
+| `getImpactAnalysis(request)` | Analyze impact of changing files |
+| `getDecisions(request)` | Find decisions by pattern/status/context |
+| `getAllDecisions()` | Get all decisions |
+| `getIntent(request)` | Get intent for module/component |
+| `getIntentsByModule(module)` | Get all intents for a module |
+| `getWorkContext(featureName)` | Get complete work context |
+
 ### Agent CLI (`@mbel/cli`)
 
 Command-line interface designed for AI agents with JSON output:
@@ -293,6 +344,14 @@ mbel-lsp/
 ## MBEL v6 Syntax
 
 ### Core Operators (66 total: 15 Essential + 51 Advanced)
+
+**Operator Tier System:**
+MBEL operators are classified into two tiers for improved IDE completions:
+
+- **ESSENTIAL (15 operators)** - Core operators for basic MBEL documents. Appear first in completions.
+- **ADVANCED (51 operators)** - Extended operators for v6 features. Appear after Essential operators.
+
+The tier-aware completion system sorts suggestions to show Essential operators first, helping new users learn the core syntax before advanced features.
 
 | Category | Operators | Description |
 |----------|-----------|-------------|

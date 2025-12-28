@@ -14688,6 +14688,15 @@ connection.onDocumentSymbol((params) => {
 connection.onDefinition((params) => {
   return server.getDefinition(params.textDocument.uri, params.position);
 });
+connection.onReferences((params) => {
+  return server.getReferences(params.textDocument.uri, params.position);
+});
+connection.onWorkspaceSymbol((params) => {
+  return server.getWorkspaceSymbols(params.query);
+});
+connection.onCodeLens((params) => {
+  return server.getCodeLenses(params.textDocument.uri);
+});
 connection.onShutdown(() => {
   server.onShutdown();
 });
