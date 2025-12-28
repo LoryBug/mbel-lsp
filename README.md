@@ -5,7 +5,7 @@ Language Server Protocol (LSP) implementation for **MBEL v6** (Memory Bank Expre
 ## Features
 
 ### Core LSP Features
-- **Syntax Highlighting** - Full support for all 50+ MBEL operators
+- **Syntax Highlighting** - Full support for all 66 MBEL operators (15 essential + 51 advanced)
 - **Diagnostics** - Real-time error detection and warnings (35+ diagnostic codes)
 - **Hover Information** - Documentation for operators on hover
 - **Code Completion** - Operator suggestions with descriptions
@@ -132,11 +132,11 @@ Full integration with [OpenCode](https://opencode.ai) AI coding assistant:
 | `/mb-pending` | Show pending items (?) |
 | `/mb-recent` | Show recent changes (>) |
 
-**Custom Tool** - The LLM can call `mbel-query` directly:
+**Custom Tool** - The LLM can call `mbel-semantic` directly:
 ```
-mbel-query(query: "status")   # Get project status counts
-mbel-query(query: "pending")  # Get pending items
-mbel-query(query: "all")      # Full project overview
+mbel-semantic(query: "status")   # Get project status counts
+mbel-semantic(query: "pending")  # Get pending items
+mbel-semantic(query: "all")      # Full project overview
 ```
 
 **LSP Integration** - Configure in `opencode.json`:
@@ -209,7 +209,7 @@ mbel-lsp/
 │       └── mbel-navigator/ # Claude Code skill for MB navigation
 ├── .opencode/
 │   ├── command/            # Slash commands (/mb, /mb-pending, /mb-recent)
-│   └── tool/               # Custom tools (mbel-query)
+│   └── tool/               # Custom tools (mbel-semantic)
 ├── memory-bank/            # MBEL Memory Bank files
 ├── opencode.json           # OpenCode LSP config
 └── package.json            # npm workspaces
@@ -217,7 +217,7 @@ mbel-lsp/
 
 ## MBEL v6 Syntax
 
-### Core Operators (50+)
+### Core Operators (66 total: 15 Essential + 51 Advanced)
 
 | Category | Operators | Description |
 |----------|-----------|-------------|
@@ -502,11 +502,11 @@ npm run btlt         # Build + Type-check + Lint + Test
 
 | Package | Tests | Coverage |
 |---------|-------|----------|
-| mbel-core | 350+ | 92% |
-| mbel-analyzer | 220+ | 96% |
-| mbel-lsp | 180+ | 89% |
+| mbel-core | 500+ | 94% |
+| mbel-analyzer | 220+ | 97% |
+| mbel-lsp | 180+ | 97% |
 | mbel-cli | 122 | 93% |
-| **Total** | **859** | **93%** |
+| **Total** | **1009** | **~93%** |
 
 ## Roadmap
 
@@ -540,6 +540,13 @@ npm run btlt         # Build + Type-check + Lint + Test
 - [x] **Workspace Symbols** - Cross-file symbol search
 - [x] **Claude Code Skill** - mbel-navigator for MB navigation
 - [x] **Agent CLI** - 5 commands (check, impact, context, grammar, simulate)
+- [x] **Operator Tiers** - 66 operators classified (15 essential + 51 advanced) with tier-aware completions
+
+### MBEL v6 Phase 6: Production-Ready (Next)
+- [ ] **Naming Consistency** - Standardize camelCase/lowercase conventions
+- [ ] **Escape Rules** - Special character handling
+- [ ] **Stricter LSP Validation** - Clear error messages
+- [ ] **OpenCode LSP Auto-Activation** - Fix auto-start issue
 
 ### Future
 - [ ] **Rename Symbol** - Rename sections/attributes across file
